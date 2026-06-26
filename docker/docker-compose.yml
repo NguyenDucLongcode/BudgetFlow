@@ -1,0 +1,96 @@
+name: ql_chitieu_docker_compose
+services:
+  # ================= Database =================
+  postgres:
+    image: postgres:15-alpine
+    container_name: ql_chitieu_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: db_postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ql_chitieu_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ql_chitieu_net
+  # ================= Backend =================
+  # backend:
+  #   container_name: QL_ChiTieu_Backend
+  #   build:
+  #     context: ../backend
+  #     dockerfile: Dockerfile
+  #   restart: no #always
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   env_file:
+  #     - ../backend/.env.production.local # đường dẫn file env
+  #   networks:
+  #     - ql_chitieu_net
+
+  redis:
+    image: redis:latest
+    container_name: ql_chitieu_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ql_chitieu_redis_data:/data
+    networks:
+      - ql_chitieu_net
+
+  # ================= Monitoring =================
+  prometheus:
+    image: prom/prometheus
+    container_name: ql_chitieu_prometheus
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - ql_chitieu_net
+
+  # ================= Grafana =================
+  # sử dụng để trực quan hóa dữ liệu từ các nguồn khác nhau như cơ sở dữ liệu, hệ thống giám sát và các dịch vụ đám mây.
+  grafana:
+    image: grafana/grafana
+    container_name: ql_chitieu_grafana
+    restart: always
+    ports:
+      - "3001:3000"
+    volumes:
+      - ql_chitieu_grafana_data:/var/lib/grafana
+    networks:
+      - ql_chitieu_net
+
+  # ================= cAdvisor =================
+  # Giam sát hiệu suất của các container Docker, cung cấp thông tin về CPU, bộ nhớ, mạng và I/O.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: ql_chitieu_cadvisor
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - ql_chitieu_net
+
+# ================= Volumes =================
+volumes:
+  ql_chitieu_postgres_data:
+  ql_chitieu_redis_data:
+  ql_chitieu_grafana_data:
+
+# ================= Networks =================
+networks:
+  ql_chitieu_net:
+    driver: bridge

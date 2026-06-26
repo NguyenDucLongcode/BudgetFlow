@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// enum 
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id       String @id @default(uuid())
+
+  // Thông tin đăng nhập
+  email    String @unique
+  password String
+  name     String
+
+  // Trạng thái tài khoản
+  isActive Boolean @default(false) // Đã xác thực email hay chưa
+  role     Role    @default(USER)  // Quyền của người dùng
+
+  // Đăng nhập bằng mạng xã hội (Google, Github,...)
+  provider   String?
+  providerId String?
+
+  // Xác thực email
+  verifyToken String?    // Token gửi qua email để kích hoạt tài khoản
+  verifiedAt DateTime?   @db.Timestamptz(6) // Thời điểm xác thực thành công
+  verifyTokenExpiresAt DateTime? @db.Timestamptz(6) // Thời gian hết hạn token xác thực
+  tokenVersion  Int @default(0)
+
+  // Quên mật khẩu
+  resetToken           String?   @unique // Token reset mật khẩu
+  resetTokenExpiresAt  DateTime? @db.Timestamptz(6) // Thời gian hết hạn token reset
+
+  // Múi giờ của người dùng (phục vụ reminder, cron job,...)
+  timezone String @default("Asia/Ho_Chi_Minh")
+
+  // Thời gian tạo/cập nhật
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  // Quan hệ
+  refreshTokens RefreshToken[]
+
+  // Indexes
+  @@unique([provider, providerId]) // Mỗi tài khoản Google/Github chỉ liên kết với 1 user
+  @@index([isActive])              // Tăng tốc tìm user theo trạng thái kích hoạt
+  @@index([role])                  // Tăng tốc phân quyền
+  @@index([timezone])              // Hữu ích cho cron job, reminder
+}
+
+model RefreshToken {
+  id String @id @default(uuid())
+
+  // Refresh token được cấp cho client
+  token String @unique
+
+  // Liên kết với người dùng sở hữu token
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceId String?
+
+  // Thông tin thiết bị đăng nhập
+  userAgent String? // Trình duyệt / thiết bị
+  ipAddress String? // Địa chỉ IP
+
+  // Thời gian hết hạn token
+  expiresAt DateTime @db.Timestamptz(6)
+
+  // Thời điểm token bị thu hồi (logout, đổi mật khẩu...)
+  revokedAt DateTime? @db.Timestamptz(6)
+
+  // Thời điểm tạo token
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Tăng tốc truy vấn
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([userId, revokedAt])
+  @@index([deviceId])
+}
