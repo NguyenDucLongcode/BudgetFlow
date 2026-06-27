@@ -50,9 +50,9 @@ export class UsersService {
   async findOne(id: string): Promise<User> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      include: {
-        refreshTokens: true,
-      },
+      // include: {
+      //   refreshTokens: true,
+      // },
     });
 
     if (!user) {
@@ -118,5 +118,12 @@ export class UsersService {
   // Đếm số lượng users
   async count(): Promise<number> {
     return this.prisma.user.count();
+  }
+
+  // Tìm user theo id
+  async findById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
   }
 }

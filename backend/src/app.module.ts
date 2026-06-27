@@ -9,6 +9,7 @@ import { UsersModule } from 'src/modules/user/users.module';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JWTAuthGuard } from 'src/modules/auth/strategies/guards/jwt-Auth.guard';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { JWTAuthGuard } from 'src/modules/auth/strategies/guards/jwt-Auth.guard'
     // Các module khác (Auth, Users, ...)
     UsersModule,
     AuthModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [

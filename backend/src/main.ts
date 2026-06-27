@@ -43,7 +43,7 @@ async function bootstrap() {
   setupSwagger(app);
 
   // Bây giờ process.env.PORT sẽ có giá trị từ file .env nếu nó tồn tại
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 8080);
 }
 
 void bootstrap();

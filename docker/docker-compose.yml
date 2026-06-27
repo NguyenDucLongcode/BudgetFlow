@@ -1,4 +1,5 @@
 name: ql_chitieu_docker_compose
+
 services:
   # ================= Database =================
   postgres:
@@ -15,23 +16,14 @@ services:
       - ql_chitieu_postgres_data:/var/lib/postgresql/data
     networks:
       - ql_chitieu_net
-  # ================= Backend =================
-  # backend:
-  #   container_name: QL_ChiTieu_Backend
-  #   build:
-  #     context: ../backend
-  #     dockerfile: Dockerfile
-  #   restart: no #always
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   env_file:
-  #     - ../backend/.env.production.local # đường dẫn file env
-  #   networks:
-  #     - ql_chitieu_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
+  # ================= Redis =================
   redis:
     image: redis:latest
     container_name: ql_chitieu_redis
@@ -42,38 +34,120 @@ services:
       - ql_chitieu_redis_data:/data
     networks:
       - ql_chitieu_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ================= Backend =================
+  # backend:
+  #   container_name: QL_ChiTieu_Backend
+  #   build:
+  #     context: ../backend
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   env_file:
+  #     - ../backend/.env.production.local
+  #   volumes:
+  #     - ../backend/uploads:/app/uploads
+  #     - ../backend/logs:/app/logs
+
+  #   networks:
+  #     - ql_chitieu_net
+  #   healthcheck:
+  #     test:
+  #       [
+  #         "CMD",
+  #         "node",
+  #         "-e",
+  #         "require('http').get('http://localhost:8080/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+  #       ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
 
   # ================= Monitoring =================
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     container_name: ql_chitieu_prometheus
-    restart: always
+    restart: unless-stopped
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ql_chitieu_prometheus_data:/prometheus
     ports:
       - "9090:9090"
     networks:
       - ql_chitieu_net
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # ================= Grafana =================
-  # sử dụng để trực quan hóa dữ liệu từ các nguồn khác nhau như cơ sở dữ liệu, hệ thống giám sát và các dịch vụ đám mây.
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: ql_chitieu_grafana
-    restart: always
+    restart: unless-stopped
     ports:
       - "3001:3000"
     volumes:
       - ql_chitieu_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     networks:
       - ql_chitieu_net
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # ================= cAdvisor =================
-  # Giam sát hiệu suất của các container Docker, cung cấp thông tin về CPU, bộ nhớ, mạng và I/O.
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: ql_chitieu_cadvisor
-    restart: always
+    restart: unless-stopped
     ports:
       - "8081:8080"
     volumes:
@@ -81,16 +155,40 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
     networks:
       - ql_chitieu_net
+    privileged: true
+    devices:
+      - /dev/kmsg
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/healthz",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # ================= Volumes =================
 volumes:
   ql_chitieu_postgres_data:
+    driver: local
   ql_chitieu_redis_data:
+    driver: local
   ql_chitieu_grafana_data:
+    driver: local
+  ql_chitieu_prometheus_data:
+    driver: local
 
 # ================= Networks =================
 networks:
   ql_chitieu_net:
     driver: bridge
+    name: ql_chitieu_net

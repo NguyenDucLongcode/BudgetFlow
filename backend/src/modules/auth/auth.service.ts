@@ -11,6 +11,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { parseExpiryToMs } from 'src/common/utils/time.util';
+import { Response } from 'express';
+import { RedisService } from 'src/modules/redis/redis.service';
+import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
+import { JwtPayload } from './strategies/type';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +23,7 @@ export class AuthService {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private configService: ConfigService,
+    private redisService: RedisService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -26,7 +31,7 @@ export class AuthService {
 
     // 1. Không tìm thấy user → sai đăng nhập
     if (!user) {
-      throw new UnauthorizedException(`Email hoặc mật khẩu không đúng`);
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
     // 2 User đăng ký bằng Google/Github
@@ -43,7 +48,7 @@ export class AuthService {
     );
 
     if (!isValidPassword) {
-      throw new UnauthorizedException(`Mật khẩu không đúng`);
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
     // Chưa xác thực email
@@ -57,6 +62,8 @@ export class AuthService {
   }
 
   async login(params: LoginParams) {
+    const redis = this.redisService.getClient();
+
     const { user, res, deviceId, ipAddress, userAgent } = params;
 
     if (!deviceId) {
@@ -71,18 +78,6 @@ export class AuthService {
       tv: user.tokenVersion,
     };
 
-    // Thu hồi tất cả refresh token cũ của user trên thiết bị này
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId: user.id,
-        deviceId,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
-    });
-
     // Tạo access token và refresh token
     const accessToken = await this.jwtService.signAsync(payload, {
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
@@ -94,27 +89,57 @@ export class AuthService {
       expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
     });
 
-    // Hash refresh token để lưu vào cơ sở dữ liệu
     const hashedToken = crypto
       .createHash('sha256')
       .update(refreshToken)
       .digest('hex');
 
-    // EXPIRES_AT (QUAN TRỌNG)
-    const refreshExpiresInMs = parseExpiryToMs(
-      this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
-    );
+    const refreshExpiresInSeconds =
+      parseExpiryToMs(
+        this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
+      ) / 1000;
 
-    // Lưu refresh token vào cơ sở dữ liệu đã qua hashing
-    await this.prisma.refreshToken.create({
-      data: {
-        token: hashedToken,
+    // Key Redis
+    const redisKey = getRefreshKey(user.id, deviceId);
+
+    // Lưu refresh token vào Redis với thời gian hết hạn
+    await redis.set(
+      redisKey,
+      JSON.stringify({
+        tokenHash: hashedToken,
         userId: user.id,
         deviceId,
         userAgent: userAgent ?? null,
         ipAddress: ipAddress ?? null,
-        expiresAt: new Date(Date.now() + refreshExpiresInMs),
-        revokedAt: null,
+      }),
+      'EX',
+      refreshExpiresInSeconds,
+    );
+
+    // Lưu thông tin đăng nhập vào cơ sở dữ liệu (UserSession)
+    // Nếu user đã đăng nhập trên thiết bị này trước đó, cập nhật thông tin
+    await this.prisma.userSession.upsert({
+      where: {
+        userId_deviceId: {
+          userId: user.id,
+          deviceId,
+        },
+      },
+
+      create: {
+        userId: user.id,
+        deviceId,
+        userAgent: userAgent ?? null,
+        ipAddress: ipAddress ?? null,
+        lastLoginAt: new Date(),
+        lastActiveAt: new Date(),
+      },
+
+      update: {
+        userAgent: userAgent ?? null,
+        ipAddress: ipAddress ?? null,
+        lastLoginAt: new Date(),
+        lastActiveAt: new Date(),
       },
     });
 
@@ -123,7 +148,7 @@ export class AuthService {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: refreshExpiresInMs,
+      maxAge: refreshExpiresInSeconds * 1000,
     });
 
     return {
@@ -131,7 +156,147 @@ export class AuthService {
       data: {
         accessToken,
         tokenType: 'Bearer',
-        expiresIn: this.configService.get('JWT_EXPIRES_IN') || '15m',
+        expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      },
+    };
+  }
+
+  async refreshToken(refreshToken: string, res: Response, deviceId: string) {
+    const redis = this.redisService.getClient();
+
+    // Verify JWT Refresh Token
+    let payload: JwtPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Tìm key trong Redis
+    const redisKey = getRefreshKey(payload.sub, deviceId);
+
+    const tokenData = await redis.get(redisKey);
+
+    if (!tokenData) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    // So sánh hash của refresh token từ Redis với hash của refresh token được gửi lên
+    const parsedToken = JSON.parse(tokenData);
+
+    const hashed = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+
+    if (parsedToken.tokenHash !== hashed) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Kiểm tra user trong cơ sở dữ liệu
+    // Nếu user không tồn tại hoặc không active → trả về lỗi
+    // Nếu token version không khớp → trả về lỗi
+    const user = await this.usersService.findById(payload.sub);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('User is not active');
+    }
+
+    if (payload.tv !== user.tokenVersion) {
+      throw new UnauthorizedException('Refresh token revoked');
+    }
+
+    const newPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tv: user.tokenVersion,
+    };
+
+    // Tạo access token mới
+    const accessToken = await this.jwtService.signAsync(newPayload, {
+      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
+    });
+
+    // Tạo refresh token mới (quan trọng)
+    const newRefreshToken = await this.jwtService.signAsync(newPayload, {
+      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
+    });
+
+    // Hash refresh token mới để lưu vào cơ sở dữ liệu
+    const hashedNew = crypto
+      .createHash('sha256')
+      .update(newRefreshToken)
+      .digest('hex');
+
+    const refreshExpiresInSeconds =
+      parseExpiryToMs(
+        this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
+      ) / 1000;
+
+    // Lưu refresh token mới vào redis, ghi đè refresh token cũ
+    await redis.set(
+      redisKey,
+      JSON.stringify({
+        tokenHash: hashedNew,
+        userAgent: parsedToken.userAgent ?? null,
+        ipAddress: parsedToken.ipAddress ?? null,
+      }),
+      'EX',
+      refreshExpiresInSeconds,
+    );
+
+    // Cập nhật thông tin đăng nhập trong cơ sở dữ liệu (UserSession)
+    await this.prisma.userSession.upsert({
+      where: {
+        userId_deviceId: {
+          userId: user.id,
+          deviceId,
+        },
+      },
+
+      create: {
+        userId: user.id,
+        deviceId,
+        userAgent: parsedToken.userAgent ?? null,
+        ipAddress: parsedToken.ipAddress ?? null,
+        lastLoginAt: new Date(),
+        lastActiveAt: new Date(),
+      },
+
+      update: {
+        lastActiveAt: new Date(),
+      },
+    });
+
+    // set cookie lại
+    res.cookie('refresh_token', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: refreshExpiresInSeconds * 1000,
+    });
+
+    return {
+      message: 'Refresh token success',
+      data: {
+        accessToken,
+        tokenType: 'Bearer',
+        expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
         user: {
           id: user.id,
           email: user.email,

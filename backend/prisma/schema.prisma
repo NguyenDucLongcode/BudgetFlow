@@ -47,8 +47,7 @@ model User {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
 
-  // Quan hệ
-  refreshTokens RefreshToken[]
+  sessions UserSession[]
 
   // Indexes
   @@unique([provider, providerId]) // Mỗi tài khoản Google/Github chỉ liên kết với 1 user
@@ -57,34 +56,34 @@ model User {
   @@index([timezone])              // Hữu ích cho cron job, reminder
 }
 
-model RefreshToken {
+
+model UserSession {
   id String @id @default(uuid())
 
-  // Refresh token được cấp cho client
-  token String @unique
-
-  // Liên kết với người dùng sở hữu token
+  // Quan hệ với User
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  deviceId String?
+  // Định danh thiết bị
+  deviceId String
 
-  // Thông tin thiết bị đăng nhập
-  userAgent String? // Trình duyệt / thiết bị
-  ipAddress String? // Địa chỉ IP
+  // Thông tin thiết bị
+  userAgent String?
+  ipAddress String?
 
-  // Thời gian hết hạn token
-  expiresAt DateTime @db.Timestamptz(6)
+  // Thời gian
+  lastLoginAt DateTime @default(now()) @db.Timestamptz(6) // Thời điểm đăng nhập lần cuối
+  lastActiveAt DateTime @default(now()) @db.Timestamptz(6) // Thời điểm hoạt động lần cuối (gửi request đến server)
 
-  // Thời điểm token bị thu hồi (logout, đổi mật khẩu...)
-  revokedAt DateTime? @db.Timestamptz(6)
-
-  // Thời điểm tạo token
   createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
 
-  // Tăng tốc truy vấn
+  // Một user chỉ có một session trên một device
+  @@unique([userId, deviceId])
+
+  // Index
   @@index([userId])
-  @@index([expiresAt])
-  @@index([userId, revokedAt])
   @@index([deviceId])
+  @@index([lastActiveAt])
 }
+
