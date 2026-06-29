@@ -6,7 +6,15 @@ export function setupSwagger(app: INestApplication) {
     .setTitle('BudgetFlow API')
     .setDescription('API quản lý thu chi cá nhân')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Nhập Access Token',
+      },
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

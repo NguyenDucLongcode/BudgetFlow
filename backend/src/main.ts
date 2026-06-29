@@ -17,11 +17,7 @@ async function bootstrap() {
   // Global prefix
   const apiPrefix = process.env.VERSION_API ?? 'api/v1';
   app.setGlobalPrefix(apiPrefix, {
-    exclude: [
-      '/',
-      { path: 'auth/google', method: RequestMethod.GET },
-      { path: 'auth/google/callback', method: RequestMethod.GET },
-    ],
+    exclude: ['/'],
   });
 
   // CORS config

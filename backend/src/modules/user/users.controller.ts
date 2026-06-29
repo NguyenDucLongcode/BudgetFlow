@@ -13,6 +13,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -63,5 +64,10 @@ export class UsersController {
   @Get('count')
   count() {
     return this.usersService.count();
+  }
+
+  @Get('me')
+  getProfile(@CurrentUser('sub') userId: string) {
+    return this.usersService.getProfile(userId);
   }
 }

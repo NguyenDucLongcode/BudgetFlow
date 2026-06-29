@@ -19,58 +19,49 @@ export class JWTAuthGuard extends AuthGuard('jwt') {
     const req: Request = context.switchToHttp().getRequest();
     const url = req.originalUrl;
 
-    // Kiểm tra xem endpoint có được đánh dấu là public không
+    // Kiểm tra endpoint public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // Nếu là endpoint public, bỏ qua tất cả các bước xác thực
     if (isPublic) {
       return true;
     }
 
-    // Bỏ qua endpoint /metrics
+    // Bỏ qua metrics
     const apiPrefix = process.env.VERSION_API ?? 'api/v1';
+
     if (url.startsWith(`/${apiPrefix}/metrics`)) {
       return true;
     }
 
-    // Lấy token từ header x-access-token
-    const accessTokenHeader = req.headers['x-access-token'];
-    if (!accessTokenHeader) {
-      throw new UnauthorizedException('Không tìm thấy token trong header.');
+    // Kiểm tra Authorization header
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      throw new UnauthorizedException('Không tìm thấy Authorization header.');
     }
 
-    // Xử lý trường hợp token là mảng (nếu có nhiều header cùng tên)
-    let token = Array.isArray(accessTokenHeader)
-      ? accessTokenHeader[0]
-      : accessTokenHeader;
-
-    if (token.startsWith('Bearer ')) {
-      token = token.substring(7);
+    if (!authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException(
+        'Authorization header phải có dạng: Bearer <token>',
+      );
     }
 
-    // Set token để passport-jwt sử dụng
-    req.headers['x-access-token'] = token;
-
-    // Gọi parent canActivate để xác thực JWT
+    // Passport sẽ tự xử lý token
     const jwtResult = await super.canActivate(context);
 
-    // Nếu xác thực JWT thất bại
-    if (!jwtResult) {
-      return false;
-    }
-
-    return true;
+    return !!jwtResult;
   }
-
   // Override để tùy chỉnh thông báo lỗi
   handleRequest<TUser = any>(
     err: Error | null,
     user: TUser,
     info: IVerifyOptions | string | undefined,
   ): TUser {
+    console.log('INFO:', info);
+    console.log('USER:', user);
     if (err || !user) {
       const infoMessage = typeof info === 'string' ? info : info?.message;
       let message = 'Không thể xác thực người dùng.';

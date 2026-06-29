@@ -21,22 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Gọi hàm khởi tạo của PassportStrategy (cha)
     super({
       // CHỈ lấy token từ Authorization header với format Bearer
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request): string | null => {
-          // Lấy token từ X-Access-Token header
-          const tokenHeader = req.headers['x-access-token'];
-          if (!tokenHeader) return null;
-
-          let token = Array.isArray(tokenHeader) ? tokenHeader[0] : tokenHeader;
-
-          // Hỗ trợ cả "Bearer " prefix nếu có
-          if (token.startsWith('Bearer ')) {
-            token = token.substring(7);
-          }
-
-          return token || null;
-        },
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
     });
@@ -67,10 +52,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      id: user.id,
+      sub: user.id,
       email: user.email,
-      name: user.name,
       role: user.role,
+      tv: user.tokenVersion,
+      iat: payload.iat,
+      exp: payload.exp,
     };
   }
 }

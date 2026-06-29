@@ -44,7 +44,7 @@ export class AuthService {
     // 3. So sánh mật khẩu -> nếu sai → sai đăng nhập
     const isValidPassword = await comparePasswordHelper(
       password,
-      user.password,
+      user.password ? user.password : '',
     );
 
     if (!isValidPassword) {
@@ -304,6 +304,87 @@ export class AuthService {
           role: user.role,
         },
       },
+    };
+  }
+
+  async logout(userId: string, deviceId: string, res: Response) {
+    const redis = this.redisService.getClient();
+
+    // Xóa refresh token trong Redis
+    const redisKey = getRefreshKey(userId, deviceId);
+
+    await redis.del(redisKey);
+
+    // Xóa session trong DB
+    await this.prisma.userSession.deleteMany({
+      where: {
+        userId,
+        deviceId,
+      },
+    });
+
+    // Xóa cookie
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    return {
+      message: 'Logout successful',
+    };
+  }
+
+  async logoutAll(userId: string, res: Response) {
+    const redis = this.redisService.getClient();
+
+    // Lấy toàn bộ session của user
+    const sessions = await this.prisma.userSession.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        deviceId: true,
+      },
+    });
+
+    // Xóa tất cả refresh token trong Redis
+    if (sessions.length > 0) {
+      const keys = sessions.map((session) =>
+        getRefreshKey(userId, session.deviceId),
+      );
+
+      await redis.del(...keys);
+    }
+
+    // Xóa toàn bộ session trong DB
+    await this.prisma.userSession.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    // Thu hồi toàn bộ access token/refresh token còn lại
+    await this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        tokenVersion: {
+          increment: 1,
+        },
+      },
+    });
+
+    // Xóa cookie trên thiết bị hiện tại
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    return {
+      message: 'Logout all devices successfully',
     };
   }
 }

@@ -2,26 +2,63 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
+  Get,
   Headers,
+  Param,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
-// import { ResgisterAuthDto } from './dto/resgister-auth.dto';
+import { ResgisterAuthDto } from './dto/resgister-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestWithUser } from 'src/common/interfaces/request-with-user.interface';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
-import { ApiAuthLoginSwagger } from './swagger/login.swagger';
+import {} from './swagger/auth_Swagger/login.swagger';
+import { JwtPayload } from './strategies/type';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import {
+  ApiAuthRefreshTokenSwagger,
+  ApiAuthLoginSwagger,
+  ApiAuthLogoutSwagger,
+  ApiAuthLogoutAllSwagger,
+  ApiAuthSessionsSwagger,
+  ApiAuthRemoveSessionSwagger,
+  ApiVerifyEmailSwagger,
+  ApiResendVerificationSwagger,
+  ApiForgotPasswordSwagger,
+  ApiResetPasswordSwagger,
+  ApiGoogleAuthSwagger,
+  ApiGoogleCallbackSwagger,
+} from './swagger';
+import { ApiAccessToken } from 'src/common/decorators/swagger-auth.decorator';
+import { ForgotPasswordDto } from './dto/fogotPassword.dto';
+import { ResetPasswordDto } from './dto/resetPassword.dto';
+import { AuthEmailService } from './services/auth.email.service';
+import { SessionService } from './services/auth.session.service';
+import { ResendVerificationEmailDto } from './dto/ResendVerificationEmailDto';
+import { GoogleAuthGuard } from './strategies/guards/google-auth.guard';
+import { GoogleUser } from 'src/common/interfaces/google-user.interface';
+import { ConfigService } from '@nestjs/config';
+import { AuthOAuth20Service } from './services/auth.oauth20.service';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly sessionService: SessionService,
+    private readonly authEmailService: AuthEmailService,
+    private readonly authOAuth20Service: AuthOAuth20Service,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -52,7 +89,9 @@ export class AuthController {
     });
   }
 
+  @Public()
   @Post('refresh-token')
+  @ApiAuthRefreshTokenSwagger()
   @Public()
   async refreshToken(
     @Req() req: Request,
@@ -72,5 +111,126 @@ export class AuthController {
     }
 
     return this.authService.refreshToken(refreshToken, res, deviceId);
+  }
+
+  @Post('register')
+  @Public()
+  register(@Body() registerDto: ResgisterAuthDto) {
+    return this.authEmailService.register(registerDto);
+  }
+
+  @ApiAccessToken()
+  @Post('logout')
+  @ApiAuthLogoutSwagger()
+  logout(
+    @CurrentUser() user: JwtPayload,
+    @Headers('x-device-id') deviceId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!deviceId) {
+      throw new BadRequestException('Thiếu device id');
+    }
+
+    return this.authService.logout(user.sub, deviceId, res);
+  }
+
+  @ApiAccessToken()
+  @Post('logout-all')
+  @ApiAuthLogoutAllSwagger()
+  logoutAll(
+    @CurrentUser('sub') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logoutAll(userId, res);
+  }
+
+  @ApiAccessToken()
+  @Get('sessions')
+  @ApiAuthSessionsSwagger()
+  getSessions(@CurrentUser('sub') userId: string) {
+    return this.sessionService.getSessions(userId);
+  }
+
+  @ApiAccessToken()
+  @Delete('sessions/:deviceId')
+  @ApiAuthRemoveSessionSwagger()
+  removeSession(
+    @CurrentUser('sub') userId: string,
+    @Param('deviceId') deviceId: string,
+  ) {
+    if (!deviceId) {
+      throw new BadRequestException('Thiếu device id');
+    }
+
+    return this.sessionService.removeSession(userId, deviceId);
+  }
+
+  @Public()
+  @Get('verify-email')
+  @ApiVerifyEmailSwagger()
+  verifyEmail(@Query('token') token: string) {
+    if (!token) {
+      throw new BadRequestException('Thiếu token xác thực');
+    }
+
+    return this.authEmailService.verifyEmail(token);
+  }
+
+  @Public()
+  @Post('resend-verification-email')
+  @ApiResendVerificationSwagger()
+  resendVerificationEmail(@Body() dto: ResendVerificationEmailDto) {
+    return this.authEmailService.resendVerificationEmail(dto.email);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @ApiForgotPasswordSwagger()
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authEmailService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @ApiResetPasswordSwagger()
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authEmailService.resetPassword(dto);
+  }
+
+  @Public()
+  @Get('google')
+  @ApiGoogleAuthSwagger()
+  @UseGuards(GoogleAuthGuard)
+  googleAuth() {}
+
+  @Public()
+  @Get('google/callback')
+  @ApiGoogleCallbackSwagger()
+  @UseGuards(GoogleAuthGuard)
+  async googleCallback(@Req() req: RequestWithUser, @Res() res: Response) {
+    const deviceId = (req.query.state as string) || 'unknown-device';
+
+    // Tạo GoogleUser từ dữ liệu đã được Strategy trả về
+    const googleUser: GoogleUser = {
+      email: req.user.email,
+      name: req.user.name,
+      picture: req.user.avatar || undefined, // FIX: was req.user.avatar
+      provider: 'google',
+      providerId: req.user.providerId || '', // FIX: remove || '' fallback
+    };
+
+    const result = await this.authOAuth20Service.googleLogin(
+      googleUser,
+      deviceId,
+      req,
+      res,
+    );
+
+    // Redirect về frontend với token
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    return res.redirect(
+      `${frontendUrl}/auth/social-success?token=${result.data.accessToken}`,
+    );
   }
 }

@@ -19,7 +19,7 @@ model User {
 
   // Thông tin đăng nhập
   email    String @unique
-  password String
+  password  String?
   name     String
 
   // Trạng thái tài khoản
@@ -29,11 +29,17 @@ model User {
   // Đăng nhập bằng mạng xã hội (Google, Github,...)
   provider   String?
   providerId String?
+  avatar   String?  // URL avatar từ Google
 
   // Xác thực email
   verifyToken String?    // Token gửi qua email để kích hoạt tài khoản
   verifiedAt DateTime?   @db.Timestamptz(6) // Thời điểm xác thực thành công
   verifyTokenExpiresAt DateTime? @db.Timestamptz(6) // Thời gian hết hạn token xác thực
+
+  // Quên mật khẩu
+  resetPasswordToken String?
+  resetPasswordExpiresAt DateTime?
+
   tokenVersion  Int @default(0)
 
   // Quên mật khẩu

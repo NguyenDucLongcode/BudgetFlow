@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { HealthModule } from 'src/modules/health/health.module';
@@ -10,6 +9,8 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JWTAuthGuard } from 'src/modules/auth/strategies/guards/jwt-Auth.guard';
 import { RedisModule } from './modules/redis/redis.module';
+import { ConfigModule } from '@nestjs/config';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RedisModule } from './modules/redis/redis.module';
 
     // Health check
     HealthModule,
+    EmailModule,
 
     // Các module khác (Auth, Users, ...)
     UsersModule,

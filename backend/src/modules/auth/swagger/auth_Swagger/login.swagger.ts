@@ -8,7 +8,7 @@ import {
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { LoginDto } from '../dto/login.dto';
+import { LoginDto } from '../../dto/login.dto';
 
 export function ApiAuthLoginSwagger() {
   return applyDecorators(
