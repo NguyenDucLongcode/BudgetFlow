@@ -30,35 +30,42 @@ export class SessionService {
   async removeSession(userId: string, deviceId: string) {
     const redis = this.redisService.getClient();
 
-    // Kiểm tra xem session có tồn tại hay không
-    const session = await this.prisma.userSession.findUnique({
+    const deleted = await this.prisma.userSession.deleteMany({
       where: {
-        userId_deviceId: {
-          userId,
-          deviceId,
-        },
+        userId,
+        deviceId,
       },
     });
 
-    if (!session) {
+    if (!deleted.count) {
       throw new NotFoundException('Session not found');
     }
 
-    // Xóa refresh token trong Redis
     await redis.del(getRefreshKey(userId, deviceId));
-
-    // Xóa session trong DB
-    await this.prisma.userSession.delete({
-      where: {
-        userId_deviceId: {
-          userId,
-          deviceId,
-        },
-      },
-    });
 
     return {
       message: 'Session removed successfully',
     };
+  }
+
+  async revokeAllUserSessions(userId: string) {
+    const redis = this.redisService.getClient();
+
+    const sessions = await this.prisma.userSession.findMany({
+      where: { userId },
+      select: { deviceId: true },
+    });
+
+    // Lấy tất cả khóa Redis của các session để xóa
+    const keys = sessions.map((s) => getRefreshKey(userId, s.deviceId));
+
+    // Xóa tất cả session của user trong cơ sở dữ liệu
+    await this.prisma.userSession.deleteMany({
+      where: { userId },
+    });
+
+    if (keys.length) {
+      await redis.del(...keys);
+    }
   }
 }

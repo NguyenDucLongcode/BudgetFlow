@@ -36,12 +36,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         name: true,
         role: true,
         isActive: true,
+        deletedAt: true,
         tokenVersion: true,
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid token');
+    // Kiểm tra user tồn tại và đang hoạt động
+    if (!user || !user.isActive || user.deletedAt) {
+      throw new UnauthorizedException('Unauthorized');
     }
 
     // =========================

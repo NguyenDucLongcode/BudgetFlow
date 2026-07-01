@@ -10,12 +10,14 @@ import { EmailModule } from 'src/email/email.module';
 import { SessionService } from './services/auth.session.service';
 import { AuthEmailService } from './services/auth.email.service';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { AuthOAuth20Service } from './services/auth.oauth20.service';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     EmailModule,
+
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -36,6 +38,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     SessionService,
     AuthEmailService,
     GoogleStrategy,
+    AuthOAuth20Service,
   ],
   exports: [AuthService],
 })

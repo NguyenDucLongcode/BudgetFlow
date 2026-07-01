@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UsersService } from 'src/modules/user/users.service';
 import { ConfigService } from '@nestjs/config';
 import { GoogleUser } from 'src/common/interfaces/google-user.interface';
 import { RequestWithUser } from 'src/common/interfaces/request-with-user.interface';
@@ -10,12 +9,13 @@ import * as crypto from 'crypto';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
 import { parseExpiryToMs } from 'src/common/utils/time.util';
 import { Response } from 'express';
+import { AdminService } from 'src/modules/user/admin.service';
 
 @Injectable()
 export class AuthOAuth20Service {
   constructor(
     private prisma: PrismaService,
-    private usersService: UsersService,
+    private adminService: AdminService,
     private jwtService: JwtService,
     private redisService: RedisService,
     private readonly configService: ConfigService,
@@ -38,7 +38,7 @@ export class AuthOAuth20Service {
 
     // 2. Nếu chưa có, tìm theo email
     if (!user) {
-      user = await this.usersService.findByEmail(googleUser.email);
+      user = await this.adminService.findByEmail(googleUser.email);
     }
 
     // 3. Nếu tìm thấy user bằng email nhưng chưa có provider

@@ -1,10 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
-import { RequestMethod } from '@nestjs/common';
 import { useHelmet } from './common/security/helmet/helmet.config';
-import { setupSwagger } from './common/configs/swagger.config';
-import { validationPipeConfig } from './common/configs/validation.config';
+import { setupSwagger, validationPipeConfig } from './common/configs';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { logger } from './common/middeware/logger.middleware';
 

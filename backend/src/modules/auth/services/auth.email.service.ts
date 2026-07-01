@@ -6,17 +6,18 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResgisterAuthDto } from '../dto/resgister-auth.dto';
 import { EmailService } from 'src/email/email.service';
-import { UsersService } from 'src/modules/user/users.service';
+
 import { hashPasswordHelper } from 'src/common/utils/user.until';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dto/resetPassword.dto';
 import { ConfigService } from '@nestjs/config';
+import { AdminService } from 'src/modules/user/admin.service';
 
 @Injectable()
 export class AuthEmailService {
   constructor(
     private prisma: PrismaService,
-    private usersService: UsersService,
+    private adminService: AdminService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {}
@@ -25,7 +26,7 @@ export class AuthEmailService {
     const { email, password, name } = registerDto;
 
     // Kiểm tra email đã tồn tại chưa
-    const existingUser = await this.usersService.findByEmail(email);
+    const existingUser = await this.adminService.findByEmail(email);
 
     if (existingUser) {
       throw new ConflictException('Email đã tồn tại');
@@ -117,7 +118,7 @@ export class AuthEmailService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.adminService.findByEmail(email);
 
     // Không tiết lộ email có tồn tại hay không
     if (!user) {
@@ -202,7 +203,7 @@ export class AuthEmailService {
   }
 
   async resendVerificationEmail(email: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.adminService.findByEmail(email);
 
     // Không tiết lộ email có tồn tại hay không
     if (!user) {

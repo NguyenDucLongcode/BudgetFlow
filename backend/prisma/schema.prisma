@@ -35,12 +35,14 @@ model User {
   verifyToken String?    // Token gửi qua email để kích hoạt tài khoản
   verifiedAt DateTime?   @db.Timestamptz(6) // Thời điểm xác thực thành công
   verifyTokenExpiresAt DateTime? @db.Timestamptz(6) // Thời gian hết hạn token xác thực
+ 
 
   // Quên mật khẩu
   resetPasswordToken String?
   resetPasswordExpiresAt DateTime?
 
   tokenVersion  Int @default(0)
+  deletedAt DateTime?   // soft delete
 
   // Quên mật khẩu
   resetToken           String?   @unique // Token reset mật khẩu

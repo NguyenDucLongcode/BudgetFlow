@@ -60,8 +60,6 @@ export class JWTAuthGuard extends AuthGuard('jwt') {
     user: TUser,
     info: IVerifyOptions | string | undefined,
   ): TUser {
-    console.log('INFO:', info);
-    console.log('USER:', user);
     if (err || !user) {
       const infoMessage = typeof info === 'string' ? info : info?.message;
       let message = 'Không thể xác thực người dùng.';

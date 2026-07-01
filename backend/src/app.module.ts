@@ -9,31 +9,53 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JWTAuthGuard } from 'src/modules/auth/strategies/guards/jwt-Auth.guard';
 import { RedisModule } from './modules/redis/redis.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailModule } from 'src/email/email.module';
+import { BullModule } from '@nestjs/bullmq';
+import { CleanupModule } from './jobs/cleanup/cleanup.module';
+import { envValidationSchema } from './common/configs/env.validation';
+import { configuration } from 'src/common/configs';
+import { PoliciesGuard } from 'src/casl/policies/policies.guard';
+import { CaslModule } from './casl/casl.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      load: [configuration],
+      validationSchema: envValidationSchema,
     }),
 
     // monitoring
-    PrometheusModule.register({
-      path: '/metrics', // Endpoint metrics
-      defaultMetrics: {
-        enabled: true, // Lấy các metrics mặc định: CPU, RAM, heap...
-      },
+    PrometheusModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        path: config.get<string>('app.prometheus.path') ?? '/metrics',
+        defaultMetrics: {
+          enabled:
+            config.get<boolean>('app.prometheus.defaultMetrics.enabled') ??
+            true,
+        },
+      }),
     }),
 
-    // Database
-    PrismaModule,
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('app.redis.host'),
+          port: config.get<number>('app.redis.port'),
+          password: config.get<string>('app.redis.password'),
+        },
+      }),
+    }),
 
-    // Health check
-    HealthModule,
+    PrismaModule, // Database
+    CleanupModule,
+    HealthModule, // Health check
     EmailModule,
-
+    CaslModule,
     // Các module khác (Auth, Users, ...)
     UsersModule,
     AuthModule,
@@ -45,6 +67,10 @@ import { EmailModule } from 'src/email/email.module';
     {
       provide: APP_GUARD,
       useClass: JWTAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PoliciesGuard,
     },
   ],
 })

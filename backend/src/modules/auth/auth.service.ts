@@ -3,7 +3,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UsersService } from 'src/modules/user/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { comparePasswordHelper } from 'src/common/utils/user.until';
 import { LoginParams } from 'src/common/interfaces/login-params.interface';
@@ -15,19 +14,22 @@ import { Response } from 'express';
 import { RedisService } from 'src/modules/redis/redis.service';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
 import { JwtPayload } from './strategies/type';
+import { SessionService } from './services/auth.session.service';
+import { AdminService } from '../user/admin.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
+    private adminService: AdminService,
     private jwtService: JwtService,
     private prisma: PrismaService,
     private configService: ConfigService,
     private redisService: RedisService,
+    private sessionService: SessionService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.adminService.findByEmail(email);
 
     // 1. Không tìm thấy user → sai đăng nhập
     if (!user) {
@@ -54,6 +56,10 @@ export class AuthService {
     // Chưa xác thực email
     if (!user.isActive) {
       throw new ForbiddenException('Tài khoản chưa được xác thực email');
+    }
+
+    if (user.deletedAt) {
+      throw new ForbiddenException('Tài khoản đã bị vô hiệu hóa ');
     }
 
     const { password: _password, ...result } = user;
@@ -205,7 +211,7 @@ export class AuthService {
     // Kiểm tra user trong cơ sở dữ liệu
     // Nếu user không tồn tại hoặc không active → trả về lỗi
     // Nếu token version không khớp → trả về lỗi
-    const user = await this.usersService.findById(payload.sub);
+    const user = await this.adminService.findById(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -336,33 +342,8 @@ export class AuthService {
   }
 
   async logoutAll(userId: string, res: Response) {
-    const redis = this.redisService.getClient();
-
-    // Lấy toàn bộ session của user
-    const sessions = await this.prisma.userSession.findMany({
-      where: {
-        userId,
-      },
-      select: {
-        deviceId: true,
-      },
-    });
-
-    // Xóa tất cả refresh token trong Redis
-    if (sessions.length > 0) {
-      const keys = sessions.map((session) =>
-        getRefreshKey(userId, session.deviceId),
-      );
-
-      await redis.del(...keys);
-    }
-
     // Xóa toàn bộ session trong DB
-    await this.prisma.userSession.deleteMany({
-      where: {
-        userId,
-      },
-    });
+    await this.sessionService.revokeAllUserSessions(userId);
 
     // Thu hồi toàn bộ access token/refresh token còn lại
     await this.prisma.user.update({
