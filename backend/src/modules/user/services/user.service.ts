@@ -4,46 +4,39 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangePasswordDto } from '../dto/user/change-password.dto';
 import {
   comparePasswordHelper,
   hashPasswordHelper,
 } from 'src/common/utils/user.until';
-import { RedisService } from 'src/modules/redis/redis.service';
-import { SessionService } from '../auth/services/auth.session.service';
-import { AdminService } from './admin.service';
+import { SessionService } from '../../session/session.service';
+import { UserUpdateProfileDto } from '../dto/user/user_update-profile.dto';
+import { UserRepository } from 'src/prisma/repositories';
 
 @Injectable()
 export class UserService {
   constructor(
-    private prisma: PrismaService,
-    private redisService: RedisService,
     private sessionService: SessionService,
-    private adminService: AdminService,
+    private userRepository: UserRepository,
   ) {}
 
   // Cập nhật thông tin cá nhân
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
-    // Kiểm tra user tồn tại
-    const user = await this.prisma.user.findUnique({
+  async updateProfile(userId: string, dto: UserUpdateProfileDto) {
+    const user = await this.userRepository.findUnique({
       where: {
         id: userId,
       },
     });
 
     if (!user) {
-      throw new NotFoundException('Người dùng không tồn tại');
+      throw new NotFoundException('Người dùng không tồn tại.');
     }
 
-    const updatedUser = await this.prisma.user.update({
+    const updatedUser = await this.userRepository.update({
       where: {
         id: userId,
       },
-      data: {
-        ...dto,
-      },
+      data: dto,
       select: {
         id: true,
         email: true,
@@ -60,9 +53,23 @@ export class UserService {
       data: updatedUser,
     };
   }
-
   async getProfile(userId: string) {
-    const user = await this.adminService.findById(userId);
+    const user = await this.userRepository.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        provider: true,
+        timezone: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -70,31 +77,29 @@ export class UserService {
 
     return {
       message: 'Get profile successfully',
-      data: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isActive: user.isActive,
-        provider: user.provider,
-        timezone: user.timezone,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      data: user,
     };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
-    const user = await this.prisma.user.findUniqueOrThrow({
+    const user = await this.userRepository.findUnique({
       where: {
         id: userId,
       },
+      select: {
+        id: true,
+        password: true,
+      },
     });
 
-    // Google account
+    if (!user) {
+      throw new NotFoundException('Người dùng không tồn tại.');
+    }
+
+    // Tài khoản đăng nhập bằng Google/Github
     if (!user.password) {
       throw new BadRequestException(
-        'Tài khoản đăng nhập bằng Google không thể đổi mật khẩu.',
+        'Tài khoản đăng nhập bằng mạng xã hội không thể đổi mật khẩu.',
       );
     }
 
@@ -102,7 +107,6 @@ export class UserService {
       throw new BadRequestException('Xác nhận mật khẩu không khớp.');
     }
 
-    // 3. So sánh mật khẩu -> nếu sai → sai đăng nhập
     const isValidPassword = await comparePasswordHelper(
       dto.currentPassword,
       user.password,
@@ -113,12 +117,14 @@ export class UserService {
     }
 
     if (dto.currentPassword === dto.newPassword) {
-      throw new BadRequestException('Mật khẩu mới phải khác mật khẩu cũ.');
+      throw new BadRequestException(
+        'Mật khẩu mới phải khác mật khẩu hiện tại.',
+      );
     }
 
     const hashedPassword = await hashPasswordHelper(dto.newPassword);
 
-    await this.prisma.user.update({
+    await this.userRepository.update({
       where: {
         id: userId,
       },
@@ -130,7 +136,6 @@ export class UserService {
       },
     });
 
-    // Xóa toàn bộ session
     await this.sessionService.revokeAllUserSessions(userId);
 
     return {

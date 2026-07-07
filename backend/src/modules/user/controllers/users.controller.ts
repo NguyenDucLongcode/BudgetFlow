@@ -3,28 +3,24 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
 } from '@nestjs/common';
-// import { ChangePasswordDto } from './dto/change-password.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UserUpdateProfileDto } from '../dto/user/user_update-profile.dto';
 import { CheckPolicies } from 'src/casl/policies/check-policies.decorator';
 import { Action } from 'src/casl/actions.enum';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { UserService } from './user.service';
-import { AdminService } from './admin.service';
+import { ChangePasswordDto } from '../dto/user/change-password.dto';
+import { UserService } from '../services/user.service';
+import { SessionService } from 'src/modules/session/session.service';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly userService: UserService,
-    private readonly adminService: AdminService,
+    private readonly sessionService: SessionService,
   ) {}
 
   // =====================================================
@@ -43,7 +39,7 @@ export class UsersController {
   @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
   updateProfile(
     @CurrentUser('sub') userId: string,
-    @Body() dto: UpdateProfileDto,
+    @Body() dto: UserUpdateProfileDto,
   ) {
     return this.userService.updateProfile(userId, dto);
   }
@@ -65,45 +61,36 @@ export class UsersController {
   // }
 
   // =====================================================
-  // ADMIN
+  // SESSIONS
   // =====================================================
 
-  // Danh sách user
-  @Get()
-  findAll() {
-    return this.adminService.findAll();
+  // Danh sách thiết bị đã đăng nhập
+  @Get('me/sessions')
+  getSessions(@CurrentUser('sub') userId: string) {
+    return this.sessionService.getSessions(userId);
   }
 
-  // Tổng số user
-  @Get('count')
-  count() {
-    return this.adminService.count();
+  // Đăng xuất 1 thiết bị// Thu hồi 1 thiết bị
+  @Delete('me/sessions/:sessionId')
+  async revokeSession(
+    @CurrentUser('sub') userId: string,
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+  ) {
+    // 1. Xóa session trong database và redis
+    await this.sessionService.removeSession(userId, sessionId);
+
+    return {
+      message: 'Thu hồi phiên đăng nhập thành công.',
+    };
   }
 
-  // Chi tiết user
-  @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.findOne(id);
-  }
+  // Thu hồi tất cả thiết bị
+  @Delete('me/sessions')
+  async revokeAllSessions(@CurrentUser('sub') userId: string) {
+    await this.sessionService.revokeAllUserSessions(userId);
 
-  // Admin cập nhật user
-  @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
-    return this.adminService.update(id, dto);
-  }
-
-  // Khóa / mở khóa tài khoản
-  @Patch(':id/toggle-active')
-  @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
-  toggleActive(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.toggleActive(id);
-  }
-
-  // Xóa user
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.deleteAccount(id);
+    return {
+      message: 'Đã thu hồi tất cả phiên đăng nhập.',
+    };
   }
 }

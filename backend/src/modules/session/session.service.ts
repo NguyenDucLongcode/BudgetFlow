@@ -2,22 +2,33 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/modules/redis/redis.service';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
+import { SessionRepository, UserRepository } from 'src/prisma/repositories';
 
 @Injectable()
 export class SessionService {
   constructor(
     private prisma: PrismaService,
     private redisService: RedisService,
+    private sessionRepository: SessionRepository,
+    private userRepository: UserRepository,
   ) {}
 
   async getSessions(userId: string) {
-    // Lấy toàn bộ session của user từ cơ sở dữ liệu
-    const sessions = await this.prisma.userSession.findMany({
+    const sessions = await this.sessionRepository.findMany({
       where: {
         userId,
       },
       orderBy: {
         lastActiveAt: 'desc',
+      },
+      select: {
+        id: true,
+        deviceId: true,
+        userAgent: true,
+        ipAddress: true,
+        lastLoginAt: true,
+        lastActiveAt: true,
+        createdAt: true,
       },
     });
 
@@ -27,25 +38,31 @@ export class SessionService {
     };
   }
 
-  async removeSession(userId: string, deviceId: string) {
+  async removeSession(userId: string, sessionId: string) {
     const redis = this.redisService.getClient();
 
-    const deleted = await this.prisma.userSession.deleteMany({
+    const session = await this.sessionRepository.findUnique({
       where: {
-        userId,
-        deviceId,
+        id: sessionId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        deviceId: true,
       },
     });
 
-    if (!deleted.count) {
-      throw new NotFoundException('Session not found');
+    if (!session || session.userId !== userId) {
+      throw new NotFoundException('Phiên đăng nhập không tồn tại.');
     }
 
-    await redis.del(getRefreshKey(userId, deviceId));
+    await this.sessionRepository.delete({
+      where: {
+        id: session.id,
+      },
+    });
 
-    return {
-      message: 'Session removed successfully',
-    };
+    await redis.del(getRefreshKey(userId, session.deviceId));
   }
 
   async revokeAllUserSessions(userId: string) {
@@ -67,5 +84,16 @@ export class SessionService {
     if (keys.length) {
       await redis.del(...keys);
     }
+
+    await this.userRepository.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        tokenVersion: {
+          increment: 1,
+        },
+      },
+    });
   }
 }

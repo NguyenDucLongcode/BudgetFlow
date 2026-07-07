@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { GoogleUser } from 'src/common/interfaces/google-user.interface';
 import { RequestWithUser } from 'src/common/interfaces/request-with-user.interface';
@@ -9,13 +8,13 @@ import * as crypto from 'crypto';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
 import { parseExpiryToMs } from 'src/common/utils/time.util';
 import { Response } from 'express';
-import { AdminService } from 'src/modules/user/admin.service';
+import { SessionRepository, UserRepository } from 'src/prisma/repositories';
 
 @Injectable()
 export class AuthOAuth20Service {
   constructor(
-    private prisma: PrismaService,
-    private adminService: AdminService,
+    private userRepository: UserRepository,
+    private sessionRepository: SessionRepository,
     private jwtService: JwtService,
     private redisService: RedisService,
     private readonly configService: ConfigService,
@@ -29,7 +28,7 @@ export class AuthOAuth20Service {
     res: Response,
   ) {
     // 1. Tìm user theo provider + providerId
-    let user = await this.prisma.user.findFirst({
+    let user = await this.userRepository.findFirst({
       where: {
         provider: googleUser.provider,
         providerId: googleUser.providerId,
@@ -38,12 +37,12 @@ export class AuthOAuth20Service {
 
     // 2. Nếu chưa có, tìm theo email
     if (!user) {
-      user = await this.adminService.findByEmail(googleUser.email);
+      user = await this.userRepository.findByEmail(googleUser.email);
     }
 
     // 3. Nếu tìm thấy user bằng email nhưng chưa có provider
     if (user && !user.provider) {
-      user = await this.prisma.user.update({
+      user = await this.userRepository.update({
         where: { id: user.id },
         data: {
           provider: googleUser.provider,
@@ -57,7 +56,7 @@ export class AuthOAuth20Service {
 
     // 4. Nếu chưa có user nào → tạo mới
     if (!user) {
-      user = await this.prisma.user.create({
+      user = await this.userRepository.create({
         data: {
           email: googleUser.email,
           name: googleUser.name,
@@ -114,7 +113,7 @@ export class AuthOAuth20Service {
     );
 
     // 6. Tạo hoặc update session
-    await this.prisma.userSession.upsert({
+    await this.sessionRepository.upsert({
       where: {
         userId_deviceId: {
           userId: user.id,

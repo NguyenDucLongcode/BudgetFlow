@@ -3,7 +3,6 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { ResgisterAuthDto } from '../dto/resgister-auth.dto';
 import { EmailService } from 'src/email/email.service';
 
@@ -11,13 +10,12 @@ import { hashPasswordHelper } from 'src/common/utils/user.until';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dto/resetPassword.dto';
 import { ConfigService } from '@nestjs/config';
-import { AdminService } from 'src/modules/user/admin.service';
+import { UserRepository } from 'src/prisma/repositories';
 
 @Injectable()
 export class AuthEmailService {
   constructor(
-    private prisma: PrismaService,
-    private adminService: AdminService,
+    private userRepository: UserRepository,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {}
@@ -26,7 +24,7 @@ export class AuthEmailService {
     const { email, password, name } = registerDto;
 
     // Kiểm tra email đã tồn tại chưa
-    const existingUser = await this.adminService.findByEmail(email);
+    const existingUser = await this.userRepository.findByEmail(email);
 
     if (existingUser) {
       throw new ConflictException('Email đã tồn tại');
@@ -40,7 +38,7 @@ export class AuthEmailService {
     const verifyTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // Tạo user mới trong cơ sở dữ liệu
-    const user = await this.prisma.user.create({
+    const user = await this.userRepository.create({
       data: {
         email,
         password: hashedPassword,
@@ -78,7 +76,7 @@ export class AuthEmailService {
   }
 
   async verifyEmail(token: string) {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.userRepository.findFirst({
       where: {
         verifyToken: token,
         verifyTokenExpiresAt: {
@@ -100,7 +98,7 @@ export class AuthEmailService {
       };
     }
 
-    await this.prisma.user.update({
+    await this.userRepository.update({
       where: {
         id: user.id,
       },
@@ -118,7 +116,7 @@ export class AuthEmailService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.adminService.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     // Không tiết lộ email có tồn tại hay không
     if (!user) {
@@ -134,7 +132,7 @@ export class AuthEmailService {
       Date.now() + 60 * 60 * 1000, // 1h
     );
 
-    await this.prisma.user.update({
+    await this.userRepository.update({
       where: {
         id: user.id,
       },
@@ -163,7 +161,7 @@ export class AuthEmailService {
   async resetPassword(dto: ResetPasswordDto) {
     const { token, password } = dto;
 
-    const user = await this.prisma.user.findFirst({
+    const user = await this.userRepository.findFirst({
       where: {
         resetPasswordToken: token,
         resetPasswordExpiresAt: {
@@ -180,7 +178,7 @@ export class AuthEmailService {
 
     const hashedPassword = await hashPasswordHelper(password);
 
-    await this.prisma.user.update({
+    await this.userRepository.update({
       where: {
         id: user.id,
       },
@@ -203,7 +201,7 @@ export class AuthEmailService {
   }
 
   async resendVerificationEmail(email: string) {
-    const user = await this.adminService.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     // Không tiết lộ email có tồn tại hay không
     if (!user) {
@@ -222,7 +220,7 @@ export class AuthEmailService {
 
     const verifyTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await this.prisma.user.update({
+    await this.userRepository.update({
       where: { id: user.id },
       data: {
         verifyToken,

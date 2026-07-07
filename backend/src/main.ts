@@ -4,40 +4,77 @@ import cookieParser from 'cookie-parser';
 import { useHelmet } from './common/security/helmet/helmet.config';
 import { setupSwagger, validationPipeConfig } from './common/configs';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { logger } from './common/middeware/logger.middleware';
+import { ConfigService } from '@nestjs/config';
+import { VersioningType } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'], // Or read from env
+    bufferLogs: true, // Buffer logs until app initializes
+  });
 
-  //  Logging middleware
-  app.use(logger);
+  // 2. Get ConfigService for env variables (cleaner)
+  const configService = app.get(ConfigService);
 
-  // Global prefix
-  const apiPrefix = process.env.VERSION_API ?? 'api/v1';
+  // ============================================
+  // API PREFIX & VERSIONING
+  // ============================================
+
+  // API PREFIX & VERSIONING
+  const apiPrefix = configService.get<string>('API_PREFIX') ?? 'api';
+
   app.setGlobalPrefix(apiPrefix, {
-    exclude: ['/'],
+    exclude: ['/', 'health', 'metrics', 'metrics/json'],
   });
 
-  // CORS config
+  if (configService.get('API_VERSIONING_ENABLED', true)) {
+    app.enableVersioning({
+      type: VersioningType.URI,
+      defaultVersion: configService.get('API_VERSION', '1'),
+      prefix: 'v',
+    });
+  }
+
+  // ============================================
+  // CORS
+  // ============================================
   app.enableCors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
+    origin: configService.get('CORS_ORIGIN', 'http://localhost:3000'),
+    credentials: configService.get('CORS_CREDENTIALS', true),
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
-  // Security middleware
-  app.use(useHelmet()); // Helmet
-  app.use(cookieParser()); // Cookie parser
+  // 6. Security middleware
+  app.use(useHelmet());
+  app.use(cookieParser());
 
+  // 7. Global filters  & pipes
   app.useGlobalFilters(new AllExceptionsFilter());
-
-  // Validation pipes
   app.useGlobalPipes(validationPipeConfig);
 
-  //  Swagger
-  setupSwagger(app);
+  // 8. Swagger - only in non-production or with auth
+  if (process.env.NODE_ENV !== 'production') {
+    setupSwagger(app);
+  }
 
-  // Bây giờ process.env.PORT sẽ có giá trị từ file .env nếu nó tồn tại
-  await app.listen(process.env.PORT ?? 8080);
+  // 9. Graceful shutdown
+  app.enableShutdownHooks();
+
+  // 10. Start server
+  const port = configService.get<number>('PORT') ?? 8080;
+  const host = configService.get<string>('HOST') ?? '0.0.0.0';
+
+  await app.listen(port, host, () => {
+    console.log(`🚀 Application running on: http://${host}:${port}`);
+    console.log(`📚 Swagger: http://${host}:${port}/api/docs`);
+  });
 }
+
+// Handle unhandled rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // In production, you might want to log to your error tracking service
+});
 
 void bootstrap();

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { HealthModule } from 'src/modules/health/health.module';
 import { UsersModule } from 'src/modules/user/users.module';
@@ -17,6 +16,8 @@ import { envValidationSchema } from './common/configs/env.validation';
 import { configuration } from 'src/common/configs';
 import { PoliciesGuard } from 'src/casl/policies/policies.guard';
 import { CaslModule } from './casl/casl.module';
+import { PrometheusModule } from 'src/modules/prometheus/prometheus.module';
+import { CsrfGuard, CsrfModule } from './common/security/csrf';
 
 @Module({
   imports: [
@@ -25,19 +26,6 @@ import { CaslModule } from './casl/casl.module';
       envFilePath: '.env',
       load: [configuration],
       validationSchema: envValidationSchema,
-    }),
-
-    // monitoring
-    PrometheusModule.registerAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        path: config.get<string>('app.prometheus.path') ?? '/metrics',
-        defaultMetrics: {
-          enabled:
-            config.get<boolean>('app.prometheus.defaultMetrics.enabled') ??
-            true,
-        },
-      }),
     }),
 
     BullModule.forRootAsync({
@@ -52,7 +40,9 @@ import { CaslModule } from './casl/casl.module';
     }),
 
     PrismaModule, // Database
+    PrometheusModule, // Prometheus metrics
     CleanupModule,
+    CsrfModule, // CSRF protection
     HealthModule, // Health check
     EmailModule,
     CaslModule,
@@ -67,6 +57,10 @@ import { CaslModule } from './casl/casl.module';
     {
       provide: APP_GUARD,
       useClass: JWTAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
     },
     {
       provide: APP_GUARD,

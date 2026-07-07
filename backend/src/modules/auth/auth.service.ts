@@ -1,12 +1,12 @@
 import {
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { comparePasswordHelper } from 'src/common/utils/user.until';
 import { LoginParams } from 'src/common/interfaces/login-params.interface';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { parseExpiryToMs } from 'src/common/utils/time.util';
@@ -14,22 +14,24 @@ import { Response } from 'express';
 import { RedisService } from 'src/modules/redis/redis.service';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
 import { JwtPayload } from './strategies/type';
-import { SessionService } from './services/auth.session.service';
-import { AdminService } from '../user/admin.service';
+import { SessionService } from 'src/modules/session/session.service';
+import { SessionRepository, UserRepository } from 'src/prisma/repositories';
+import { CsrfService } from 'src/common/security/csrf';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private adminService: AdminService,
+    private userRepository: UserRepository,
     private jwtService: JwtService,
-    private prisma: PrismaService,
     private configService: ConfigService,
     private redisService: RedisService,
     private sessionService: SessionService,
+    private sessionRepository: SessionRepository,
+    private csrfService: CsrfService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.adminService.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     // 1. Không tìm thấy user → sai đăng nhập
     if (!user) {
@@ -124,7 +126,7 @@ export class AuthService {
 
     // Lưu thông tin đăng nhập vào cơ sở dữ liệu (UserSession)
     // Nếu user đã đăng nhập trên thiết bị này trước đó, cập nhật thông tin
-    await this.prisma.userSession.upsert({
+    await this.sessionRepository.upsert({
       where: {
         userId_deviceId: {
           userId: user.id,
@@ -156,6 +158,9 @@ export class AuthService {
       sameSite: 'strict',
       maxAge: refreshExpiresInSeconds * 1000,
     });
+
+    // set CSRF cookie
+    this.csrfService.setCsrfCookie(res);
 
     return {
       message: 'Đăng nhập thành công',
@@ -211,7 +216,7 @@ export class AuthService {
     // Kiểm tra user trong cơ sở dữ liệu
     // Nếu user không tồn tại hoặc không active → trả về lỗi
     // Nếu token version không khớp → trả về lỗi
-    const user = await this.adminService.findById(payload.sub);
+    const user = await this.userRepository.findById(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -267,7 +272,7 @@ export class AuthService {
     );
 
     // Cập nhật thông tin đăng nhập trong cơ sở dữ liệu (UserSession)
-    await this.prisma.userSession.upsert({
+    await this.sessionRepository.upsert({
       where: {
         userId_deviceId: {
           userId: user.id,
@@ -297,6 +302,9 @@ export class AuthService {
       maxAge: refreshExpiresInSeconds * 1000,
     });
 
+    // set CSRF cookie
+    this.csrfService.setCsrfCookie(res);
+
     return {
       message: 'Refresh token success',
       data: {
@@ -314,6 +322,19 @@ export class AuthService {
   }
 
   async logout(userId: string, deviceId: string, res: Response) {
+    const session = await this.sessionRepository.findUnique({
+      where: {
+        userId_deviceId: {
+          userId,
+          deviceId,
+        },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Phiên đăng nhập không tồn tại.');
+    }
+
     const redis = this.redisService.getClient();
 
     // Xóa refresh token trong Redis
@@ -322,10 +343,12 @@ export class AuthService {
     await redis.del(redisKey);
 
     // Xóa session trong DB
-    await this.prisma.userSession.deleteMany({
+    await this.sessionRepository.delete({
       where: {
-        userId,
-        deviceId,
+        userId_deviceId: {
+          userId,
+          deviceId,
+        },
       },
     });
 
@@ -336,6 +359,9 @@ export class AuthService {
       sameSite: 'strict',
     });
 
+    // Xóa CSRF cookie
+    this.csrfService.clearCsrfCookie(res);
+
     return {
       message: 'Logout successful',
     };
@@ -345,24 +371,15 @@ export class AuthService {
     // Xóa toàn bộ session trong DB
     await this.sessionService.revokeAllUserSessions(userId);
 
-    // Thu hồi toàn bộ access token/refresh token còn lại
-    await this.prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        tokenVersion: {
-          increment: 1,
-        },
-      },
-    });
-
     // Xóa cookie trên thiết bị hiện tại
     res.clearCookie('refresh_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
     });
+
+    // Xóa CSRF cookie
+    this.csrfService.clearCsrfCookie(res);
 
     return {
       message: 'Logout all devices successfully',

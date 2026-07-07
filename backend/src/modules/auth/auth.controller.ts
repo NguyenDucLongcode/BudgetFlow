@@ -42,12 +42,13 @@ import { ApiAccessToken } from 'src/common/decorators/swagger-auth.decorator';
 import { ForgotPasswordDto } from './dto/fogotPassword.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
 import { AuthEmailService } from './services/auth.email.service';
-import { SessionService } from './services/auth.session.service';
+import { SessionService } from '../session/session.service';
 import { ResendVerificationEmailDto } from './dto/ResendVerificationEmailDto';
 import { GoogleAuthGuard } from './strategies/guards/google-auth.guard';
 import { GoogleUser } from 'src/common/interfaces/google-user.interface';
 import { ConfigService } from '@nestjs/config';
 import { AuthOAuth20Service } from './services/auth.oauth20.service';
+import { SkipCsrf } from 'src/common/security/csrf';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -61,6 +62,7 @@ export class AuthController {
   ) {}
 
   @Public()
+  @SkipCsrf()
   @Post('login')
   @ApiAuthLoginSwagger() // Sử dụng decorator Swagger cho endpoint đăng nhập
   async login(
@@ -90,6 +92,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Post('refresh-token')
   @ApiAuthRefreshTokenSwagger()
   @Public()
@@ -114,12 +117,14 @@ export class AuthController {
   }
 
   @Post('register')
+  @SkipCsrf()
   @Public()
   register(@Body() registerDto: ResgisterAuthDto) {
     return this.authEmailService.register(registerDto);
   }
 
   @ApiAccessToken()
+  @SkipCsrf()
   @Post('logout')
   @ApiAuthLogoutSwagger()
   logout(
@@ -135,6 +140,7 @@ export class AuthController {
   }
 
   @ApiAccessToken()
+  @SkipCsrf()
   @Post('logout-all')
   @ApiAuthLogoutAllSwagger()
   logoutAll(
@@ -166,6 +172,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Get('verify-email')
   @ApiVerifyEmailSwagger()
   verifyEmail(@Query('token') token: string) {
@@ -177,6 +184,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Post('resend-verification-email')
   @ApiResendVerificationSwagger()
   resendVerificationEmail(@Body() dto: ResendVerificationEmailDto) {
@@ -184,6 +192,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Post('forgot-password')
   @ApiForgotPasswordSwagger()
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
@@ -191,6 +200,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Post('reset-password')
   @ApiResetPasswordSwagger()
   resetPassword(@Body() dto: ResetPasswordDto) {
@@ -198,12 +208,14 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Get('google')
   @ApiGoogleAuthSwagger()
   @UseGuards(GoogleAuthGuard)
   googleAuth() {}
 
   @Public()
+  @SkipCsrf()
   @Get('google/callback')
   @ApiGoogleCallbackSwagger()
   @UseGuards(GoogleAuthGuard)

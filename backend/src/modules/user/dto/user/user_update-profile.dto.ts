@@ -2,7 +2,7 @@ import { Transform } from 'class-transformer';
 import { IsOptional, IsString, Length } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UpdateProfileDto {
+export class UserUpdateProfileDto {
   @ApiPropertyOptional({
     example: 'Nguyễn Đức Long',
     description: 'Họ và tên',
