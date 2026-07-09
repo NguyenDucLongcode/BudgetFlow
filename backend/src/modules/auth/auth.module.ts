@@ -6,13 +6,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../user/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EmailModule } from 'src/email/email.module';
+import { EmailModule } from 'src/infrastructure/email/email.module';
 import { SessionService } from '../session/session.service';
 import { AuthEmailService } from './services/auth.email.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { AuthOAuth20Service } from './services/auth.oauth20.service';
 import { SessionModule } from 'src/modules/session/session.module';
-import { CsrfModule } from 'src/common/security/csrf';
+import { CsrfModule } from 'src/core/security/csrf';
 
 @Module({
   imports: [

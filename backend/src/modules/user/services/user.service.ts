@@ -11,7 +11,7 @@ import {
 } from 'src/common/utils/user.until';
 import { SessionService } from '../../session/session.service';
 import { UserUpdateProfileDto } from '../dto/user/user_update-profile.dto';
-import { UserRepository } from 'src/prisma/repositories';
+import { UserRepository } from 'src/infrastructure/prisma/repositories';
 
 @Injectable()
 export class UserService {

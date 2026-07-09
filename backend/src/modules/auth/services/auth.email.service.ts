@@ -4,13 +4,13 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ResgisterAuthDto } from '../dto/resgister-auth.dto';
-import { EmailService } from 'src/email/email.service';
+import { EmailService } from 'src/infrastructure/email/email.service';
 
 import { hashPasswordHelper } from 'src/common/utils/user.until';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dto/resetPassword.dto';
 import { ConfigService } from '@nestjs/config';
-import { UserRepository } from 'src/prisma/repositories';
+import { UserRepository } from 'src/infrastructure/prisma/repositories';
 
 @Injectable()
 export class AuthEmailService {

@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RedisService } from 'src/modules/redis/redis.service';
+import { PrismaService } from 'src/infrastructure/prisma/prisma.service';
+import { RedisService } from 'src/infrastructure/redis/redis.service';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
-import { SessionRepository, UserRepository } from 'src/prisma/repositories';
+import {
+  SessionRepository,
+  UserRepository,
+} from 'src/infrastructure/prisma/repositories';
 
 @Injectable()
 export class SessionService {
@@ -39,8 +42,6 @@ export class SessionService {
   }
 
   async removeSession(userId: string, sessionId: string) {
-    const redis = this.redisService.getClient();
-
     const session = await this.sessionRepository.findUnique({
       where: {
         id: sessionId,
@@ -62,12 +63,10 @@ export class SessionService {
       },
     });
 
-    await redis.del(getRefreshKey(userId, session.deviceId));
+    await this.redisService.del(getRefreshKey(userId, session.deviceId));
   }
 
   async revokeAllUserSessions(userId: string) {
-    const redis = this.redisService.getClient();
-
     const sessions = await this.prisma.userSession.findMany({
       where: { userId },
       select: { deviceId: true },
@@ -82,7 +81,7 @@ export class SessionService {
     });
 
     if (keys.length) {
-      await redis.del(...keys);
+      await this.redisService.del(...keys);
     }
 
     await this.userRepository.update({

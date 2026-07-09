@@ -10,11 +10,13 @@ import {
 
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { UserUpdateProfileDto } from '../dto/user/user_update-profile.dto';
-import { CheckPolicies } from 'src/casl/policies/check-policies.decorator';
-import { Action } from 'src/casl/actions.enum';
+import { CheckPolicies } from 'src/core/security/casl/policies/check-policies.decorator';
+import { Action } from 'src/core/security/casl/actions.enum';
 import { ChangePasswordDto } from '../dto/user/change-password.dto';
 import { UserService } from '../services/user.service';
 import { SessionService } from 'src/modules/session/session.service';
+import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
+import { RATE_LIMIT } from 'src/common/constants/rate-limit.constants';
 
 @Controller('users')
 export class UsersController {
@@ -28,6 +30,7 @@ export class UsersController {
   // =====================================================
 
   // Lấy thông tin cá nhân
+  @RateLimit(RATE_LIMIT.USER.PROFILE)
   @Get('me')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   getProfile(@CurrentUser('sub') userId: string) {
@@ -35,6 +38,7 @@ export class UsersController {
   }
 
   // Cập nhật thông tin cá nhân
+  @RateLimit(RATE_LIMIT.USER.UPDATE_PROFILE)
   @Patch('me')
   @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
   updateProfile(
@@ -45,6 +49,7 @@ export class UsersController {
   }
 
   // Đổi mật khẩu
+  @RateLimit(RATE_LIMIT.USER.CHANGE_PASSWORD)
   @Patch('me/change-password')
   @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
   changePassword(
@@ -65,12 +70,14 @@ export class UsersController {
   // =====================================================
 
   // Danh sách thiết bị đã đăng nhập
+  @RateLimit(RATE_LIMIT.USER.SESSIONS)
   @Get('me/sessions')
   getSessions(@CurrentUser('sub') userId: string) {
     return this.sessionService.getSessions(userId);
   }
 
   // Đăng xuất 1 thiết bị// Thu hồi 1 thiết bị
+  @RateLimit(RATE_LIMIT.USER.REVOKE_SESSION)
   @Delete('me/sessions/:sessionId')
   async revokeSession(
     @CurrentUser('sub') userId: string,
@@ -85,6 +92,7 @@ export class UsersController {
   }
 
   // Thu hồi tất cả thiết bị
+  @RateLimit(RATE_LIMIT.USER.REVOKE_ALL_SESSIONS)
   @Delete('me/sessions')
   async revokeAllSessions(@CurrentUser('sub') userId: string) {
     await this.sessionService.revokeAllUserSessions(userId);

@@ -8,7 +8,10 @@ import { AdminUpdateUserDto } from '../dto/admin/admin_update-profile.dto';
 import { Prisma, Role } from 'generated/prisma/client';
 import { SessionService } from '../../session/session.service';
 import { AdminPaginationUsersDto } from '../dto/admin/admin_pagination_query';
-import { SessionRepository, UserRepository } from 'src/prisma/repositories';
+import {
+  SessionRepository,
+  UserRepository,
+} from 'src/infrastructure/prisma/repositories';
 
 @Injectable()
 export class AdminService {

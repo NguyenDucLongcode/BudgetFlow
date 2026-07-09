@@ -11,12 +11,15 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { parseExpiryToMs } from 'src/common/utils/time.util';
 import { Response } from 'express';
-import { RedisService } from 'src/modules/redis/redis.service';
+import { RedisService } from 'src/infrastructure/redis/redis.service';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
 import { JwtPayload } from './strategies/type';
 import { SessionService } from 'src/modules/session/session.service';
-import { SessionRepository, UserRepository } from 'src/prisma/repositories';
-import { CsrfService } from 'src/common/security/csrf';
+import {
+  SessionRepository,
+  UserRepository,
+} from 'src/infrastructure/prisma/repositories';
+import { CsrfService } from 'src/core/security/csrf';
 
 @Injectable()
 export class AuthService {
@@ -70,8 +73,6 @@ export class AuthService {
   }
 
   async login(params: LoginParams) {
-    const redis = this.redisService.getClient();
-
     const { user, res, deviceId, ipAddress, userAgent } = params;
 
     if (!deviceId) {
@@ -111,7 +112,7 @@ export class AuthService {
     const redisKey = getRefreshKey(user.id, deviceId);
 
     // Lưu refresh token vào Redis với thời gian hết hạn
-    await redis.set(
+    await this.redisService.set(
       redisKey,
       JSON.stringify({
         tokenHash: hashedToken,
@@ -120,7 +121,6 @@ export class AuthService {
         userAgent: userAgent ?? null,
         ipAddress: ipAddress ?? null,
       }),
-      'EX',
       refreshExpiresInSeconds,
     );
 
@@ -179,8 +179,6 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string, res: Response, deviceId: string) {
-    const redis = this.redisService.getClient();
-
     // Verify JWT Refresh Token
     let payload: JwtPayload;
 
@@ -195,7 +193,7 @@ export class AuthService {
     // Tìm key trong Redis
     const redisKey = getRefreshKey(payload.sub, deviceId);
 
-    const tokenData = await redis.get(redisKey);
+    const tokenData = await this.redisService.get(redisKey);
 
     if (!tokenData) {
       throw new UnauthorizedException('Refresh token not found');
@@ -260,14 +258,13 @@ export class AuthService {
       ) / 1000;
 
     // Lưu refresh token mới vào redis, ghi đè refresh token cũ
-    await redis.set(
+    await this.redisService.set(
       redisKey,
       JSON.stringify({
         tokenHash: hashedNew,
         userAgent: parsedToken.userAgent ?? null,
         ipAddress: parsedToken.ipAddress ?? null,
       }),
-      'EX',
       refreshExpiresInSeconds,
     );
 
@@ -335,12 +332,10 @@ export class AuthService {
       throw new NotFoundException('Phiên đăng nhập không tồn tại.');
     }
 
-    const redis = this.redisService.getClient();
-
     // Xóa refresh token trong Redis
     const redisKey = getRefreshKey(userId, deviceId);
 
-    await redis.del(redisKey);
+    await this.redisService.del(redisKey);
 
     // Xóa session trong DB
     await this.sessionRepository.delete({

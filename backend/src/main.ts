@@ -1,11 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
-import { useHelmet } from './common/security/helmet/helmet.config';
 import { setupSwagger, validationPipeConfig } from './common/configs';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ConfigService } from '@nestjs/config';
 import { VersioningType } from '@nestjs/common';
+import { useHelmet } from './core/security/helmet/helmet.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -49,8 +48,6 @@ async function bootstrap() {
   app.use(useHelmet());
   app.use(cookieParser());
 
-  // 7. Global filters  & pipes
-  app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(validationPipeConfig);
 
   // 8. Swagger - only in non-production or with auth

@@ -2,10 +2,8 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   Headers,
-  Param,
   Post,
   Query,
   Req,
@@ -18,7 +16,6 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { ResgisterAuthDto } from './dto/resgister-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { RequestWithUser } from 'src/common/interfaces/request-with-user.interface';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 import {} from './swagger/auth_Swagger/login.swagger';
@@ -29,8 +26,6 @@ import {
   ApiAuthLoginSwagger,
   ApiAuthLogoutSwagger,
   ApiAuthLogoutAllSwagger,
-  ApiAuthSessionsSwagger,
-  ApiAuthRemoveSessionSwagger,
   ApiVerifyEmailSwagger,
   ApiResendVerificationSwagger,
   ApiForgotPasswordSwagger,
@@ -48,7 +43,10 @@ import { GoogleAuthGuard } from './strategies/guards/google-auth.guard';
 import { GoogleUser } from 'src/common/interfaces/google-user.interface';
 import { ConfigService } from '@nestjs/config';
 import { AuthOAuth20Service } from './services/auth.oauth20.service';
-import { SkipCsrf } from 'src/common/security/csrf';
+import { SkipCsrf } from 'src/core/security/csrf';
+import { UserRepository } from 'src/infrastructure/prisma/repositories';
+import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
+import { RATE_LIMIT } from 'src/common/constants/rate-limit.constants';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -59,16 +57,18 @@ export class AuthController {
     private readonly authEmailService: AuthEmailService,
     private readonly authOAuth20Service: AuthOAuth20Service,
     private readonly configService: ConfigService,
+    private readonly userRepository: UserRepository,
   ) {}
 
   @Public()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.LOGIN)
   @Post('login')
   @ApiAuthLoginSwagger() // Sử dụng decorator Swagger cho endpoint đăng nhập
   async login(
     @Body() loginDto: LoginDto,
     @Headers('x-device-id') deviceId: string,
-    @Req() req: RequestWithUser,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     // Kiểm tra deviceId
@@ -93,6 +93,7 @@ export class AuthController {
 
   @Public()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.REFRESH)
   @Post('refresh-token')
   @ApiAuthRefreshTokenSwagger()
   @Public()
@@ -119,12 +120,14 @@ export class AuthController {
   @Post('register')
   @SkipCsrf()
   @Public()
+  @RateLimit(RATE_LIMIT.AUTH.REGISTER)
   register(@Body() registerDto: ResgisterAuthDto) {
     return this.authEmailService.register(registerDto);
   }
 
   @ApiAccessToken()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.LOGOUT)
   @Post('logout')
   @ApiAuthLogoutSwagger()
   logout(
@@ -141,6 +144,7 @@ export class AuthController {
 
   @ApiAccessToken()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.LOGOUT_ALL)
   @Post('logout-all')
   @ApiAuthLogoutAllSwagger()
   logoutAll(
@@ -148,27 +152,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     return this.authService.logoutAll(userId, res);
-  }
-
-  @ApiAccessToken()
-  @Get('sessions')
-  @ApiAuthSessionsSwagger()
-  getSessions(@CurrentUser('sub') userId: string) {
-    return this.sessionService.getSessions(userId);
-  }
-
-  @ApiAccessToken()
-  @Delete('sessions/:deviceId')
-  @ApiAuthRemoveSessionSwagger()
-  removeSession(
-    @CurrentUser('sub') userId: string,
-    @Param('deviceId') deviceId: string,
-  ) {
-    if (!deviceId) {
-      throw new BadRequestException('Thiếu device id');
-    }
-
-    return this.sessionService.removeSession(userId, deviceId);
   }
 
   @Public()
@@ -185,6 +168,7 @@ export class AuthController {
 
   @Public()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.RESEND_VERIFICATION)
   @Post('resend-verification-email')
   @ApiResendVerificationSwagger()
   resendVerificationEmail(@Body() dto: ResendVerificationEmailDto) {
@@ -193,6 +177,7 @@ export class AuthController {
 
   @Public()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.FORGOT_PASSWORD)
   @Post('forgot-password')
   @ApiForgotPasswordSwagger()
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
@@ -201,6 +186,7 @@ export class AuthController {
 
   @Public()
   @SkipCsrf()
+  @RateLimit(RATE_LIMIT.AUTH.RESET_PASSWORD)
   @Post('reset-password')
   @ApiResetPasswordSwagger()
   resetPassword(@Body() dto: ResetPasswordDto) {
@@ -219,16 +205,21 @@ export class AuthController {
   @Get('google/callback')
   @ApiGoogleCallbackSwagger()
   @UseGuards(GoogleAuthGuard)
-  async googleCallback(@Req() req: RequestWithUser, @Res() res: Response) {
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
     const deviceId = (req.query.state as string) || 'unknown-device';
 
+    const user = await this.userRepository.findByEmail(req.user?.email || '');
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
     // Tạo GoogleUser từ dữ liệu đã được Strategy trả về
     const googleUser: GoogleUser = {
-      email: req.user.email,
-      name: req.user.name,
-      picture: req.user.avatar || undefined, // FIX: was req.user.avatar
+      email: user.email,
+      name: user.name,
+      picture: user.avatar || undefined, // FIX: was req.user.avatar
       provider: 'google',
-      providerId: req.user.providerId || '', // FIX: remove || '' fallback
+      providerId: user.providerId || '', // FIX: remove || '' fallback
     };
 
     const result = await this.authOAuth20Service.googleLogin(

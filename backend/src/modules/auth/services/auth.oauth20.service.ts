@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleUser } from 'src/common/interfaces/google-user.interface';
-import { RequestWithUser } from 'src/common/interfaces/request-with-user.interface';
 import { JwtService } from '@nestjs/jwt';
-import { RedisService } from 'src/modules/redis/redis.service';
+import { RedisService } from 'src/infrastructure/redis/redis.service';
 import * as crypto from 'crypto';
 import { getRefreshKey } from 'src/common/utils/redis.key.hepler';
 import { parseExpiryToMs } from 'src/common/utils/time.util';
-import { Response } from 'express';
-import { SessionRepository, UserRepository } from 'src/prisma/repositories';
+import { Request, Response } from 'express';
+import {
+  SessionRepository,
+  UserRepository,
+} from 'src/infrastructure/prisma/repositories';
 
 @Injectable()
 export class AuthOAuth20Service {
@@ -20,11 +22,10 @@ export class AuthOAuth20Service {
     private readonly configService: ConfigService,
   ) {}
 
-  // auth.service.ts
   async googleLogin(
     googleUser: GoogleUser,
     deviceId: string,
-    req: RequestWithUser,
+    req: Request,
     res: Response,
   ) {
     // 1. Tìm user theo provider + providerId
