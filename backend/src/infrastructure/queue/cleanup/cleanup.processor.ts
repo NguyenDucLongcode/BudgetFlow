@@ -4,7 +4,7 @@ import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 
 import { QUEUE } from '../constants/queue.constants';
-import { CleanupService } from '../services/cleanup.service';
+import { CleanupService } from './cleanup.service';
 
 @Processor(QUEUE.CLEANUP, {
   concurrency: 1,

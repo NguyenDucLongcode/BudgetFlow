@@ -37,7 +37,14 @@ export const mailerConfig = (configService: ConfigService): MailerOptions => {
   };
 
   // XÁC ĐỊNH ĐƯỜNG DẪN TEMPLATES CHÍNH XÁC
-  const templatesDir = join(__dirname, '..', '..', '..', 'email', 'templates');
+  const templatesDir = join(
+    __dirname,
+    '..',
+    '..',
+    'infrastructure',
+    'email',
+    'templates',
+  );
 
   return {
     transport: transportOptions,

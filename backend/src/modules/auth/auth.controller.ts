@@ -120,7 +120,7 @@ export class AuthController {
   @Post('register')
   @SkipCsrf()
   @Public()
-  @RateLimit(RATE_LIMIT.AUTH.REGISTER)
+  // @RateLimit(RATE_LIMIT.AUTH.REGISTER)
   register(@Body() registerDto: ResgisterAuthDto) {
     return this.authEmailService.register(registerDto);
   }

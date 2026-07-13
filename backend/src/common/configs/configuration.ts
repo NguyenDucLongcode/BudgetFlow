@@ -28,12 +28,11 @@ export default registerAs('app', () => ({
   },
 
   email: {
-    host: process.env.MAIL_HOST,
-    port: Number(process.env.MAIL_PORT),
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASSWORD,
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
-
   frontend: {
     url: process.env.FRONTEND_URL,
   },

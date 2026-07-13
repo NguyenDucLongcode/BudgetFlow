@@ -6,19 +6,21 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 import { QUEUE } from './constants/queue.constants';
 
-import { QueueService } from './services/queue.service';
-import { QueueHealthService } from './services/queue-health.service';
+import { QueueService } from './queue.service';
 
-import { CleanupScheduler } from './schedulers/cleanup.scheduler';
+import { CleanupScheduler } from './cleanup/cleanup.scheduler';
 
-import { CleanupProcessor } from './processors/cleanup.processor';
-import { CleanupService } from './services/cleanup.service';
+import { CleanupProcessor } from './cleanup/cleanup.processor';
+import { CleanupService } from './cleanup/cleanup.service';
+import { EmailModule } from '../email/email.module';
+import { EmailQueueService } from './email/email-queue.service';
+import { EmailProcessor } from './email/email.processor';
 
 @Global()
 @Module({
   imports: [
     ConfigModule,
-
+    EmailModule,
     PrismaModule,
 
     BullModule.forRootAsync({
@@ -51,23 +53,30 @@ import { CleanupService } from './services/cleanup.service';
       }),
     }),
 
-    BullModule.registerQueue({
-      name: QUEUE.CLEANUP,
-    }),
+    // Register queues
+    BullModule.registerQueue(
+      {
+        name: QUEUE.CLEANUP,
+      },
+      {
+        name: QUEUE.EMAIL,
+      },
+    ),
   ],
 
   providers: [
     QueueService,
-
-    QueueHealthService,
 
     CleanupService,
 
     CleanupScheduler,
 
     CleanupProcessor,
+
+    EmailQueueService, // Add EmailQueueService to the providers array
+    EmailProcessor,
   ],
 
-  exports: [QueueService, QueueHealthService],
+  exports: [QueueService, EmailQueueService],
 })
 export class QueueModule {}

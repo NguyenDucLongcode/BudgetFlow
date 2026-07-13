@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { QueueService } from '../services/queue.service';
+import { QueueService } from '../queue.service';
 
 @Injectable()
 export class CleanupScheduler implements OnModuleInit {

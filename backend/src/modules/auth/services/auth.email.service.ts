@@ -4,20 +4,19 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ResgisterAuthDto } from '../dto/resgister-auth.dto';
-import { EmailService } from 'src/infrastructure/email/email.service';
-
 import { hashPasswordHelper } from 'src/common/utils/user.until';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dto/resetPassword.dto';
 import { ConfigService } from '@nestjs/config';
 import { UserRepository } from 'src/infrastructure/prisma/repositories';
+import { EmailQueueService } from 'src/infrastructure/queue/email/email-queue.service';
 
 @Injectable()
 export class AuthEmailService {
   constructor(
     private userRepository: UserRepository,
-    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly emailQueueService: EmailQueueService, // Inject EmailQueueService
   ) {}
 
   async register(registerDto: ResgisterAuthDto) {
@@ -62,11 +61,11 @@ export class AuthEmailService {
       `${this.configService.get('FRONTEND_URL')}` +
       `/verify-email?token=${verifyToken}`;
 
-    await this.emailService.sendVerificationEmail(
-      user.email,
-      user.name,
+    await this.emailQueueService.sendVerification({
+      to: user.email,
+      name: user.name,
       verifyUrl,
-    );
+    });
 
     return {
       message:
@@ -146,11 +145,11 @@ export class AuthEmailService {
       `${this.configService.get('FRONTEND_URL')}` +
       `/reset-password?token=${resetToken}`;
 
-    await this.emailService.sendResetPasswordEmail(
-      user.email,
-      user.name,
-      resetLink,
-    );
+    await this.emailQueueService.sendResetPassword({
+      to: user.email,
+      name: user.name,
+      resetUrl: resetLink,
+    });
 
     return {
       message:
@@ -232,11 +231,11 @@ export class AuthEmailService {
       `${this.configService.get('FRONTEND_URL')}` +
       `/verify-email?token=${verifyToken}`;
 
-    await this.emailService.sendVerificationEmail(
-      user.email,
-      user.name,
+    await this.emailQueueService.sendVerification({
+      to: user.email,
+      name: user.name,
       verifyUrl,
-    );
+    });
 
     return {
       message: 'Email xác thực đã được gửi lại.',
