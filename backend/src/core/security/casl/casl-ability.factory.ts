@@ -37,33 +37,129 @@ export class CaslAbilityFactory {
           id: user.sub,
         });
 
-        // // =========================
-        // // WALLET
-        // // =========================
-        // can(Action.Manage, 'Wallet', {
-        //   userId: user.sub,
-        // });
+        // =========================
+        // WALLET
+        // =========================
+        can(Action.Create, 'Wallet');
 
-        // // =========================
-        // // CATEGORY
-        // // =========================
-        // can(Action.Manage, 'Category', {
-        //   userId: user.sub,
-        // });
+        can(Action.Read, 'Wallet', {
+          userId: user.sub,
+        });
 
-        // // =========================
-        // // TRANSACTION
-        // // =========================
-        // can(Action.Manage, 'Transaction', {
-        //   userId: user.sub,
-        // });
+        can(Action.Update, 'Wallet', {
+          userId: user.sub,
+        });
 
-        // // =========================
-        // // BUDGET
-        // // =========================
-        // can(Action.Manage, 'Budget', {
-        //   userId: user.sub,
-        // });
+        can(Action.Delete, 'Wallet', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // CATEGORY
+        // =========================
+        can(Action.Create, 'Category');
+
+        can(Action.Read, 'Category', {
+          userId: user.sub,
+        });
+
+        can(Action.Update, 'Category', {
+          userId: user.sub,
+        });
+
+        can(Action.Delete, 'Category', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // TRANSACTION
+        // =========================
+        can(Action.Create, 'Transaction');
+
+        can(Action.Read, 'Transaction', {
+          userId: user.sub,
+        });
+
+        can(Action.Update, 'Transaction', {
+          userId: user.sub,
+        });
+
+        can(Action.Delete, 'Transaction', {
+          userId: user.sub,
+        });
+
+        can(Action.Create, 'Budget');
+        can(Action.Read, 'Budget', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'Budget', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'Budget', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // RECURRING TRANSACTION
+        // =========================
+        can(Action.Create, 'RecurringTransaction');
+        can(Action.Read, 'RecurringTransaction', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'RecurringTransaction', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'RecurringTransaction', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // GOAL
+        // =========================
+        can(Action.Create, 'Goal');
+        can(Action.Read, 'Goal', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'Goal', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'Goal', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // DEBT
+        // =========================
+        can(Action.Create, 'Debt');
+        can(Action.Read, 'Debt', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'Debt', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'Debt', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // DEBT PAYMENT
+        // =========================
+        can(Action.Create, 'DebtPayment');
+        can(Action.Read, 'DebtPayment', {
+          debt: {
+            userId: user.sub,
+          },
+        });
+        can(Action.Update, 'DebtPayment', {
+          debt: {
+            userId: user.sub,
+          },
+        });
+        can(Action.Delete, 'DebtPayment', {
+          debt: {
+            userId: user.sub,
+          },
+        });
 
         // // =========================
         // // SESSION

@@ -2,7 +2,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { Public } from '../../../common/decorators/public.decorator';
 import { CsrfService } from './csrf.service';
-import { SkipCsrf } from '../../../common/decorators/skip-csrf.decorator';
+import { SkipCsrf } from './skip-csrf.decorator';
 
 @Controller('csrf')
 export class CsrfController {

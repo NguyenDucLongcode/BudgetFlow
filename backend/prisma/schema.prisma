@@ -7,12 +7,117 @@ datasource db {
   provider = "postgresql"
 }
 
-// enum 
+// ============================================
+// ENUMS
+// ============================================
 
 enum Role {
   USER
   ADMIN
 }
+
+enum TransactionType {
+  INCOME      // Thu nhập
+  EXPENSE     // Chi tiêu
+  TRANSFER    // Chuyển khoản giữa các ví
+}
+
+enum TransactionStatus {
+  PENDING     // Đang xử lý
+  COMPLETED   // Hoàn thành
+  CANCELLED   // Đã hủy
+  FAILED      // Thất bại
+}
+
+enum CategoryType {
+  INCOME      // Danh mục thu nhập
+  EXPENSE     // Danh mục chi tiêu
+}
+
+enum WalletType {
+  CASH        // Tiền mặt
+  BANK        // Tài khoản ngân hàng
+  E_WALLET    // Ví điện tử (Momo, ZaloPay, PayPal)
+  CREDIT      // Thẻ tín dụng
+  INVESTMENT  // Đầu tư
+}
+
+enum BudgetPeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum GoalStatus {
+  IN_PROGRESS  // Đang thực hiện
+  COMPLETED    // Hoàn thành
+  CANCELLED    // Đã hủy
+  PAUSED       // Tạm dừng
+}
+
+enum GoalPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DebtType {
+  LOAN  // Khoản vay (mình vay)
+  DEBT  // Khoản nợ (người khác nợ mình)
+}
+
+enum DebtStatus {
+  ACTIVE     // Đang hoạt động
+  PAID       // Đã thanh toán xong
+  OVERDUE    // Quá hạn
+  CANCELLED  // Đã hủy
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  E_WALLET
+  OTHER
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum Currency {
+  VND
+  USD
+  EUR
+  GBP
+  JPY
+  CNY
+  KRW
+  AUD
+  CAD
+  CHF
+  SEK
+  NOK
+  DKK
+  NZD
+  SGD
+  HKD
+  TWD
+}
+
+enum BudgetType {
+  SPENDING
+  INCOME
+}
+
+// ============================================
+// MODELS
+// ============================================
 
 model User {
   id       String @id @default(uuid())
@@ -23,75 +128,438 @@ model User {
   name     String
 
   // Trạng thái tài khoản
-  isActive Boolean @default(false) // Đã xác thực email hay chưa
-  role     Role    @default(USER)  // Quyền của người dùng
+  isActive Boolean @default(false)
+  role     Role    @default(USER)
 
-  // Đăng nhập bằng mạng xã hội (Google, Github,...)
+  // Đăng nhập bằng mạng xã hội
   provider   String?
   providerId String?
-  avatar   String?  // URL avatar từ Google
+  avatar   String?
 
   // Xác thực email
-  verifyToken String?    // Token gửi qua email để kích hoạt tài khoản
-  verifiedAt DateTime?   @db.Timestamptz(6) // Thời điểm xác thực thành công
-  verifyTokenExpiresAt DateTime? @db.Timestamptz(6) // Thời gian hết hạn token xác thực
+  verifyToken String?
+  verifiedAt DateTime?   @db.Timestamptz(6)
+  verifyTokenExpiresAt DateTime? @db.Timestamptz(6)
  
-
-  // Quên mật khẩu
-  resetPasswordToken String?
-  resetPasswordExpiresAt DateTime?
-
   tokenVersion  Int @default(0)
-  deletedAt DateTime?   // soft delete
+  deletedAt DateTime?
 
   // Quên mật khẩu
-  resetToken           String?   @unique // Token reset mật khẩu
-  resetTokenExpiresAt  DateTime? @db.Timestamptz(6) // Thời gian hết hạn token reset
+  resetToken           String?   @unique
+  resetTokenExpiresAt  DateTime? @db.Timestamptz(6)
 
-  // Múi giờ của người dùng (phục vụ reminder, cron job,...)
+  // Múi giờ
   timezone String @default("Asia/Ho_Chi_Minh")
 
-  // Thời gian tạo/cập nhật
+  // Thời gian
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
 
+  // Relations
   sessions UserSession[]
+  wallets Wallet[]
+  categories Category[]
+  transactions Transaction[]
+  budgets Budget[]
+  recurringTransactions RecurringTransaction[]
+  goals Goal[]
+  debts Debt[]
 
   // Indexes
-  @@unique([provider, providerId]) // Mỗi tài khoản Google/Github chỉ liên kết với 1 user
-  @@index([isActive])              // Tăng tốc tìm user theo trạng thái kích hoạt
-  @@index([role])                  // Tăng tốc phân quyền
-  @@index([timezone])              // Hữu ích cho cron job, reminder
+  @@unique([provider, providerId])
+  @@index([isActive])
+  @@index([role])
+  @@index([timezone])
+  @@index([createdAt])
 }
-
 
 model UserSession {
   id String @id @default(uuid())
 
-  // Quan hệ với User
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Định danh thiết bị
   deviceId String
-
-  // Thông tin thiết bị
   userAgent String?
   ipAddress String?
 
-  // Thời gian
-  lastLoginAt DateTime @default(now()) @db.Timestamptz(6) // Thời điểm đăng nhập lần cuối
-  lastActiveAt DateTime @default(now()) @db.Timestamptz(6) // Thời điểm hoạt động lần cuối (gửi request đến server)
+  lastLoginAt DateTime @default(now()) @db.Timestamptz(6)
+  lastActiveAt DateTime @default(now()) @db.Timestamptz(6)
 
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
 
-  // Một user chỉ có một session trên một device
   @@unique([userId, deviceId])
-
-  // Index
   @@index([userId])
   @@index([deviceId])
   @@index([lastActiveAt])
 }
 
+// ============================================
+// CATEGORY MODEL
+// ============================================
+
+model Category {
+  id          String       @id @default(uuid())
+  name        String
+  icon        String?
+  color       String?
+  type        CategoryType
+  
+  userId      String? 
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  parentId    String?
+  parent      Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[]   @relation("CategoryHierarchy")
+  
+  isSystem    Boolean      @default(false)
+  
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime?    @db.Timestamptz(6)
+  
+  transactions Transaction[]
+  budgets Budget[]
+  recurringTransactions RecurringTransaction[]
+  
+  @@index([userId])
+  @@index([type])
+  @@index([userId, type])
+  @@unique([userId, name, type])
+  @@index([parentId])
+}
+
+// ============================================
+// WALLET MODEL
+// ============================================
+
+model Wallet {
+  id          String      @id @default(uuid())
+  name        String
+  type        WalletType
+  balance     Decimal     @db.Decimal(18,2) @default(0)
+  currency    Currency    @default(VND)  // SỬA: bỏ Currency.
+  icon        String?
+  color       String?
+  
+  initialBalance Decimal @db.Decimal(18,2) @default(0)
+  
+  bankName    String?
+  accountNumber String?
+  accountName  String?
+  
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  isDefault   Boolean     @default(false)
+  isArchived  Boolean     @default(false)
+  
+  autoSync    Boolean     @default(true)
+  description String?
+  
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime?   @db.Timestamptz(6)
+  archivedAt  DateTime?   @db.Timestamptz(6)
+  
+  transactions     Transaction[]
+  fromTransactions Transaction[] @relation("FromWallet")
+  toTransactions   Transaction[] @relation("ToWallet")
+  recurringTransactions RecurringTransaction[]
+  goals Goal[]
+  debts Debt[]
+
+  
+  @@index([userId])
+  @@index([userId, isDefault])
+  @@index([type])
+  @@unique([userId, name])
+}
+
+// ============================================
+// TRANSACTION MODEL
+// ============================================
+model Transaction {
+  id          String      @id @default(uuid())
+  
+  type        TransactionType
+  amount      Decimal     @db.Decimal(18,2)
+  currency    Currency    @default(VND)
+  
+  description String?
+  note        String?
+  
+  date        DateTime    @default(now()) @db.Timestamptz(6)
+  
+  status      TransactionStatus @default(COMPLETED)
+  
+  categoryId  String?
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  walletId    String?
+  wallet      Wallet?     @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  
+  fromWalletId String?
+  toWalletId   String?
+  fromWallet   Wallet?    @relation("FromWallet", fields: [fromWalletId], references: [id], onDelete: SetNull)
+  toWallet     Wallet?    @relation("ToWallet", fields: [toWalletId], references: [id], onDelete: SetNull)
+  
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  metadata    Json?
+  reference   String?
+  
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime?   @db.Timestamptz(6)
+
+  
+  debts        Debt[]
+  debtPayments DebtPayment[]
+  
+  @@index([userId])
+  @@index([walletId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([deletedAt])  // THÊM
+  @@index([userId, date])
+  @@index([userId, type])
+  @@index([userId, walletId])
+  @@index([userId, categoryId])
+  @@index([userId, date, type])
+  @@index([userId, status, date])
+}
+
+// ============================================
+// BUDGET MODEL
+// ============================================
+model Budget {
+  id          String   @id @default(uuid())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  amount      Decimal  @db.Decimal(18,2)
+  spent       Decimal  @db.Decimal(18,2) @default(0)  // THÊM
+  
+  startDate   DateTime @db.Timestamptz(6)
+  endDate     DateTime @db.Timestamptz(6)
+  
+  period      BudgetPeriod @default(MONTHLY)
+  type        BudgetType @default(SPENDING)  // THÊM nếu có enum BudgetType
+  
+  alertThreshold Decimal? @db.Decimal(18,2)
+  isAlertEnabled Boolean  @default(false)
+  
+  description String?
+  notes       String?  // THÊM
+  isActive    Boolean @default(true)
+  
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  
+  @@index([userId])
+  @@index([categoryId])
+  @@index([userId, categoryId])
+  @@index([startDate, endDate])
+  @@index([isActive])  // THÊM
+  @@index([period])    // THÊM
+  @@index([deletedAt]) // THÊM
+  @@unique([userId, categoryId, startDate, endDate])
+}
+
+// ============================================
+// RECURRING TRANSACTION MODEL
+// ============================================
+
+model RecurringTransaction {
+  id          String   @id @default(uuid())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  name        String
+  amount      Decimal  @db.Decimal(18,2)
+  type        TransactionType
+  currency    Currency @default(VND)  // THÊM
+  
+  frequency   RecurringFrequency
+  interval    Int      @default(1)
+  
+  startDate   DateTime @db.Timestamptz(6)
+  endDate     DateTime? @db.Timestamptz(6)
+  lastRunDate DateTime?
+  
+  nextRunDate DateTime @db.Timestamptz(6)
+  
+  isActive    Boolean  @default(true)
+  
+  description String?
+  metadata    Json?
+  
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  
+  @@index([userId])
+  @@index([walletId])
+  @@index([categoryId])
+  @@index([nextRunDate])
+  @@index([isActive])
+  @@index([userId, isActive])
+  @@index([userId, nextRunDate])
+  @@index([frequency])  // THÊM
+  @@index([type])       // THÊM
+  @@index([deletedAt])  // THÊM
+}
+
+// ============================================
+// GOAL MODEL
+// ============================================
+
+model Goal {
+  id          String   @id @default(uuid())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  targetAmount Decimal @db.Decimal(18,2)
+  savedAmount Decimal @db.Decimal(18,2) @default(0)
+  
+  currency    Currency @default(VND)  // THÊM
+  
+  startDate   DateTime @db.Timestamptz(6)
+  targetDate  DateTime @db.Timestamptz(6)
+  
+  status      GoalStatus @default(IN_PROGRESS)
+  priority    GoalPriority @default(MEDIUM)
+  
+  description String?
+  notes       String?  // THÊM
+  icon        String?
+  color       String?
+  
+  isArchived Boolean @default(false)
+  
+  walletId    String?
+  wallet      Wallet?  @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  
+  reminderDate DateTime? @db.Timestamptz(6)  // THÊM
+  reminderSent Boolean @default(false)       // THÊM
+  
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  archivedAt  DateTime? @db.Timestamptz(6)
+  
+  @@index([userId])
+  @@index([status])
+  @@index([targetDate])
+  @@index([userId, status])
+  @@index([priority])    // THÊM
+  @@index([isArchived])  // THÊM
+  @@index([deletedAt])   // THÊM
+}
+
+
+// ============================================
+// DEBT/LOAN MODEL
+// ============================================
+
+model Debt {
+  id          String   @id @default(uuid())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  type        DebtType @default(LOAN)
+  
+  totalAmount Decimal  @db.Decimal(18,2)
+  paidAmount  Decimal  @db.Decimal(18,2) @default(0)
+  // remainingAmount sẽ tính toán từ totalAmount - paidAmount
+  
+  currency    Currency @default(VND)  // THÊM
+  
+  interestRate Decimal? @db.Decimal(5,2)
+  
+  startDate   DateTime @db.Timestamptz(6)
+  dueDate     DateTime @db.Timestamptz(6)
+  
+  monthlyPayment Decimal? @db.Decimal(18,2)
+  
+  status      DebtStatus @default(ACTIVE)
+  
+  description String?
+  contactName String?
+  borrower String?
+  
+  accountNumber String?
+  
+  walletId    String?
+  wallet      Wallet?  @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  
+  note        String?
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  
+  reminderDate DateTime? @db.Timestamptz(6)  // THÊM
+  reminderSent Boolean @default(false)       // THÊM
+  
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  
+  payments    DebtPayment[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([userId, status])
+  @@index([type])        // THÊM
+  @@index([walletId])    // THÊM
+  @@index([deletedAt])   // THÊM
+}
+
+// ============================================
+// DEBT PAYMENT MODEL
+// ============================================
+
+model DebtPayment {
+  id          String   @id @default(uuid())
+  
+  debtId      String
+  debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  
+  amount      Decimal  @db.Decimal(18,2)
+  paymentDate DateTime @db.Timestamptz(6)
+  
+  method      PaymentMethod @default(CASH)
+  note        String?
+  
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  
+  @@index([debtId])
+  @@index([paymentDate])
+  @@index([createdAt])  // THÊM
+}

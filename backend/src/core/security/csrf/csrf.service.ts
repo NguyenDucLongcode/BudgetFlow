@@ -7,7 +7,7 @@ import {
   CSRF_COOKIE_MAX_AGE,
   CSRF_HEADER_NAMES,
   CSRF_COOKIE_OPTIONS,
-} from '../../../common/constants/csrf.constants';
+} from './constants/csrf.constants';
 
 @Injectable()
 export class CsrfService {

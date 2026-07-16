@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { CsrfService } from 'src/core/security/csrf/csrf.service';
-import { SKIP_CSRF_KEY } from 'src/common/decorators/skip-csrf.decorator';
+import { SKIP_CSRF_KEY } from 'src/core/security/csrf/skip-csrf.decorator';
 
 @Injectable()
 export class CsrfGuard implements CanActivate {

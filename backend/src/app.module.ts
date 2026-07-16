@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from 'src/modules/user/users.module';
-import { AuthModule } from 'src/modules/auth/auth.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
-import { CoreModule } from './core/core.module';
+import { CoreModule } from 'src/core/core.module';
+import { BaseModule } from 'src/modules/base.module';
 
 @Module({
   imports: [
@@ -14,8 +13,7 @@ import { CoreModule } from './core/core.module';
     MonitoringModule, // Module for monitoring chứ modal giám sát như Health, Metrics
 
     // Các module khác (Auth, Users, ...)
-    UsersModule,
-    AuthModule,
+    BaseModule,
   ],
 })
 export class AppModule {}

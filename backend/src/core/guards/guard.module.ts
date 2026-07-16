@@ -6,7 +6,7 @@ import { RateLimitModule } from '../security/rate-limit/rate-limit.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JWTAuthGuard } from 'src/modules/auth/strategies/guards/jwt-Auth.guard';
 import { PoliciesGuard } from 'src/core/security/casl/policies/policies.guard';
-import { RateLimitGuard } from 'src/common/guard/rate-limit.guard';
+import { RateLimitGuard } from '../security/rate-limit/guard/rate-limit.guard';
 
 @Module({
   imports: [AuthModule, CaslModule, CsrfModule, RateLimitModule],

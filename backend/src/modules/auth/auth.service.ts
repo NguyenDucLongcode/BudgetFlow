@@ -34,7 +34,9 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this.userRepository.findUnique({
+      where: { email },
+    });
 
     // 1. Không tìm thấy user → sai đăng nhập
     if (!user) {
@@ -214,7 +216,9 @@ export class AuthService {
     // Kiểm tra user trong cơ sở dữ liệu
     // Nếu user không tồn tại hoặc không active → trả về lỗi
     // Nếu token version không khớp → trả về lỗi
-    const user = await this.userRepository.findById(payload.sub);
+    const user = await this.userRepository.findUnique({
+      where: { id: payload.sub },
+    });
 
     if (!user) {
       throw new UnauthorizedException('User not found');

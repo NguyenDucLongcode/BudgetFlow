@@ -6,60 +6,80 @@ import { PrismaService } from 'src/infrastructure/prisma/prisma.service';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findUnique(args: Prisma.UserFindUniqueArgs) {
-    return this.prisma.user.findUnique(args);
-  }
-
-  findUniqueOrThrow(args: Prisma.UserFindUniqueOrThrowArgs) {
-    return this.prisma.user.findUniqueOrThrow(args);
-  }
-
-  findFirst(args: Prisma.UserFindFirstArgs) {
-    return this.prisma.user.findFirst(args);
-  }
-
-  findMany(args: Prisma.UserFindManyArgs) {
-    return this.prisma.user.findMany(args);
-  }
-
-  create(args: Prisma.UserCreateArgs) {
+  create<T extends Prisma.UserCreateArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserCreateArgs>,
+  ) {
     return this.prisma.user.create(args);
   }
 
-  update(args: Prisma.UserUpdateArgs) {
+  findUnique<T extends Prisma.UserFindUniqueArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserFindUniqueArgs>,
+  ) {
+    return this.prisma.user.findUnique(args);
+  }
+
+  findUniqueOrThrow<T extends Prisma.UserFindUniqueOrThrowArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserFindUniqueOrThrowArgs>,
+  ) {
+    return this.prisma.user.findUniqueOrThrow(args);
+  }
+
+  findFirst<T extends Prisma.UserFindFirstArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserFindFirstArgs>,
+  ) {
+    return this.prisma.user.findFirst(args);
+  }
+
+  findMany<T extends Prisma.UserFindManyArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserFindManyArgs>,
+  ) {
+    return this.prisma.user.findMany(args);
+  }
+
+  update<T extends Prisma.UserUpdateArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserUpdateArgs>,
+  ) {
     return this.prisma.user.update(args);
   }
 
-  // Soft delete
-  updateMany(args: Prisma.UserUpdateManyArgs) {
+  updateMany<T extends Prisma.UserUpdateManyArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserUpdateManyArgs>,
+  ) {
     return this.prisma.user.updateMany(args);
   }
 
-  delete(args: Prisma.UserDeleteArgs) {
+  delete<T extends Prisma.UserDeleteArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserDeleteArgs>,
+  ) {
     return this.prisma.user.delete(args);
   }
 
-  deleteMany(args: Prisma.UserDeleteManyArgs) {
+  deleteMany<T extends Prisma.UserDeleteManyArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserDeleteManyArgs>,
+  ) {
     return this.prisma.user.deleteMany(args);
   }
 
-  count(args?: Prisma.UserCountArgs) {
+  count<T extends Prisma.UserCountArgs>(
+    args?: Prisma.SelectSubset<T, Prisma.UserCountArgs>,
+  ) {
     return this.prisma.user.count(args);
   }
 
-  // =========================
-  // Convenience methods
-  // =========================
+  aggregate<T extends Prisma.UserAggregateArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserAggregateArgs>,
+  ) {
+    return this.prisma.user.aggregate(args);
+  }
 
-  findById(id: string) {
-    return this.findUnique({
-      where: { id },
+  groupBy(args: Prisma.UserGroupByArgs) {
+    return this.prismaService.user.groupBy({
+      ...args,
+      orderBy: args.orderBy,
     });
   }
 
-  findByEmail(email: string) {
-    return this.findUnique({
-      where: { email },
-    });
+  get prismaService() {
+    return this.prisma;
   }
 }

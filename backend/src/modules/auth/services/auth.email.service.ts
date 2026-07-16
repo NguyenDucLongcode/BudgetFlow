@@ -8,8 +8,13 @@ import { hashPasswordHelper } from 'src/common/utils/user.until';
 import * as crypto from 'crypto';
 import { ResetPasswordDto } from '../dto/resetPassword.dto';
 import { ConfigService } from '@nestjs/config';
-import { UserRepository } from 'src/infrastructure/prisma/repositories';
+import {
+  UserRepository,
+  WalletRepository,
+} from 'src/infrastructure/prisma/repositories';
 import { EmailQueueService } from 'src/infrastructure/queue/email/email-queue.service';
+import { WalletType } from 'generated/prisma/enums';
+import { Prisma } from 'generated/prisma/browser';
 
 @Injectable()
 export class AuthEmailService {
@@ -17,13 +22,16 @@ export class AuthEmailService {
     private userRepository: UserRepository,
     private readonly configService: ConfigService,
     private readonly emailQueueService: EmailQueueService, // Inject EmailQueueService
+    private readonly walletRepository: WalletRepository,
   ) {}
 
   async register(registerDto: ResgisterAuthDto) {
     const { email, password, name } = registerDto;
 
     // Kiểm tra email đã tồn tại chưa
-    const existingUser = await this.userRepository.findByEmail(email);
+    const existingUser = await this.userRepository.findUnique({
+      where: { email },
+    });
 
     if (existingUser) {
       throw new ConflictException('Email đã tồn tại');
@@ -53,6 +61,20 @@ export class AuthEmailService {
         role: true,
         isActive: true,
         createdAt: true,
+      },
+    });
+
+    await this.walletRepository.create({
+      data: {
+        userId: user.id,
+        name: 'Ví tiền mặt',
+        type: WalletType.CASH,
+        currency: 'VND',
+        balance: new Prisma.Decimal(0),
+        initialBalance: new Prisma.Decimal(0),
+        icon: 'wallet',
+        color: '#3B82F6',
+        isDefault: true,
       },
     });
 
@@ -115,7 +137,9 @@ export class AuthEmailService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this.userRepository.findUnique({
+      where: { email },
+    });
 
     // Không tiết lộ email có tồn tại hay không
     if (!user) {
@@ -136,8 +160,8 @@ export class AuthEmailService {
         id: user.id,
       },
       data: {
-        resetPasswordToken: resetToken,
-        resetPasswordExpiresAt: expiresAt,
+        resetToken: resetToken,
+        resetTokenExpiresAt: expiresAt,
       },
     });
 
@@ -162,8 +186,8 @@ export class AuthEmailService {
 
     const user = await this.userRepository.findFirst({
       where: {
-        resetPasswordToken: token,
-        resetPasswordExpiresAt: {
+        resetToken: token,
+        resetTokenExpiresAt: {
           gt: new Date(),
         },
       },
@@ -184,8 +208,8 @@ export class AuthEmailService {
       data: {
         password: hashedPassword,
 
-        resetPasswordToken: null,
-        resetPasswordExpiresAt: null,
+        resetToken: null,
+        resetTokenExpiresAt: null,
 
         // Logout tất cả thiết bị
         tokenVersion: {
@@ -200,7 +224,9 @@ export class AuthEmailService {
   }
 
   async resendVerificationEmail(email: string) {
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this.userRepository.findUnique({
+      where: { email },
+    });
 
     // Không tiết lộ email có tồn tại hay không
     if (!user) {

@@ -15,6 +15,18 @@ export function setupSwagger(app: INestApplication) {
       },
       'access-token',
     )
+
+    // Add CSRF token header for Swagger UI
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-xsrf-token',
+        description: 'CSRF Token',
+      },
+      'csrf-token',
+    )
+
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

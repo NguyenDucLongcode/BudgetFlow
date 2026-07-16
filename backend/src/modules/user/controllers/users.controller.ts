@@ -15,9 +15,13 @@ import { Action } from 'src/core/security/casl/actions.enum';
 import { ChangePasswordDto } from '../dto/user/change-password.dto';
 import { UserService } from '../services/user.service';
 import { SessionService } from 'src/modules/session/session.service';
-import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
-import { RATE_LIMIT } from 'src/common/constants/rate-limit.constants';
+import { RateLimit } from 'src/core/security/rate-limit/decorator/rate-limit.decorator';
+import { RATE_LIMIT } from 'src/core/security/rate-limit/constants/rate-limit.constants';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiAuthSwaggerUI } from 'src/common/decorators/swagger-auth.decorator';
 
+@ApiTags('Users')
+@ApiAuthSwaggerUI()
 @Controller('users')
 export class UsersController {
   constructor(

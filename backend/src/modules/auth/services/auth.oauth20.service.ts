@@ -38,7 +38,9 @@ export class AuthOAuth20Service {
 
     // 2. Nếu chưa có, tìm theo email
     if (!user) {
-      user = await this.userRepository.findByEmail(googleUser.email);
+      user = await this.userRepository.findUnique({
+        where: { email: googleUser.email },
+      });
     }
 
     // 3. Nếu tìm thấy user bằng email nhưng chưa có provider

@@ -8,11 +8,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Request, Response } from 'express';
 import { RedisService } from 'src/infrastructure/redis/redis.service';
-import { SKIP_RATE_LIMIT_KEY } from '../decorators/skip-rate-limit.decorator';
 import {
   RATE_LIMIT_KEY,
   RateLimitOptions,
-} from '../decorators/rate-limit.decorator';
+} from '../decorator/rate-limit.decorator';
+import { SKIP_RATE_LIMIT_KEY } from '../decorator/skip-rate-limit.decorator';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {

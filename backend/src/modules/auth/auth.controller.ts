@@ -33,7 +33,6 @@ import {
   ApiGoogleAuthSwagger,
   ApiGoogleCallbackSwagger,
 } from './swagger';
-import { ApiAccessToken } from 'src/common/decorators/swagger-auth.decorator';
 import { ForgotPasswordDto } from './dto/fogotPassword.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
 import { AuthEmailService } from './services/auth.email.service';
@@ -45,8 +44,9 @@ import { ConfigService } from '@nestjs/config';
 import { AuthOAuth20Service } from './services/auth.oauth20.service';
 import { SkipCsrf } from 'src/core/security/csrf';
 import { UserRepository } from 'src/infrastructure/prisma/repositories';
-import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
-import { RATE_LIMIT } from 'src/common/constants/rate-limit.constants';
+import { RateLimit } from 'src/core/security/rate-limit/decorator/rate-limit.decorator';
+import { RATE_LIMIT } from 'src/core/security/rate-limit/constants/rate-limit.constants';
+import { ApiAuthSwaggerUI } from 'src/common/decorators/swagger-auth.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -125,7 +125,7 @@ export class AuthController {
     return this.authEmailService.register(registerDto);
   }
 
-  @ApiAccessToken()
+  @ApiAuthSwaggerUI()
   @SkipCsrf()
   @RateLimit(RATE_LIMIT.AUTH.LOGOUT)
   @Post('logout')
@@ -142,7 +142,7 @@ export class AuthController {
     return this.authService.logout(user.sub, deviceId, res);
   }
 
-  @ApiAccessToken()
+  @ApiAuthSwaggerUI()
   @SkipCsrf()
   @RateLimit(RATE_LIMIT.AUTH.LOGOUT_ALL)
   @Post('logout-all')
@@ -208,7 +208,9 @@ export class AuthController {
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const deviceId = (req.query.state as string) || 'unknown-device';
 
-    const user = await this.userRepository.findByEmail(req.user?.email || '');
+    const user = await this.userRepository.findUnique({
+      where: { email: req.user?.email as string },
+    });
 
     if (!user) {
       throw new UnauthorizedException('User not found');

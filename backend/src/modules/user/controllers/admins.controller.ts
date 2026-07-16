@@ -17,9 +17,13 @@ import { AdminService } from '../services/admin.service';
 import { AdminUpdateUserDto } from '../dto/admin/admin_update-profile.dto';
 import { AdminPaginationUsersDto } from '../dto/admin/admin_pagination_query';
 import { SessionService } from 'src/modules/session/session.service';
-import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
-import { RATE_LIMIT } from 'src/common/constants/rate-limit.constants';
+import { RateLimit } from 'src/core/security/rate-limit/decorator/rate-limit.decorator';
+import { RATE_LIMIT } from 'src/core/security/rate-limit/constants/rate-limit.constants';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiAuthSwaggerUI } from 'src/common/decorators/swagger-auth.decorator';
 
+@ApiTags('Admin')
+@ApiAuthSwaggerUI()
 @Controller('admin')
 @CheckPolicies((ability) => ability.can(Action.Manage, 'User'))
 export class AdminController {

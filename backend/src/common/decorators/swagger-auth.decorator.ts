@@ -1,6 +1,9 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 
-export function ApiAccessToken() {
-  return applyDecorators(ApiBearerAuth('access-token'));
+export function ApiAuthSwaggerUI() {
+  return applyDecorators(
+    ApiBearerAuth('access-token'),
+    ApiSecurity('csrf-token', []),
+  );
 }
