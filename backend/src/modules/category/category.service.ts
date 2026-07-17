@@ -8,7 +8,7 @@ import { CreateCategoryDto } from './dto/CreateCategoryDto';
 import { CATEGORY } from './category.constants';
 import { UpdateCategoryDto } from './dto/UpdateCategoryDto';
 import { PaginationDto } from './dto/PaginationDto';
-import { Prisma, CategoryType } from 'generated/prisma/client';
+import { Prisma } from 'generated/prisma/client';
 
 @Injectable()
 export class CategoryService {
@@ -348,87 +348,5 @@ export class CategoryService {
     return {
       message: 'Xóa danh mục thành công',
     };
-  }
-
-  async getSystemCategories() {
-    // Lấy tất cả category hệ thống
-    const systemCategories = await this.categoryRepository.findMany({
-      where: {
-        isSystem: true,
-        deletedAt: null,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
-
-    // Nếu chưa có category hệ thống nào, tạo mới
-    if (systemCategories.length === 0) {
-      // Không có system categories, trả về mặc định
-      return {
-        message: 'Danh sách category hệ thống mặc định',
-        data: CATEGORY.SYSTEM_CATEGORIES,
-      };
-    }
-
-    return {
-      message: 'Lấy danh sách category hệ thống thành công',
-      data: systemCategories,
-    };
-  }
-
-  // Hàm khởi tạo category hệ thống cho user mới
-  async initializeSystemCategoriesForUser(userId: string) {
-    const systemCategories = await this.categoryRepository.findMany({
-      where: {
-        isSystem: true,
-        deletedAt: null,
-      },
-    });
-
-    // Nếu chưa có category hệ thống trong DB, tạo mới từ constants
-    if (systemCategories.length === 0) {
-      const categoriesToCreate = [
-        ...CATEGORY.SYSTEM_CATEGORIES.EXPENSE.map((cat) => ({
-          ...cat,
-          type: CategoryType.EXPENSE,
-          isSystem: true,
-          userId: null, // System categories không thuộc về user cụ thể
-        })),
-        ...CATEGORY.SYSTEM_CATEGORIES.INCOME.map((cat) => ({
-          ...cat,
-          type: CategoryType.INCOME,
-          isSystem: true,
-          userId: null,
-        })),
-      ];
-
-      await this.categoryRepository.createMany({
-        data: categoriesToCreate,
-      });
-    }
-
-    // Clone system categories cho user
-    const systemCats = await this.categoryRepository.findMany({
-      where: {
-        isSystem: true,
-        deletedAt: null,
-      },
-    });
-
-    // Tạo bản sao cho user
-    const userCategories = await this.categoryRepository.createMany({
-      data: systemCats.map((cat) => ({
-        name: cat.name,
-        icon: cat.icon,
-        color: cat.color,
-        type: cat.type,
-        userId: userId,
-        isSystem: false, // Đánh dấu là của user, không phải system
-        parentId: null,
-      })),
-    });
-
-    return userCategories;
   }
 }

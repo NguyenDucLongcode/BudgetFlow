@@ -1,16 +1,23 @@
 import { Global, Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import {
-  CategoryRepository,
-  WalletRepository,
   UserRepository,
   SessionRepository,
+  WalletRepository,
+  CategoryRepository,
   TransactionRepository,
   BudgetRepository,
   RecurringTransactionRepository,
   GoalRepository,
   DebtRepository,
   DebtPaymentRepository,
+  TagRepository,
+  TransactionTagRepository,
+  AuditLogRepository,
+  GoalContributionRepository,
+  NotificationRepository,
+  UserPreferenceRepository,
+  TransactionAttachmentRepository,
 } from './repositories';
 
 @Global()
@@ -27,6 +34,13 @@ import {
     GoalRepository,
     DebtRepository,
     DebtPaymentRepository,
+    TagRepository,
+    TransactionTagRepository,
+    AuditLogRepository,
+    GoalContributionRepository,
+    NotificationRepository,
+    UserPreferenceRepository,
+    TransactionAttachmentRepository,
   ],
   exports: [
     PrismaService,
@@ -40,6 +54,13 @@ import {
     GoalRepository,
     DebtRepository,
     DebtPaymentRepository,
+    TagRepository,
+    TransactionTagRepository,
+    AuditLogRepository,
+    GoalContributionRepository,
+    NotificationRepository,
+    UserPreferenceRepository,
+    TransactionAttachmentRepository,
   ],
 })
 export class PrismaModule {}

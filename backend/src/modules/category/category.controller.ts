@@ -46,11 +46,6 @@ export class CategoryController {
     return this.categoryService.findAll(userId, query);
   }
 
-  @Get('system')
-  getSystemCategories() {
-    return this.categoryService.getSystemCategories();
-  }
-
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, 'Category'))
   findOne(

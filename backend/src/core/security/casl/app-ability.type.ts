@@ -8,8 +8,11 @@ import {
   Debt,
   DebtPayment,
   Goal,
+  Notification,
   RecurringTransaction,
+  Tag,
   Transaction,
+  UserPreference,
 } from 'generated/prisma/browser';
 
 export type AppSubjects =
@@ -23,6 +26,9 @@ export type AppSubjects =
       Goal: Goal;
       Debt: Debt;
       DebtPayment: DebtPayment;
+      UserPreference: UserPreference;
+      Notification: Notification;
+      Tag: Tag;
     }>
   | 'all';
 

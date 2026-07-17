@@ -88,6 +88,10 @@ export class CaslAbilityFactory {
           userId: user.sub,
         });
 
+        // =========================
+        // BUDGET
+        // =========================
+
         can(Action.Create, 'Budget');
         can(Action.Read, 'Budget', {
           userId: user.sub,
@@ -159,6 +163,48 @@ export class CaslAbilityFactory {
           debt: {
             userId: user.sub,
           },
+        });
+
+        // =========================
+        // USER PREFERENCE
+        // =========================
+        can(Action.Create, 'UserPreference');
+        can(Action.Read, 'UserPreference', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'UserPreference', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'UserPreference', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // NOTIFICATION
+        // =========================
+        can(Action.Create, 'Notification');
+        can(Action.Read, 'Notification', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'Notification', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'Notification', {
+          userId: user.sub,
+        });
+
+        // =========================
+        // TAG
+        // =========================
+        can(Action.Create, 'Tag');
+        can(Action.Read, 'Tag', {
+          userId: user.sub,
+        });
+        can(Action.Update, 'Tag', {
+          userId: user.sub,
+        });
+        can(Action.Delete, 'Tag', {
+          userId: user.sub,
         });
 
         // // =========================

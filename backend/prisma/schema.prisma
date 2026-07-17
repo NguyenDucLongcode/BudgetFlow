@@ -115,6 +115,27 @@ enum BudgetType {
   INCOME
 }
 
+enum AttachmentType {
+  IMAGE
+  PDF
+  DOCUMENT
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+
+  CHANGE_PASSWORD
+  RESET_PASSWORD
+
+  VERIFY_EMAIL
+}
+
 // ============================================
 // MODELS
 // ============================================
@@ -164,6 +185,10 @@ model User {
   recurringTransactions RecurringTransaction[]
   goals Goal[]
   debts Debt[]
+  notifications Notification[]
+  tags Tag[]
+  auditLogs AuditLog[]
+  preferences UserPreference?
 
   // Indexes
   @@unique([provider, providerId])
@@ -171,6 +196,29 @@ model User {
   @@index([role])
   @@index([timezone])
   @@index([createdAt])
+}
+
+model UserPreference {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  language String @default("vi")
+  currency Currency @default(VND)
+  theme String @default("system")
+
+  weekStartsOn Int @default(1) // 0: Sunday, 1: Monday
+  dateFormat String @default("DD/MM/YYYY")
+  timeFormat String @default("24h")
+
+  budgetNotification Boolean @default(true)
+  goalNotification Boolean @default(true)
+  debtNotification Boolean @default(true)
+  recurringNotification Boolean @default(true)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model UserSession {
@@ -269,6 +317,7 @@ model Wallet {
   recurringTransactions RecurringTransaction[]
   goals Goal[]
   debts Debt[]
+  goalContributions GoalContribution[]
 
   
   @@index([userId])
@@ -318,6 +367,9 @@ model Transaction {
   
   debts        Debt[]
   debtPayments DebtPayment[]
+  goalContributions GoalContribution[]
+  transactionTags TransactionTag[]
+  attachments TransactionAttachment[]
   
   @@index([userId])
   @@index([walletId])
@@ -325,13 +377,51 @@ model Transaction {
   @@index([date])
   @@index([type])
   @@index([status])
-  @@index([deletedAt])  // THÊM
+  @@index([deletedAt]) 
+  @@index([fromWalletId])           
+  @@index([toWalletId])            
+  @@index([reference])        
   @@index([userId, date])
   @@index([userId, type])
   @@index([userId, walletId])
   @@index([userId, categoryId])
   @@index([userId, date, type])
   @@index([userId, status, date])
+}
+
+enum NotificationType {
+  BUDGET
+  GOAL
+  DEBT
+  RECURRING
+  SYSTEM
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type NotificationType
+
+  title String
+  message String
+
+  isRead Boolean @default(false)
+
+  metadata Json?
+
+  readAt DateTime? @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId, isRead])
 }
 
 // ============================================
@@ -349,17 +439,17 @@ model Budget {
   amount      Decimal  @db.Decimal(18,2)
   spent       Decimal  @db.Decimal(18,2) @default(0)  // THÊM
   
-  startDate   DateTime @db.Timestamptz(6)
+  startDate   DateTime @db.Timestamptz(6) 
   endDate     DateTime @db.Timestamptz(6)
   
   period      BudgetPeriod @default(MONTHLY)
-  type        BudgetType @default(SPENDING)  // THÊM nếu có enum BudgetType
+  type        BudgetType @default(SPENDING)  
   
   alertThreshold Decimal? @db.Decimal(18,2)
   isAlertEnabled Boolean  @default(false)
   
   description String?
-  notes       String?  // THÊM
+  notes       String? 
   isActive    Boolean @default(true)
   
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
@@ -370,9 +460,9 @@ model Budget {
   @@index([categoryId])
   @@index([userId, categoryId])
   @@index([startDate, endDate])
-  @@index([isActive])  // THÊM
-  @@index([period])    // THÊM
-  @@index([deletedAt]) // THÊM
+  @@index([isActive])  
+  @@index([period])    
+  @@index([deletedAt]) 
   @@unique([userId, categoryId, startDate, endDate])
 }
 
@@ -427,6 +517,66 @@ model RecurringTransaction {
   @@index([deletedAt])  // THÊM
 }
 
+model Tag {
+  id String @id @default(uuid())
+
+  name String
+  color String?
+  icon String?
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  transactionTags TransactionTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+
+model TransactionTag {
+
+  transactionId String
+  tagId String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([transactionId, tagId])
+
+  @@index([transactionId])
+  @@index([tagId])
+}
+
+
+model TransactionAttachment {
+
+  id String @id @default(uuid())
+
+  transactionId String
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  fileName String
+
+  fileUrl String
+
+  mimeType String?
+
+  fileSize Int?
+
+  type AttachmentType @default(IMAGE)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([transactionId])
+}
+
 // ============================================
 // GOAL MODEL
 // ============================================
@@ -459,8 +609,12 @@ model Goal {
   walletId    String?
   wallet      Wallet?  @relation(fields: [walletId], references: [id], onDelete: SetNull)
   
+  
   reminderDate DateTime? @db.Timestamptz(6)  // THÊM
   reminderSent Boolean @default(false)       // THÊM
+
+
+  contributions GoalContribution[]
   
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)
@@ -474,6 +628,34 @@ model Goal {
   @@index([priority])    // THÊM
   @@index([isArchived])  // THÊM
   @@index([deletedAt])   // THÊM
+}
+
+
+model GoalContribution {
+  id String @id @default(uuid())
+
+  goalId String
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  walletId String?
+  wallet Wallet? @relation(fields: [walletId], references: [id], onDelete: SetNull)
+
+  amount Decimal @db.Decimal(18,2)
+
+  contributionDate DateTime @default(now()) @db.Timestamptz(6)
+
+  note String?
+
+  transactionId String?
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([goalId])
+  @@index([walletId])
+  @@index([transactionId])
+  @@index([contributionDate])
 }
 
 
@@ -562,4 +744,32 @@ model DebtPayment {
   @@index([debtId])
   @@index([paymentDate])
   @@index([createdAt])  // THÊM
+}
+
+model AuditLog {
+
+  id String @id @default(uuid())
+
+  userId String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action AuditAction
+
+  entity String
+
+  entityId String?
+
+  ipAddress String?
+
+  userAgent String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
 }

@@ -3,9 +3,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateTransactionDto } from './dto/CreateTransactionDto';
-import { UpdateTransactionDto } from './dto/UpdateTransactionDto';
-import { PaginationTransactionDto } from './dto/PaginationTransactionDto';
 import {
   BudgetType,
   Currency,
@@ -14,18 +11,19 @@ import {
 } from 'generated/prisma/client';
 import { Prisma } from 'generated/prisma/client';
 import {
-  BudgetRepository,
   CategoryRepository,
   TransactionRepository,
   WalletRepository,
 } from 'src/infrastructure/prisma/repositories';
+import { CreateTransactionDto } from '../dto/CreateTransactionDto';
+import { PaginationTransactionDto } from '../dto/PaginationTransactionDto';
+import { UpdateTransactionDto } from '../dto/UpdateTransactionDto';
 @Injectable()
 export class TransactionService {
   constructor(
     private readonly transactionRepository: TransactionRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly walletRepository: WalletRepository,
-    private readonly budgetRepository: BudgetRepository,
   ) {}
 
   async create(userId: string, dto: CreateTransactionDto) {

@@ -8,10 +8,10 @@ import {
   GoalRepository,
   WalletRepository,
 } from 'src/infrastructure/prisma/repositories';
-import { CreateGoalDto } from './dto/CreateGoalDto';
-import { UpdateGoalDto } from './dto/UpdateGoalDto';
-import { PaginationGoalDto } from './dto/PaginationGoalDto';
-import { ChangeGoalSavedAmountDto } from './dto/ChangeGoalSavedAmountDto';
+import { CreateGoalDto } from '../dto/CreateGoalDto';
+import { UpdateGoalDto } from '../dto/UpdateGoalDto';
+import { PaginationGoalDto } from '../dto/PaginationGoalDto';
+import { ChangeGoalSavedAmountDto } from '../dto/ChangeGoalSavedAmountDto';
 
 @Injectable()
 export class GoalService {

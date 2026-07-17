@@ -1,0 +1,7 @@
+export const TAG = {
+  MAX_TAGS_PER_USER: 50,
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 100,
+  DEFAULT_COLOR: '#6B7280',
+} as const;
