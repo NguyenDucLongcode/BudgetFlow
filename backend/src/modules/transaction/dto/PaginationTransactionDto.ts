@@ -11,6 +11,7 @@ import {
   Max,
 } from 'class-validator';
 import { TransactionType, TransactionStatus } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class PaginationTransactionDto {
   @ApiPropertyOptional({
@@ -36,6 +37,7 @@ export class PaginationTransactionDto {
   })
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({

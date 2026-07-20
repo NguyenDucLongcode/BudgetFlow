@@ -15,6 +15,7 @@ import {
   TransactionType,
   TransactionStatus,
 } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateTransactionDto {
   @ApiPropertyOptional({
@@ -50,6 +51,7 @@ export class UpdateTransactionDto {
   @IsOptional()
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   description?: string;
 
   @ApiPropertyOptional({
@@ -58,6 +60,7 @@ export class UpdateTransactionDto {
   })
   @IsOptional()
   @IsString()
+  @Sanitize()
   note?: string;
 
   @ApiPropertyOptional({

@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { GoalPriority, GoalStatus } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class PaginationGoalDto {
   @ApiPropertyOptional({ default: 1 })
@@ -28,6 +29,7 @@ export class PaginationGoalDto {
   @ApiPropertyOptional({ example: 'xe' })
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({ enum: GoalStatus })

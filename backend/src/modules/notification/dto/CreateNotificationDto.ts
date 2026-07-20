@@ -8,6 +8,7 @@ import {
   IsObject,
 } from 'class-validator';
 import { NotificationType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class CreateNotificationDto {
   @ApiProperty({
@@ -24,6 +25,7 @@ export class CreateNotificationDto {
   })
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   title!: string;
 
   @ApiProperty({
@@ -32,6 +34,7 @@ export class CreateNotificationDto {
   })
   @IsString()
   @Length(1, 1000)
+  @Sanitize()
   message!: string;
 
   @ApiPropertyOptional({
@@ -43,6 +46,7 @@ export class CreateNotificationDto {
   })
   @IsOptional()
   @IsObject()
+  @Sanitize()
   metadata?: Record<string, any>;
 
   @ApiPropertyOptional({

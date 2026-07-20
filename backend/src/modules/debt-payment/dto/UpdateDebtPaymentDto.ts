@@ -11,6 +11,7 @@ import {
   Min,
 } from 'class-validator';
 import { PaymentMethod } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateDebtPaymentDto {
   @ApiPropertyOptional({ example: 1000000 })
@@ -34,6 +35,7 @@ export class UpdateDebtPaymentDto {
   @IsOptional()
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   note?: string;
 
   @ApiPropertyOptional({ example: 'uuid-transaction' })

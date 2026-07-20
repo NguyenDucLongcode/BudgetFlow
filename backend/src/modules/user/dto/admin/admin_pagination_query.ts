@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { Role } from 'generated/prisma/client';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class AdminPaginationUsersDto {
   @ApiPropertyOptional({ example: 1 })
@@ -30,6 +31,7 @@ export class AdminPaginationUsersDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({

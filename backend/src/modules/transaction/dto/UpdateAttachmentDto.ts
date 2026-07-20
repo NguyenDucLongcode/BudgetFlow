@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, Length } from 'class-validator';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateAttachmentDto {
   @ApiPropertyOptional({
@@ -9,5 +10,6 @@ export class UpdateAttachmentDto {
   @IsOptional()
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   fileName?: string;
 }

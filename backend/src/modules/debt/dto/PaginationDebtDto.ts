@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { DebtStatus, DebtType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class PaginationDebtDto {
   @ApiPropertyOptional({ default: 1 })
@@ -28,6 +29,7 @@ export class PaginationDebtDto {
   @ApiPropertyOptional({ example: 'vay' })
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({ enum: DebtType })

@@ -6,6 +6,7 @@ import {
   IsDateString,
   Min,
 } from 'class-validator';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateContributionDto {
   @ApiPropertyOptional({
@@ -23,6 +24,7 @@ export class UpdateContributionDto {
   })
   @IsOptional()
   @IsString()
+  @Sanitize()
   note?: string;
 
   @ApiPropertyOptional({

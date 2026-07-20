@@ -62,7 +62,7 @@ export class AuthController {
 
   @Public()
   @SkipCsrf()
-  @RateLimit(RATE_LIMIT.AUTH.LOGIN)
+  // @RateLimit(RATE_LIMIT.AUTH.LOGIN)
   @Post('login')
   @ApiAuthLoginSwagger() // Sử dụng decorator Swagger cho endpoint đăng nhập
   async login(

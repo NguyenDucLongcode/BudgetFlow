@@ -22,7 +22,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       db: Number(process.env.REDIS_DB ?? 0),
 
       // Prefix chung cho toàn project
-      keyPrefix: process.env.REDIS_PREFIX || 'budgetflow:',
+      keyPrefix: process.env.REDIS_KEY_PREFIX || 'budgetflow:',
 
       // Kết nối timeout 10s
       connectTimeout: 10_000,

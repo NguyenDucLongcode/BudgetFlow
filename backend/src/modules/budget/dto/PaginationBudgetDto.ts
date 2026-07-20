@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { BudgetPeriod, BudgetType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class PaginationBudgetDto {
   @ApiPropertyOptional({ default: 1 })
@@ -28,6 +29,7 @@ export class PaginationBudgetDto {
   @ApiPropertyOptional({ example: 'ăn uống' })
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({ enum: BudgetType })

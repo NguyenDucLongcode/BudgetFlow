@@ -12,12 +12,14 @@ import {
   Min,
 } from 'class-validator';
 import { Currency, GoalPriority, GoalStatus } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateGoalDto {
   @ApiPropertyOptional({ example: 'Mua xe máy' })
   @IsOptional()
   @IsString()
   @Length(1, 150)
+  @Sanitize()
   name?: string;
 
   @ApiPropertyOptional({ example: 30000000 })
@@ -51,18 +53,21 @@ export class UpdateGoalDto {
   @IsOptional()
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   description?: string;
 
   @ApiPropertyOptional({ example: 'Không rút trước hạn' })
   @IsOptional()
   @IsString()
   @Length(1, 500)
+  @Sanitize()
   notes?: string;
 
   @ApiPropertyOptional({ example: 'target' })
   @IsOptional()
   @IsString()
   @Length(1, 50)
+  @Sanitize()
   icon?: string;
 
   @ApiPropertyOptional({ example: '#3B82F6' })

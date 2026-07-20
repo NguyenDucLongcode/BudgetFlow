@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class TagQueryDto {
   @ApiPropertyOptional({
@@ -31,6 +32,7 @@ export class TagQueryDto {
   })
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({

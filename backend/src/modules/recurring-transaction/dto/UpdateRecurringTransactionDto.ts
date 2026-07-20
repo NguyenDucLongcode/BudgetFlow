@@ -16,12 +16,14 @@ import {
   RecurringFrequency,
   TransactionType,
 } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateRecurringTransactionDto {
   @ApiPropertyOptional({ example: 'Học phí tháng' })
   @IsOptional()
   @IsString()
   @Length(1, 150)
+  @Sanitize()
   name?: string;
 
   @ApiPropertyOptional({ example: 'uuid-wallet' })
@@ -86,6 +88,7 @@ export class UpdateRecurringTransactionDto {
   @IsOptional()
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   description?: string;
 
   @ApiPropertyOptional({ example: { source: 'bank' } })

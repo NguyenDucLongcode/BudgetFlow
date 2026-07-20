@@ -11,12 +11,14 @@ import {
   Min,
 } from 'class-validator';
 import { DebtType, DebtStatus, Currency } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateDebtDto {
   @ApiPropertyOptional({ example: 'Khoản vay học phí' })
   @IsOptional()
   @IsString()
   @Length(1, 150)
+  @Sanitize()
   name?: string;
 
   @ApiPropertyOptional({ enum: DebtType })
@@ -63,24 +65,28 @@ export class UpdateDebtDto {
   @IsOptional()
   @IsString()
   @Length(1, 150)
+  @Sanitize()
   contactName?: string;
 
   @ApiPropertyOptional({ example: 'Khoản vay để đóng học phí kỳ này' })
   @IsOptional()
   @IsString()
   @Length(1, 500)
+  @Sanitize()
   description?: string;
 
   @ApiPropertyOptional({ example: 'Anh A' })
   @IsOptional()
   @IsString()
   @Length(1, 150)
+  @Sanitize()
   borrower?: string;
 
   @ApiPropertyOptional({ example: '0123456789' })
   @IsOptional()
   @IsString()
   @Length(1, 50)
+  @Sanitize()
   accountNumber?: string;
 
   @ApiPropertyOptional({ example: 'uuid-wallet' })
@@ -92,6 +98,7 @@ export class UpdateDebtDto {
   @IsOptional()
   @IsString()
   @Length(1, 500)
+  @Sanitize()
   note?: string;
 
   @ApiPropertyOptional({ example: 'uuid-transaction' })

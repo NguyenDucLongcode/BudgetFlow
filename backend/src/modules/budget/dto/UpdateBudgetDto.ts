@@ -12,6 +12,7 @@ import {
   Min,
 } from 'class-validator';
 import { BudgetPeriod, BudgetType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateBudgetDto {
   @ApiPropertyOptional({
@@ -80,6 +81,7 @@ export class UpdateBudgetDto {
   @IsOptional()
   @IsString()
   @Length(1, 255)
+  @Sanitize()
   description?: string;
 
   @ApiPropertyOptional({
@@ -88,6 +90,7 @@ export class UpdateBudgetDto {
   @IsOptional()
   @IsString()
   @Length(1, 500)
+  @Sanitize()
   notes?: string;
 
   @ApiPropertyOptional({

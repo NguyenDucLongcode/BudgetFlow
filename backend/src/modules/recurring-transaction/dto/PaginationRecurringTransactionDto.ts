@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { RecurringFrequency, TransactionType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class PaginationRecurringTransactionDto {
   @ApiPropertyOptional({ default: 1 })
@@ -28,6 +29,7 @@ export class PaginationRecurringTransactionDto {
   @ApiPropertyOptional({ example: 'học phí' })
   @IsOptional()
   @IsString()
+  @Sanitize()
   search?: string;
 
   @ApiPropertyOptional({ enum: TransactionType })

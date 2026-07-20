@@ -8,6 +8,7 @@ import { seedGoals } from './goal.seed';
 import { seedDebts } from './debt.seed';
 import { seedTags } from './tag.seed';
 import { createSeedContext } from './context';
+import { seedUserPreferences } from './user-preference.seed';
 
 export async function runSeeds(prisma: PrismaClient) {
   console.log('==========================');
@@ -18,6 +19,7 @@ export async function runSeeds(prisma: PrismaClient) {
 
   // 1. Users
   await seedUsers(context);
+  await seedUserPreferences(context);
 
   // 2. Categories (phụ thuộc users)
   await seedCategories(context);

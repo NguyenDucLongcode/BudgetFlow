@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from 'generated/prisma/client';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class AdminUpdateUserDto {
   @ApiPropertyOptional()
@@ -16,6 +17,7 @@ export class AdminUpdateUserDto {
   @IsString()
   @Length(2, 100)
   @Transform(({ value }: { value: string }) => value?.trim())
+  @Sanitize()
   name?: string;
 
   @ApiPropertyOptional()

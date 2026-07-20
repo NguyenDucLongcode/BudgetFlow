@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, Length, Matches, IsUUID } from 'class-validator';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class UpdateCategoryDto {
   @ApiPropertyOptional({
@@ -9,6 +10,7 @@ export class UpdateCategoryDto {
   @IsOptional()
   @IsString()
   @Length(1, 100)
+  @Sanitize()
   name?: string;
 
   @ApiPropertyOptional({
@@ -18,6 +20,7 @@ export class UpdateCategoryDto {
   @IsOptional()
   @IsString()
   @Length(1, 50)
+  @Sanitize()
   icon?: string;
 
   @ApiPropertyOptional({

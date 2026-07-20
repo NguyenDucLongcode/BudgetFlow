@@ -8,6 +8,7 @@ import {
   IsUUID,
 } from 'class-validator';
 import { CategoryType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class CreateCategoryDto {
   @ApiProperty({
@@ -16,6 +17,7 @@ export class CreateCategoryDto {
   })
   @IsString()
   @Length(1, 100)
+  @Sanitize()
   name!: string;
 
   @ApiProperty({
@@ -33,6 +35,7 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsString()
   @Length(1, 50)
+  @Sanitize()
   icon?: string;
 
   @ApiPropertyOptional({

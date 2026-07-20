@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { AttachmentType } from 'generated/prisma/enums';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class CreateAttachmentDto {
   @ApiProperty({
@@ -25,6 +26,7 @@ export class CreateAttachmentDto {
     description: 'URL của file',
   })
   @IsUrl()
+  @Sanitize()
   fileUrl!: string;
 
   @ApiPropertyOptional({

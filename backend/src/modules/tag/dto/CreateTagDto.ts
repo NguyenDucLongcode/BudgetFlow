@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, Length, Matches } from 'class-validator';
+import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class CreateTagDto {
   @ApiProperty({
@@ -8,6 +9,7 @@ export class CreateTagDto {
   })
   @IsString()
   @Length(1, 50)
+  @Sanitize()
   name!: string;
 
   @ApiPropertyOptional({
@@ -25,5 +27,6 @@ export class CreateTagDto {
   @IsOptional()
   @IsString()
   @Length(0, 50)
+  @Sanitize()
   icon?: string;
 }

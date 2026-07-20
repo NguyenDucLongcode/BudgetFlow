@@ -96,8 +96,15 @@ export class TransactionService {
       const category = await this.categoryRepository.findFirst({
         where: {
           id: dto.categoryId,
-          userId,
           deletedAt: null,
+          OR: [
+            {
+              userId,
+            },
+            {
+              isSystem: true,
+            },
+          ],
         },
       });
 
