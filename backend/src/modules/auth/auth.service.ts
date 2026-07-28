@@ -61,8 +61,10 @@ export class AuthService {
     }
 
     // Chưa xác thực email
-    if (!user.isActive) {
-      throw new ForbiddenException('Tài khoản chưa được xác thực email');
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException(
+        'The account has not been verified or has been disabled.',
+      );
     }
 
     if (user.deletedAt) {
@@ -75,13 +77,12 @@ export class AuthService {
   }
 
   async login(params: LoginParams) {
-    const { user, res, deviceId, ipAddress, userAgent } = params;
+    const { user, res, deviceId, ipAddress, userAgent, remember } = params;
 
     if (!deviceId) {
       throw new UnauthorizedException('Missing deviceId');
     }
 
-    // Lưu thông tin đăng nhập vào cơ sở dữ liệu (nếu cần)
     const payload = {
       sub: user.id,
       email: user.email,
@@ -89,15 +90,19 @@ export class AuthService {
       tv: user.tokenVersion,
     };
 
-    // Tạo access token và refresh token
+    // Access token 15m
     const accessToken = await this.jwtService.signAsync(payload, {
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
     });
 
-    // Tạo refresh token
+    // Refresh token: nếu remember = true thì 7d, còn false thì 1d (hoặc 1h)
+    const refreshExpiresIn = remember
+      ? this.configService.get('JWT_REFRESH_EXPIRES_IN') // 7d
+      : '1d'; // hoặc '1h' nếu muốn ngắn hơn
+
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
+      expiresIn: refreshExpiresIn,
     });
 
     const hashedToken = crypto
@@ -106,14 +111,10 @@ export class AuthService {
       .digest('hex');
 
     const refreshExpiresInSeconds =
-      parseExpiryToMs(
-        this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
-      ) / 1000;
+      parseExpiryToMs(refreshExpiresIn as string) / 1000;
 
-    // Key Redis
     const redisKey = getRefreshKey(user.id, deviceId);
 
-    // Lưu refresh token vào Redis với thời gian hết hạn
     await this.redisService.set(
       redisKey,
       JSON.stringify({
@@ -122,12 +123,11 @@ export class AuthService {
         deviceId,
         userAgent: userAgent ?? null,
         ipAddress: ipAddress ?? null,
+        remember: remember ?? false,
       }),
       refreshExpiresInSeconds,
     );
 
-    // Lưu thông tin đăng nhập vào cơ sở dữ liệu (UserSession)
-    // Nếu user đã đăng nhập trên thiết bị này trước đó, cập nhật thông tin
     await this.sessionRepository.upsert({
       where: {
         userId_deviceId: {
@@ -135,7 +135,6 @@ export class AuthService {
           deviceId,
         },
       },
-
       create: {
         userId: user.id,
         deviceId,
@@ -143,17 +142,17 @@ export class AuthService {
         ipAddress: ipAddress ?? null,
         lastLoginAt: new Date(),
         lastActiveAt: new Date(),
+        isRemember: remember ?? false,
       },
-
       update: {
         userAgent: userAgent ?? null,
         ipAddress: ipAddress ?? null,
         lastLoginAt: new Date(),
         lastActiveAt: new Date(),
+        isRemember: remember ?? false,
       },
     });
 
-    // Lưu refresh token vào cookie khoảng 7 ngày, httpOnly, secure, sameSite
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -161,7 +160,6 @@ export class AuthService {
       maxAge: refreshExpiresInSeconds * 1000,
     });
 
-    // set CSRF cookie
     this.csrfService.setCsrfCookie(res);
 
     return {
@@ -170,6 +168,8 @@ export class AuthService {
         accessToken,
         tokenType: 'Bearer',
         expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
+        deviceId,
+        remember: remember ?? false,
         user: {
           id: user.id,
           email: user.email,
@@ -179,7 +179,6 @@ export class AuthService {
       },
     };
   }
-
   async refreshToken(refreshToken: string, res: Response, deviceId: string) {
     // Verify JWT Refresh Token
     let payload: JwtPayload;
@@ -213,9 +212,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Kiểm tra user trong cơ sở dữ liệu
-    // Nếu user không tồn tại hoặc không active → trả về lỗi
-    // Nếu token version không khớp → trả về lỗi
+    // Kiểm tra user
     const user = await this.userRepository.findUnique({
       where: { id: payload.sub },
     });
@@ -224,13 +221,23 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    if (!user.isActive) {
-      throw new ForbiddenException('User is not active');
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException(
+        'The account has not been verified or has been disabled.',
+      );
     }
 
     if (payload.tv !== user.tokenVersion) {
       throw new UnauthorizedException('Refresh token revoked');
     }
+
+    // Lấy rememberMe từ Redis
+    const rememberMe = parsedToken.rememberMe ?? false;
+
+    // Xác định thời gian hết hạn dựa trên rememberMe (giữ nguyên như lúc login)
+    const refreshExpiresIn = rememberMe
+      ? this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d' // 7 ngày
+      : '1d'; // hoặc '1h' - phải giống với lúc login
 
     const newPayload = {
       sub: user.id,
@@ -244,35 +251,35 @@ export class AuthService {
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
     });
 
-    // Tạo refresh token mới (quan trọng)
+    // Tạo refresh token mới với thời gian giữ nguyên
     const newRefreshToken = await this.jwtService.signAsync(newPayload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
+      expiresIn: refreshExpiresIn, // Dùng thời gian từ rememberMe
     });
 
-    // Hash refresh token mới để lưu vào cơ sở dữ liệu
     const hashedNew = crypto
       .createHash('sha256')
       .update(newRefreshToken)
       .digest('hex');
 
     const refreshExpiresInSeconds =
-      parseExpiryToMs(
-        this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d',
-      ) / 1000;
+      parseExpiryToMs(refreshExpiresIn as string) / 1000;
 
-    // Lưu refresh token mới vào redis, ghi đè refresh token cũ
+    // Lưu refresh token mới vào redis
     await this.redisService.set(
       redisKey,
       JSON.stringify({
         tokenHash: hashedNew,
+        userId: user.id,
+        deviceId: deviceId,
         userAgent: parsedToken.userAgent ?? null,
         ipAddress: parsedToken.ipAddress ?? null,
+        rememberMe: rememberMe, // Giữ lại rememberMe
       }),
       refreshExpiresInSeconds,
     );
 
-    // Cập nhật thông tin đăng nhập trong cơ sở dữ liệu (UserSession)
+    // Update session
     await this.sessionRepository.upsert({
       where: {
         userId_deviceId: {
@@ -280,7 +287,6 @@ export class AuthService {
           deviceId,
         },
       },
-
       create: {
         userId: user.id,
         deviceId,
@@ -288,22 +294,21 @@ export class AuthService {
         ipAddress: parsedToken.ipAddress ?? null,
         lastLoginAt: new Date(),
         lastActiveAt: new Date(),
+        isRemember: rememberMe, // Giữ lại rememberMe
       },
-
       update: {
         lastActiveAt: new Date(),
       },
     });
 
-    // set cookie lại
+    // Set cookie với max-age tương ứng
     res.cookie('refresh_token', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: refreshExpiresInSeconds * 1000,
+      maxAge: refreshExpiresInSeconds * 1000, // 👈 Cập nhật
     });
 
-    // set CSRF cookie
     this.csrfService.setCsrfCookie(res);
 
     return {
@@ -312,6 +317,7 @@ export class AuthService {
         accessToken,
         tokenType: 'Bearer',
         expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
+        refreshExpiresIn: refreshExpiresIn, // Trả về FE biết
         user: {
           id: user.id,
           email: user.email,

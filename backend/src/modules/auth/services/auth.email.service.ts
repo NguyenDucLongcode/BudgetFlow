@@ -50,7 +50,7 @@ export class AuthEmailService {
         email,
         password: hashedPassword,
         name,
-        isActive: false,
+        status: 'PENDING',
         verifyToken,
         verifyTokenExpiresAt,
       },
@@ -59,7 +59,7 @@ export class AuthEmailService {
         email: true,
         name: true,
         role: true,
-        isActive: true,
+        status: true,
         createdAt: true,
       },
     });
@@ -113,7 +113,7 @@ export class AuthEmailService {
     }
 
     // Nếu đã kích hoạt rồi
-    if (user.isActive) {
+    if (user.status === 'ACTIVE') {
       return {
         message: 'Tài khoản đã được kích hoạt trước đó',
       };
@@ -124,7 +124,7 @@ export class AuthEmailService {
         id: user.id,
       },
       data: {
-        isActive: true,
+        status: 'ACTIVE',
         verifyToken: null,
         verifyTokenExpiresAt: null,
         verifiedAt: new Date(),
@@ -236,7 +236,7 @@ export class AuthEmailService {
     }
 
     // Đã xác thực rồi
-    if (user.isActive) {
+    if (user.status === 'ACTIVE') {
       throw new BadRequestException('Tài khoản đã được xác thực');
     }
 

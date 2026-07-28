@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleUser } from 'src/common/interfaces/google-user.interface';
+import { SocialUser } from 'src/common/interfaces/social-user.interface';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from 'src/infrastructure/redis/redis.service';
 import * as crypto from 'crypto';
@@ -23,7 +23,7 @@ export class AuthOAuth20Service {
   ) {}
 
   async googleLogin(
-    googleUser: GoogleUser,
+    googleUser: SocialUser,
     deviceId: string,
     req: Request,
     res: Response,
@@ -50,7 +50,7 @@ export class AuthOAuth20Service {
         data: {
           provider: googleUser.provider,
           providerId: googleUser.providerId,
-          isActive: true,
+          status: 'ACTIVE',
           name: user.name || googleUser.name, // Giữ tên cũ nếu có
           avatar: user.avatar || googleUser.picture,
         },
@@ -64,7 +64,7 @@ export class AuthOAuth20Service {
           email: googleUser.email,
           name: googleUser.name,
           avatar: googleUser.picture,
-          isActive: true,
+          status: 'ACTIVE',
           provider: googleUser.provider,
           providerId: googleUser.providerId,
         },

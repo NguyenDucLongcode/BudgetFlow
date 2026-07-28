@@ -1,25 +1,27 @@
-import { serverApiClient } from "@/src/lib/bff/server-api-client";
+import { authService } from "@/src/server/modules/auth/auth.service";
+import { handleApiError } from "@/src/lib/bff/handle-api-error";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    // Gọi trực tiếp BE thay vì qua AuthService
+    const response = await authService.login(body);
 
-    const api = serverApiClient(req);
+    const nextResponse = NextResponse.json(response.data, {
+      status: response.status,
+    });
 
-    const result = await api.post("/auth/login", body);
+    // Forward cookie từ BE sang client
+    const cookies = response.headers["set-cookie"];
+    if (cookies) {
+      (Array.isArray(cookies) ? cookies : [cookies]).forEach((cookie) => {
+        nextResponse.headers.append("Set-Cookie", cookie);
+      });
+    }
 
-    return NextResponse.json(result.data);
-  } catch (error: any) {
-    console.error("[BFF LOGIN ERROR]", error.response?.data ?? error);
-
-    return NextResponse.json(
-      {
-        message: error.response?.data?.message ?? "Login failed",
-      },
-      {
-        status: error.response?.status ?? 500,
-      },
-    );
+    return nextResponse;
+  } catch (error) {
+    return handleApiError(error);
   }
 }

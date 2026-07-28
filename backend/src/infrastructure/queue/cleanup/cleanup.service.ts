@@ -13,7 +13,7 @@ export class CleanupService {
 
     const result = await this.prisma.user.deleteMany({
       where: {
-        isActive: false,
+        status: 'PENDING',
 
         verifyTokenExpiresAt: {
           lt: new Date(),

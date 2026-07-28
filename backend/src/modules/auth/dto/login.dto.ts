@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({ example: 'nguyenduclongbede@gmail.com' })
@@ -13,4 +13,13 @@ export class LoginDto {
   @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
   @IsString({ message: 'Mật khẩu phải là một chuỗi' })
   password!: string;
+
+  @ApiProperty({
+    example: true,
+    required: true,
+    description: 'Ghi nhớ đăng nhập - true: 7 ngày, false: 1 ngày',
+  })
+  @IsBoolean({ message: 'remember phải là kiểu boolean' })
+  @IsNotEmpty({ message: 'remember không được để trống' })
+  remember!: boolean;
 }

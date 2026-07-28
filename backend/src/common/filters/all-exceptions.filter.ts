@@ -20,18 +20,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Lấy dữ liệu phản hồi từ exception
     const res = exception.getResponse();
 
-    // Khai báo message với kiểu an toàn
-    let message: string | string[] | undefined;
+    // Xác định message và type của lỗi
+    let message: string | string[] = exception.message;
+    let type = exception.name;
 
-    // Nếu exception trả về object chứa message (thường từ class-validator)
-    if (typeof res === 'object' && res !== null && 'message' in res) {
-      const resObj = res as Record<string, unknown>;
-      const msg = resObj.message;
-      if (typeof msg === 'string' || Array.isArray(msg)) {
-        message = msg;
+    if (typeof res === 'object' && res !== null) {
+      const body = res as Record<string, unknown>;
+
+      if ('message' in body) {
+        message = body.message as string | string[];
       }
-    } else if (typeof res === 'string') {
-      message = res;
+
+      if ('error' in body) {
+        type = String(body.error);
+      }
     }
 
     // Hiện logger khi lỗi
@@ -39,6 +41,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       method: request.method,
       url: request.url,
       status,
+      type,
       message: exception.message,
       stack: exception.stack,
     });
@@ -46,6 +49,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Trả về response cho client
     response.status(status).json({
       statusCode: status,
+      type,
       message,
       timestamp: new Date().toISOString(),
       path: request.url,

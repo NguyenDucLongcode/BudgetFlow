@@ -1,54 +1,43 @@
-import type { AxiosRequestConfig } from "axios";
+import type { AxiosRequestConfig, AxiosResponse } from "axios";
+
 import { axiosClient } from "../axios/axio-client";
+import { ApiResponse } from "@/src/types/api";
 
 class BrowserApiClient {
-  get<T>(
+  private unwrap<T>(response: AxiosResponse<ApiResponse<T>>): T {
+    return response.data.data;
+  }
+
+  get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return axiosClient.get<ApiResponse<T>>(url, config).then(this.unwrap);
+  }
+
+  post<T>(
     url: string,
-    params?: Record<string, unknown>,
+    data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<T> {
     return axiosClient
-      .get<T>(url, {
-        ...(config ?? {}),
-        ...(params ? { params } : {}),
-      })
-      .then((response) => response.data);
+      .post<ApiResponse<T>>(url, data, config)
+      .then(this.unwrap);
   }
 
-  post<T, D = unknown>(
-    url: string,
-    data?: D,
-    config?: AxiosRequestConfig<D>,
-  ): Promise<T> {
-    return axiosClient
-      .post<T>(url, data, config ?? {})
-      .then((response) => response.data);
+  put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return axiosClient.put<ApiResponse<T>>(url, data, config).then(this.unwrap);
   }
 
-  put<T, D = unknown>(
+  patch<T>(
     url: string,
-    data?: D,
-    config?: AxiosRequestConfig<D>,
+    data?: unknown,
+    config?: AxiosRequestConfig,
   ): Promise<T> {
     return axiosClient
-      .put<T>(url, data, config ?? {})
-      .then((response) => response.data);
-  }
-
-  patch<T, D = unknown>(
-    url: string,
-    data?: D,
-    config?: AxiosRequestConfig<D>,
-  ): Promise<T> {
-    return axiosClient
-      .patch<T>(url, data, config ?? {})
-      .then((response) => response.data);
+      .patch<ApiResponse<T>>(url, data, config)
+      .then(this.unwrap);
   }
 
   delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return axiosClient
-      .delete<T>(url, config ?? {})
-      .then((response) => response.data);
+    return axiosClient.delete<ApiResponse<T>>(url, config).then(this.unwrap);
   }
 }
 

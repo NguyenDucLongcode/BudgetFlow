@@ -21,7 +21,7 @@ export async function seedUsers(context: SeedContext): Promise<void> {
       name: USERS.ADMIN.name,
       role: USERS.ADMIN.role,
       verifiedAt: new Date(),
-      isActive: true,
+      status: 'ACTIVE',
     },
   });
 
@@ -36,7 +36,7 @@ export async function seedUsers(context: SeedContext): Promise<void> {
       name: USERS.USER.name,
       role: USERS.USER.role,
       verifiedAt: new Date(),
-      isActive: true,
+      status: 'ACTIVE',
     },
   });
 

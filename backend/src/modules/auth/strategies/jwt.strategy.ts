@@ -35,14 +35,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         email: true,
         name: true,
         role: true,
-        isActive: true,
+        status: true,
         deletedAt: true,
         tokenVersion: true,
       },
     });
 
     // Kiểm tra user tồn tại và đang hoạt động
-    if (!user || !user.isActive || user.deletedAt) {
+    if (!user || user.status !== 'ACTIVE' || user.deletedAt) {
       throw new UnauthorizedException('Unauthorized');
     }
 

@@ -11,6 +11,7 @@ import {
   Prisma,
   Role,
   TransactionType,
+  UserStatus,
 } from 'generated/prisma/client';
 import { SessionService } from '../../session/session.service';
 import { AdminPaginationUsersDto } from '../dto/admin/admin_pagination_query';
@@ -45,7 +46,7 @@ export class AdminService {
 
   // Lấy tất cả users
   async findAll(query: AdminPaginationUsersDto) {
-    const { page, limit, search, role, isActive } = query;
+    const { page, limit, search, role, status } = query;
 
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
@@ -72,8 +73,8 @@ export class AdminService {
       where.role = role;
     }
 
-    if (isActive !== undefined) {
-      where.isActive = isActive === 'true';
+    if (status) {
+      where.status = status;
     }
 
     const [users, total] = await Promise.all([
@@ -89,7 +90,7 @@ export class AdminService {
           email: true,
           name: true,
           role: true,
-          isActive: true,
+          status: true,
           provider: true,
           createdAt: true,
           updatedAt: true,
@@ -125,7 +126,7 @@ export class AdminService {
         name: true,
         avatar: true,
         role: true,
-        isActive: true,
+        status: true,
         provider: true,
         timezone: true,
         verifiedAt: true,
@@ -191,7 +192,7 @@ export class AdminService {
         name: true,
         avatar: true,
         role: true,
-        isActive: true,
+        status: true,
         timezone: true,
         provider: true,
         createdAt: true,
@@ -207,7 +208,6 @@ export class AdminService {
       // ===== Users =====
       totalUsers,
       activeUsers,
-      inactiveUsers,
       adminUsers,
 
       // ===== Sessions =====
@@ -254,14 +254,7 @@ export class AdminService {
 
       this.userRepository.count({
         where: {
-          isActive: true,
-          deletedAt: null,
-        },
-      }),
-
-      this.userRepository.count({
-        where: {
-          isActive: false,
+          status: UserStatus.ACTIVE,
           deletedAt: null,
         },
       }),
@@ -401,7 +394,6 @@ export class AdminService {
         users: {
           total: totalUsers,
           active: activeUsers,
-          inactive: inactiveUsers,
           admins: adminUsers,
         },
 
@@ -482,7 +474,7 @@ export class AdminService {
       },
       data: {
         deletedAt: new Date(),
-        isActive: false,
+        status: 'PENDING',
         tokenVersion: {
           increment: 1,
         },
@@ -512,7 +504,10 @@ export class AdminService {
     const updatedUser = await this.userRepository.update({
       where: { id },
       data: {
-        isActive: !user.isActive,
+        status:
+          user.status === UserStatus.ACTIVE
+            ? UserStatus.PENDING
+            : UserStatus.ACTIVE,
         tokenVersion: {
           increment: 1,
         },
@@ -524,10 +519,10 @@ export class AdminService {
     }
 
     return {
-      message: `User has been ${updatedUser.isActive ? 'activated' : 'deactivated'} successfully.`,
+      message: `User has been ${updatedUser.status === UserStatus.ACTIVE ? 'activated' : 'deactivated'} successfully.`,
       data: {
         id: updatedUser.id,
-        isActive: updatedUser.isActive,
+        status: updatedUser.status,
       },
     };
   }

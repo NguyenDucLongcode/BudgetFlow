@@ -22,6 +22,19 @@ enum TransactionType {
   TRANSFER    // Chuyển khoản giữa các ví
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  GITHUB
+}
+
+
 enum TransactionStatus {
   PENDING     // Đang xử lý
   COMPLETED   // Hoàn thành
@@ -149,14 +162,15 @@ model User {
   name     String
 
   // Trạng thái tài khoản
-  isActive Boolean @default(false)
+  status   UserStatus @default(PENDING)
   role     Role    @default(USER)
 
   // Đăng nhập bằng mạng xã hội
-  provider   String?
+  provider  AuthProvider @default(LOCAL)
   providerId String?
   avatar   String?
 
+  
   // Xác thực email
   verifyToken String?
   verifiedAt DateTime?   @db.Timestamptz(6)
@@ -171,6 +185,8 @@ model User {
 
   // Múi giờ
   timezone String @default("Asia/Ho_Chi_Minh")
+
+
 
   // Thời gian
   createdAt DateTime @default(now()) @db.Timestamptz(6)
@@ -192,9 +208,9 @@ model User {
 
   // Indexes
   @@unique([provider, providerId])
-  @@index([isActive])
   @@index([role])
   @@index([timezone])
+  @@index([status])
   @@index([createdAt])
 }
 
@@ -230,6 +246,7 @@ model UserSession {
   deviceId String
   userAgent String?
   ipAddress String?
+  isRemember    Boolean  @default(false)
 
   lastLoginAt DateTime @default(now()) @db.Timestamptz(6)
   lastActiveAt DateTime @default(now()) @db.Timestamptz(6)

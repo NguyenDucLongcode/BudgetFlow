@@ -27,6 +27,7 @@ export function ApiAuthLoginSwagger() {
           value: {
             email: 'user@gmail.com',
             password: 'Longxem1234@',
+            remember: true,
           },
         },
       },

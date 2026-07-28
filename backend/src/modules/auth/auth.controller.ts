@@ -39,7 +39,7 @@ import { AuthEmailService } from './services/auth.email.service';
 import { SessionService } from '../session/session.service';
 import { ResendVerificationEmailDto } from './dto/ResendVerificationEmailDto';
 import { GoogleAuthGuard } from './strategies/guards/google-auth.guard';
-import { GoogleUser } from 'src/common/interfaces/google-user.interface';
+import { SocialUser } from 'src/common/interfaces/social-user.interface';
 import { ConfigService } from '@nestjs/config';
 import { AuthOAuth20Service } from './services/auth.oauth20.service';
 import { SkipCsrf } from 'src/core/security/csrf';
@@ -47,6 +47,7 @@ import { UserRepository } from 'src/infrastructure/prisma/repositories';
 import { RateLimit } from 'src/core/security/rate-limit/decorator/rate-limit.decorator';
 import { RATE_LIMIT } from 'src/core/security/rate-limit/constants/rate-limit.constants';
 import { ApiAuthSwaggerUI } from 'src/common/decorators/swagger-auth.decorator';
+import { AuthProvider } from 'generated/prisma/enums';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -88,6 +89,7 @@ export class AuthController {
       deviceId,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] ?? 'Unknown',
+      remember: loginDto.remember,
     });
   }
 
@@ -216,11 +218,11 @@ export class AuthController {
       throw new UnauthorizedException('User not found');
     }
     // Tạo GoogleUser từ dữ liệu đã được Strategy trả về
-    const googleUser: GoogleUser = {
+    const googleUser: SocialUser = {
       email: user.email,
       name: user.name,
       picture: user.avatar || undefined, // FIX: was req.user.avatar
-      provider: 'google',
+      provider: AuthProvider.GOOGLE,
       providerId: user.providerId || '', // FIX: remove || '' fallback
     };
 

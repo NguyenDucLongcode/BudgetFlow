@@ -1,15 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsBooleanString,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-} from 'class-validator';
-import { Role } from 'generated/prisma/client';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Role, UserStatus } from 'generated/prisma/client';
 import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 
 export class AdminPaginationUsersDto {
@@ -41,8 +33,10 @@ export class AdminPaginationUsersDto {
   @IsEnum(Role)
   role?: Role;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    enum: UserStatus,
+  })
   @IsOptional()
-  @IsBooleanString()
-  isActive?: string;
+  @IsEnum(UserStatus)
+  status?: UserStatus;
 }

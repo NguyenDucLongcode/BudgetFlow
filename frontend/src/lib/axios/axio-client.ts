@@ -14,17 +14,15 @@ export const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    let deviceId = localStorage.getItem("device_id");
+    let deviceId = localStorage.getItem("x-device-id");
 
     if (!deviceId) {
       deviceId = crypto.randomUUID();
 
-      localStorage.setItem("device_id", deviceId);
+      localStorage.setItem("x-device-id", deviceId);
     }
 
     config.headers["x-device-id"] = deviceId;
-
-    console.log("[Browser] Device ID:", deviceId);
   }
 
   return config;
