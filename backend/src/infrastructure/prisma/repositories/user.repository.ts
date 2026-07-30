@@ -72,11 +72,11 @@ export class UserRepository {
     return this.prisma.user.aggregate(args);
   }
 
-  groupBy(args: Prisma.UserGroupByArgs) {
-    return this.prismaService.user.groupBy({
-      ...args,
-      orderBy: args.orderBy,
-    });
+  groupBy<T extends Prisma.UserGroupByArgs>(
+    args: Prisma.SelectSubset<T, Prisma.UserGroupByArgs>,
+  ) {
+    // @ts-expect-error Prisma groupBy has incorrect generic inference
+    return this.prismaService.user.groupBy(args);
   }
 
   get prismaService() {

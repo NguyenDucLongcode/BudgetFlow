@@ -68,6 +68,12 @@ export enum DebtStatus {
   CANCELLED = "CANCELLED",
 }
 
+export enum AuthProvider {
+  LOCAL = "LOCAL",
+  GOOGLE = "GOOGLE",
+  GITHUB = "GITHUB",
+}
+
 export enum PaymentMethod {
   CASH = "CASH",
   BANK_TRANSFER = "BANK_TRANSFER",

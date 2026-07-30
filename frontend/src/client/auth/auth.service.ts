@@ -2,8 +2,10 @@ import { browserApiClient } from "@/src/lib/bff";
 import { AuthResponse, LoginDto, UserProfile } from "@/src/types/api";
 
 class AuthService {
-  login(data: LoginDto) {
-    return browserApiClient.post<AuthResponse>("/auth/login", data);
+  async login(data: LoginDto) {
+    const res = await browserApiClient.post<AuthResponse>("/auth/login", data);
+
+    return res.data;
   }
 
   logout() {

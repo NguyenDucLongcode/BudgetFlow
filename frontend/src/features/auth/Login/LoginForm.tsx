@@ -41,7 +41,7 @@ export default function LoginForm() {
     try {
       const response = await login(data);
 
-      if (response.user.role === "ADMIN") {
+      if (response.data.user.role === "ADMIN") {
         router.push("/admin/dashboard");
       } else {
         router.push("/dashboard");
@@ -58,7 +58,7 @@ export default function LoginForm() {
         label="Email"
         type="email"
         placeholder="Enter your email"
-        icon={Mail}
+        leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
         registration={register("email")}
         error={errors.email}
       />

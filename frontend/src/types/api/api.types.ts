@@ -45,18 +45,13 @@ export class ApiError extends Error {
   }
 }
 
-export interface Pagination {
+export interface PaginationResponse {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: Pagination;
 }
 
 export interface AppError extends Error {

@@ -1,18 +1,18 @@
-import { Currency, Role, UserStatus } from "./enums";
+import { AuthProvider, Currency, Role, UserStatus } from "./enums";
 
 // ===== User =====
 export interface User {
   id: string;
   email: string;
+  avatar: string;
   name: string;
   role: Role;
   status: UserStatus;
-  avatar?: string | null;
-  timezone: string;
+  provider: AuthProvider;
   createdAt: string;
   updatedAt: string;
-  preferences?: UserPreference | null;
-  sessions?: UserSession[];
+  timezone: string;
+  deletedAt: string | null;
 }
 
 // ===== User Preference =====

@@ -77,7 +77,11 @@ export class AdminService {
       where.status = status;
     }
 
-    const [users, total] = await Promise.all([
+    const statsWhere: Prisma.UserWhereInput = {
+      deletedAt: null,
+    };
+
+    const [users, total, statusStats, admins] = await Promise.all([
       this.userRepository.findMany({
         where,
         skip: (page - 1) * limit,
@@ -88,28 +92,74 @@ export class AdminService {
         select: {
           id: true,
           email: true,
+          avatar: true,
           name: true,
           role: true,
           status: true,
           provider: true,
           createdAt: true,
-          updatedAt: true,
         },
       }),
 
       this.userRepository.count({
         where,
       }),
+
+      this.userRepository.groupBy({
+        by: ['status'],
+        where: statsWhere,
+        _count: {
+          status: true,
+        },
+      }),
+
+      this.userRepository.count({
+        where: {
+          ...statsWhere,
+          role: Role.ADMIN,
+        },
+      }),
     ]);
+
+    const counts = {
+      total: await this.userRepository.count({
+        where: statsWhere,
+      }),
+      active: 0,
+      pending: 0,
+      suspended: 0,
+      admins,
+    };
+
+    for (const item of statusStats) {
+      switch (item.status) {
+        case UserStatus.ACTIVE:
+          counts.active = item._count.status;
+          break;
+
+        case UserStatus.PENDING:
+          counts.pending = item._count.status;
+          break;
+
+        case UserStatus.SUSPENDED:
+          counts.suspended = item._count.status;
+          break;
+      }
+    }
 
     return {
       message: 'Lấy danh sách người dùng thành công.',
-      data: users,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+      data: {
+        users,
+        counts,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page * limit < total,
+          hasPrevPage: page > 1,
+        },
       },
     };
   }

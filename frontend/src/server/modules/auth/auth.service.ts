@@ -6,7 +6,7 @@ import { LoginDto } from "@/src/types/api";
 
 class AuthService {
   async login(data: LoginDto) {
-    const response = await serverApiClient.postRaw<AuthTokenResponse>(
+    const response = await serverApiClient.post<AuthTokenResponse>(
       "/auth/login",
       data,
     );
@@ -36,9 +36,11 @@ class AuthService {
   }
 
   async refresh() {
-    const response = await serverApiClient.postRaw<AuthTokenResponse>(
+    const response = await serverApiClient.post<AuthTokenResponse>(
       "/auth/refresh-token",
     );
+
+    console.log("refresh response", response);
 
     const { accessToken, deviceId, user, expiresIn } = response.data.data;
 
@@ -65,7 +67,7 @@ class AuthService {
 
   async logout(deviceId: string): Promise<void> {
     // 1. gọi backend logout
-    await serverApiClient.postRaw("/auth/logout");
+    await serverApiClient.post("/auth/logout");
 
     // 2. xoá access token trong Redis BFF
     await accessTokenStore.remove(deviceId);

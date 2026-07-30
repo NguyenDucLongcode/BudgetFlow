@@ -1,8 +1,8 @@
 "use client";
 
 import { StatCard } from "@/src/components";
-import { UserCounts } from "./type";
-import { STATS } from "./constant";
+import { UserCounts } from "../type";
+import { STATS } from "../constant";
 
 interface UserStatsProps {
   counts: UserCounts;

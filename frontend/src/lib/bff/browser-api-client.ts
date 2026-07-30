@@ -1,43 +1,48 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
-
 import { axiosClient } from "../axios/axio-client";
 import { ApiResponse } from "@/src/types/api";
 
 class BrowserApiClient {
-  private unwrap<T>(response: AxiosResponse<ApiResponse<T>>): T {
-    return response.data.data;
+  async get<T>(
+    url: string,
+    params?: Record<string, unknown>,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
+    return axiosClient.get<ApiResponse<T>>(url, {
+      ...config,
+      ...(params && { params }),
+    });
   }
 
-  get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return axiosClient.get<ApiResponse<T>>(url, config).then(this.unwrap);
-  }
-
-  post<T>(
+  async post<T>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig,
-  ): Promise<T> {
-    return axiosClient
-      .post<ApiResponse<T>>(url, data, config)
-      .then(this.unwrap);
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
+    return axiosClient.post<ApiResponse<T>>(url, data, config);
   }
 
-  put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    return axiosClient.put<ApiResponse<T>>(url, data, config).then(this.unwrap);
-  }
-
-  patch<T>(
+  async put<T>(
     url: string,
     data?: unknown,
     config?: AxiosRequestConfig,
-  ): Promise<T> {
-    return axiosClient
-      .patch<ApiResponse<T>>(url, data, config)
-      .then(this.unwrap);
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
+    return axiosClient.put<ApiResponse<T>>(url, data, config);
   }
 
-  delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return axiosClient.delete<ApiResponse<T>>(url, config).then(this.unwrap);
+  async patch<T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
+    return axiosClient.patch<ApiResponse<T>>(url, data, config);
+  }
+
+  async delete<T>(
+    url: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<ApiResponse<T>>> {
+    return axiosClient.delete<ApiResponse<T>>(url, config);
   }
 }
 
