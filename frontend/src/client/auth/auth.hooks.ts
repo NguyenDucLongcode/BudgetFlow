@@ -10,8 +10,12 @@ export function useProfile(options?: { enabled?: boolean }) {
     queryKey: authKeys.profile(),
     queryFn: authService.getProfile,
     ...(options?.enabled !== undefined && { enabled: options.enabled }),
+    staleTime: 30 * 60 * 1000, // 30 phút mới refetch
+    gcTime: 24 * 60 * 60 * 1000, // Giữ cache 24h
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     retry: false,
-    staleTime: 5 * 60 * 1000,
   });
 }
 

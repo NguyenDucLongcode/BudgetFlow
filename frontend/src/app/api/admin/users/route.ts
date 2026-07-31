@@ -1,4 +1,4 @@
-import { handleApiError } from "@/src/lib/bff/handle-api-error";
+import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
 import { adminService } from "@/src/server/modules/admin/admin.service";
 import { AdminPaginationUsersDto, Role, UserStatus } from "@/src/types";
 import { NextRequest, NextResponse } from "next/server";

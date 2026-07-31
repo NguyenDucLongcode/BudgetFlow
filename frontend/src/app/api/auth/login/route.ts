@@ -1,5 +1,5 @@
 import { authService } from "@/src/server/modules/auth/auth.service";
-import { handleApiError } from "@/src/lib/bff/handle-api-error";
+import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {

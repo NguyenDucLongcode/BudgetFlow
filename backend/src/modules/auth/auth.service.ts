@@ -208,8 +208,10 @@ export class AuthService {
       .update(refreshToken)
       .digest('hex');
 
+    console.log('parsedToken.tokenHash', parsedToken.tokenHash);
+    console.log('hashed', hashed);
     if (parsedToken.tokenHash !== hashed) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Invalid refresh token lala');
     }
 
     // Kiểm tra user
@@ -318,6 +320,8 @@ export class AuthService {
         tokenType: 'Bearer',
         expiresIn: this.configService.get('JWT_ACCESS_EXPIRES_IN') || '15m',
         refreshExpiresIn: refreshExpiresIn, // Trả về FE biết
+        deviceId,
+        remember: rememberMe, // Trả về FE biết
         user: {
           id: user.id,
           email: user.email,

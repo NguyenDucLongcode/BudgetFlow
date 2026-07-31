@@ -36,11 +36,9 @@ class AuthService {
   }
 
   async refresh() {
-    const response = await serverApiClient.post<AuthTokenResponse>(
+    const response = await serverApiClient.postWithoutRetry<AuthTokenResponse>(
       "/auth/refresh-token",
     );
-
-    console.log("refresh response", response);
 
     const { accessToken, deviceId, user, expiresIn } = response.data.data;
 
