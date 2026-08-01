@@ -24,15 +24,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // đã login nhưng vào login
-  // if (refreshToken && isPublicRoute) {
-  //   return NextResponse.redirect(new URL("/dashboard", request.url));
-  // }
-
-  // admin check
-  // Không check role ở middleware
-  // vì access token nằm RAM
-
   return NextResponse.next();
 }
 

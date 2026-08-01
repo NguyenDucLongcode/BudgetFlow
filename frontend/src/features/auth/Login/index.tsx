@@ -1,9 +1,9 @@
 "use client";
 
 import { BrandLogo } from "@/src/components";
-import AuthBanner from "./Banner-right";
-import BackgroundDecoration from "./Background-decoration";
 import LoginForm from "./LoginForm";
+import AuthBanner from "../components/AuthBanner";
+import BackgroundDecoration from "../components/Background-decoration";
 
 export default function LoginPageComponent() {
   return (
@@ -34,7 +34,12 @@ export default function LoginPageComponent() {
         <BackgroundDecoration />
 
         {/* Banner right */}
-        <AuthBanner />
+        <AuthBanner
+          icon="📊"
+          title="Welcome Back"
+          description="Sign in to continue tracking your expenses, managing budgets, and reaching your financial goals."
+          tags={["💰 Budget", "📈 Analytics", "🎯 Goals"]}
+        />
       </div>
     </div>
   );

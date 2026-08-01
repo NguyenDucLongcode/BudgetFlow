@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "./AdminSidebar.scss";
+import { useAuth } from "@/src/hooks/useAuth";
+import { Avatar } from "@/src/components/common/Avatar";
+import { useLogout } from "@/src/client/auth";
 
 interface AdminSidebarProps {
   open: boolean;
@@ -41,10 +44,19 @@ const SECONDARY = [
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const { mutate: logout } = useLogout();
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
+  };
+
+  const handleLogout = () => {
+    logout({
+      all: false,
+      redirectTo: "/login",
+    });
   };
 
   return (
@@ -106,17 +118,24 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
 
         <div className="sidebar-foot">
           <div className="sidebar-user">
-            <div
+            <Avatar
+              name={user?.name || "Admin User"}
+              avatarUrl={user?.avatar || ""}
+              size={35}
               className="sidebar-user-avatar"
-              style={{ background: "#10b981" }}
-            >
-              AM
-            </div>
+              color="#10b981"
+            />
             <div className="sidebar-user-text">
-              <span className="sidebar-user-name">Alex Morgan</span>
+              <span className="sidebar-user-name">
+                {user?.name || "Admin User"}
+              </span>
               <span className="sidebar-user-role">Super Admin</span>
             </div>
-            <button className="sidebar-user-logout" aria-label="Sign out">
+            <button
+              className="sidebar-user-logout"
+              aria-label="Sign out"
+              onClick={handleLogout}
+            >
               <LogOut size={16} />
             </button>
           </div>

@@ -1,11 +1,12 @@
-import { Role } from "../enums";
+import { Role, UserStatus } from "../enums";
 
 export interface UserProfile {
   id: string;
   email: string;
   name: string;
   role: Role;
-  isActive: boolean;
+  avatar?: string;
+  status: UserStatus;
   provider?: string;
   timezone: string;
   createdAt: string;
@@ -15,6 +16,13 @@ export interface UserProfile {
 export interface LoginDto {
   email: string;
   password: string;
+}
+
+export interface RegisterDto {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface AuthUser {
@@ -27,4 +35,17 @@ export interface AuthUser {
 export interface AuthResponse {
   deviceId: string;
   user: AuthUser;
+}
+
+export interface RegisterResponse {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  avatar?: string;
+  status: UserStatus;
+  provider?: string;
+  timezone: string;
+  createdAt: string;
+  updatedAt: string;
 }

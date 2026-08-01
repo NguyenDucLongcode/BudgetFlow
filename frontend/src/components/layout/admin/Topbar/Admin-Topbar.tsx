@@ -1,8 +1,22 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search, Bell, ChevronDown } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  Laptop,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  ShieldCheck,
+} from "lucide-react";
 import "./Admin-Topbar.scss";
+import { useAuth } from "@/src/hooks";
+import { Avatar } from "@/src/components/common/Avatar";
+import { useLogout } from "@/src/client/auth";
 
 interface AdminTopbarProps {
   onMenu: () => void;
@@ -35,6 +49,10 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
 
 export function AdminTopbar({ onMenu }: AdminTopbarProps) {
   const pathname = usePathname() || "";
+  const { user } = useAuth();
+  const { mutate: logout } = useLogout();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement | null>(null);
 
   // Tìm meta phù hợp: thử match chính xác, nếu không thì match prefix (ví dụ /admin/users/123)
   let meta = TITLES[pathname];
@@ -57,6 +75,36 @@ export function AdminTopbar({ onMenu }: AdminTopbarProps) {
 
   const isDetail =
     pathname.startsWith("/admin/users/") && pathname !== "/admin/users";
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  const handleLogout = (all?: boolean) => {
+    logout({ all });
+    setMenuOpen(false);
+  };
 
   return (
     <header className="topbar">
@@ -84,15 +132,82 @@ export function AdminTopbar({ onMenu }: AdminTopbarProps) {
           <Bell size={18} />
           <span className="topbar-icon-dot" />
         </button>
-        <div className="topbar-profile">
-          <div
-            className="topbar-profile-avatar"
-            style={{ background: "#10b981" }}
+        <div className="topbar-profile-wrap" ref={profileRef}>
+          <button
+            type="button"
+            className="topbar-profile"
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
           >
-            AM
-          </div>
-          <span className="topbar-profile-name">Alex Morgan</span>
-          <ChevronDown size={14} />
+            <Avatar
+              name={user?.name || "Admin User"}
+              avatarUrl={user?.avatar || ""}
+              size={35}
+              color="#10b981"
+              className="topbar-profile-avatar"
+            />
+            <span className="topbar-profile-name">
+              {user?.name || "Admin User"}
+            </span>
+            <ChevronDown
+              size={14}
+              className={menuOpen ? "topbar-profile-chevron-open" : ""}
+            />
+          </button>
+
+          {menuOpen && (
+            <div className="topbar-profile-menu" role="menu">
+              <div className="topbar-profile-meta">
+                <Avatar
+                  name={user?.name || "Admin User"}
+                  avatarUrl={user?.avatar || ""}
+                  size={42}
+                  color="#10b981"
+                  className="topbar-profile-meta-avatar"
+                />
+                <div>
+                  <strong>{user?.name || "Admin User"}</strong>
+                  <span>{user?.email || "admin@budgetflow.local"}</span>
+                </div>
+              </div>
+
+              <div className="topbar-profile-menu-group">
+                <Link
+                  href="/admin/sessions"
+                  className="topbar-profile-menu-item"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Laptop size={16} />
+                  <span>Thiết bị</span>
+                </Link>
+                <Link
+                  href="/admin/settings"
+                  className="topbar-profile-menu-item"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Settings size={16} />
+                  <span>Cài đặt</span>
+                </Link>
+                <button
+                  type="button"
+                  className="topbar-profile-menu-item"
+                  onClick={() => handleLogout()}
+                >
+                  <LogOut size={16} />
+                  <span>Đăng xuất thiết bị này</span>
+                </button>
+                <button
+                  type="button"
+                  className="topbar-profile-menu-item topbar-profile-menu-item-danger"
+                  onClick={() => handleLogout(true)}
+                >
+                  <ShieldCheck size={16} />
+                  <span>Đăng xuất tất cả thiết bị</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -208,8 +208,6 @@ export class AuthService {
       .update(refreshToken)
       .digest('hex');
 
-    console.log('parsedToken.tokenHash', parsedToken.tokenHash);
-    console.log('hashed', hashed);
     if (parsedToken.tokenHash !== hashed) {
       throw new UnauthorizedException('Invalid refresh token lala');
     }
@@ -332,19 +330,19 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string, deviceId: string, res: Response) {
+  async logout(deviceId: string, res: Response) {
+    // Tìm session bằng deviceId
     const session = await this.sessionRepository.findUnique({
       where: {
-        userId_deviceId: {
-          userId,
-          deviceId,
-        },
+        deviceId: deviceId,
       },
     });
 
     if (!session) {
       throw new NotFoundException('Phiên đăng nhập không tồn tại.');
     }
+
+    const { userId } = session;
 
     // Xóa refresh token trong Redis
     const redisKey = getRefreshKey(userId, deviceId);

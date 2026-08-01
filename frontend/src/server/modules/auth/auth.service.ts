@@ -2,7 +2,7 @@ import { AuthTokenResponse } from "./type";
 import { serverApiClient } from "@/src/lib/bff/server-api-client";
 import { parseExpiresIn } from "@/src/server/modules/auth/hepler";
 import { accessTokenStore } from "@/src/server/modules/auth/session";
-import { LoginDto } from "@/src/types/api";
+import { LoginDto, RegisterDto, RegisterResponse } from "@/src/types/api";
 
 class AuthService {
   async login(data: LoginDto) {
@@ -63,12 +63,31 @@ class AuthService {
     };
   }
 
-  async logout(deviceId: string): Promise<void> {
-    // 1. gọi backend logout
-    await serverApiClient.post("/auth/logout");
+  async logout(deviceId: string) {
+    const response = await serverApiClient.post("/auth/logout");
 
-    // 2. xoá access token trong Redis BFF
+    // Xoá access token trong Redis BFF
     await accessTokenStore.remove(deviceId);
+
+    return response;
+  }
+
+  async logoutAll(deviceId?: string) {
+    const response = await serverApiClient.post("/auth/logout-all");
+
+    if (deviceId) {
+      await accessTokenStore.remove(deviceId);
+    }
+
+    return response;
+  }
+
+  async register(data: RegisterDto) {
+    const response = await serverApiClient.post<RegisterResponse>(
+      "/auth/register",
+      data,
+    );
+    return response.data;
   }
 }
 

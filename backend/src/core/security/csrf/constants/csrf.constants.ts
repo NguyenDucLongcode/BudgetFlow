@@ -6,7 +6,7 @@ export const CSRF_HEADER_NAMES = [
   'csrf-token',
 ] as const;
 
-export const CSRF_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24; // 24 hours
+export const CSRF_COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days (seconds)
 
 export const CSRF_COOKIE_OPTIONS = {
   httpOnly: false, // Client cần đọc để gửi lại

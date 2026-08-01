@@ -5,7 +5,6 @@ import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
 export async function POST() {
   try {
     const response = await authService.refresh();
-    console.log("refresh response", response);
 
     const nextResponse = NextResponse.json({
       success: true,

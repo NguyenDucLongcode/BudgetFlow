@@ -1,6 +1,6 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import { axiosClient } from "../axios/axio-client";
-import { ApiResponse } from "@/src/types/api";
+import { ApiResponse } from "@/src/types";
 
 class BrowserApiClient {
   async get<T>(

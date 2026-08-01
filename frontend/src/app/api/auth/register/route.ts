@@ -1,0 +1,19 @@
+import { authService } from "@/src/server/modules/auth/auth.service";
+import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    // Gọi trực tiếp BE thay vì qua AuthService
+    const response = await authService.register(body);
+
+    const nextResponse = NextResponse.json(response, {
+      status: response.statusCode,
+    });
+
+    return nextResponse;
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

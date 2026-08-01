@@ -1,4 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { queryClient } from "../react-query/query-client";
+import { authService, clearAuthState } from "@/src/client/auth";
 
 const axiosClient = axios.create({
   baseURL: "/api",
@@ -9,15 +11,13 @@ const axiosClient = axios.create({
   },
 });
 
-let refreshPromise: Promise<void> | null = null;
-
+// Chỉ giữ 1 interceptor request
 axiosClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     let deviceId = localStorage.getItem("x-device-id");
 
     if (!deviceId) {
       deviceId = crypto.randomUUID();
-
       localStorage.setItem("x-device-id", deviceId);
     }
 
@@ -27,31 +27,56 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
+let refreshPromise: Promise<void> | null = null;
+
 axiosClient.interceptors.response.use(
   (response) => response,
-
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
+    const requestUrl = originalRequest.url ?? "";
+    const isAuthRefreshRequest = requestUrl.includes("/auth/refresh");
+    const isAuthLogoutRequest = requestUrl.includes("/auth/logout");
+    const isAuthLogoutAllRequest = requestUrl.includes("/auth/logout-all");
+
+    if (isAuthRefreshRequest || isAuthLogoutRequest || isAuthLogoutAllRequest) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      if (!refreshPromise) {
-        refreshPromise = axiosClient
-          .post("/auth/refresh")
-          .then(() => {
-            console.log("Refresh token success");
-          })
-          .finally(() => {
-            refreshPromise = null;
-          });
+      try {
+        if (!refreshPromise) {
+          refreshPromise = axiosClient
+            .post("/auth/refresh")
+            .then(() => {
+              console.log("Refresh token success");
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+
+        await refreshPromise;
+        return axiosClient(originalRequest);
+      } catch (refreshError) {
+        // 1. Gọi logout (có try-catch)
+        try {
+          console.log("Refresh token failed, logging out...");
+          await authService.logout();
+        } catch (logoutError) {
+          // Log lỗi nhưng vẫn tiếp tục xóa localStorage và redirect
+          console.error("Logout failed:", logoutError);
+        }
+
+        // 2. Xóa device id (LUÔN thực hiện)
+        clearAuthState(queryClient);
+
+        return Promise.reject(refreshError);
       }
-
-      await refreshPromise;
-
-      return axiosClient(originalRequest);
     }
 
     return Promise.reject(error);

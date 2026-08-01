@@ -49,6 +49,7 @@
       "@/types/*": ["./src/types/*"],
       "@/constants/*": ["./src/constants/*"],
       "@/server/*": ["./src/server/*"],
+      "@/client/*": ["./src/client/*"],
       "@/config/*": ["./src/config/*"],
       "@/providers/*": ["./src/providers/*"],
       "@/public/*": ["./public/*"]

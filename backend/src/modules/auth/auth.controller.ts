@@ -19,7 +19,6 @@ import { LoginDto } from './dto/login.dto';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/public.decorator';
 import {} from './swagger/auth_Swagger/login.swagger';
-import { JwtPayload } from './strategies/type';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import {
   ApiAuthRefreshTokenSwagger,
@@ -127,13 +126,13 @@ export class AuthController {
     return this.authEmailService.register(registerDto);
   }
 
+  @Public()
   @ApiAuthSwaggerUI()
   @SkipCsrf()
   @RateLimit(RATE_LIMIT.AUTH.LOGOUT)
   @Post('logout')
   @ApiAuthLogoutSwagger()
   logout(
-    @CurrentUser() user: JwtPayload,
     @Headers('x-device-id') deviceId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -141,7 +140,7 @@ export class AuthController {
       throw new BadRequestException('Thiếu device id');
     }
 
-    return this.authService.logout(user.sub, deviceId, res);
+    return this.authService.logout(deviceId, res);
   }
 
   @ApiAuthSwaggerUI()

@@ -244,7 +244,7 @@ $bg: #f8fafc;
 }
 
 // ===== Responsive =====
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .sidebar {
     transform: translateX(-100%);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);

@@ -63,6 +63,7 @@ export class UserService {
         email: true,
         name: true,
         role: true,
+        avatar: true,
         status: true,
         provider: true,
         timezone: true,

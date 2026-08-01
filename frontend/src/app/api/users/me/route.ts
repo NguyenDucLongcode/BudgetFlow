@@ -6,9 +6,7 @@ export async function GET() {
   try {
     const user = await userService.getMe();
 
-    return NextResponse.json({
-      data: user,
-    });
+    return NextResponse.json(user);
   } catch (error) {
     return handleApiError(error);
   }

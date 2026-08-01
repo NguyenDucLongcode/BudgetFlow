@@ -2,8 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { authService } from "./auth.service";
+import { authService, clearAuthState } from "./auth.service";
 import { authKeys } from "./auth.keys";
+
+type LogoutOptions = {
+  all?: boolean;
+  redirectTo?: string;
+};
 
 export function useProfile(options?: { enabled?: boolean }) {
   return useQuery({
@@ -35,14 +40,18 @@ export function useLogin() {
 
 export function useLogout() {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: authService.logout,
+    mutationFn: (options?: LogoutOptions) =>
+      options?.all ? authService.logoutAll() : authService.logout(),
 
-    onSuccess: () => {
-      queryClient.removeQueries({
-        queryKey: authKeys.profile(),
-      });
+    onSettled: (_data, _error, options) => {
+      clearAuthState(queryClient, options?.redirectTo ?? "/login");
     },
+  });
+}
+
+export function useRegister() {
+  return useMutation({
+    mutationFn: authService.register,
   });
 }

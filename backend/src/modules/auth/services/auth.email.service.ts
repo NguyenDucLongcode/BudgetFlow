@@ -59,8 +59,12 @@ export class AuthEmailService {
         email: true,
         name: true,
         role: true,
+        avatar: true,
         status: true,
+        provider: true,
+        timezone: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
