@@ -8,9 +8,7 @@ class AdminUserService {
   async getUsers(params: AdminPaginationUsersDto) {
     const res = await browserApiClient.get<AdminPaginatedResponse>(
       "/admin/users",
-      {
-        params,
-      },
+      params,
     );
 
     return res.data;

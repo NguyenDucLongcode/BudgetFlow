@@ -4,12 +4,15 @@ import { useMemo, useState } from "react";
 
 import { Role, UserStatus } from "@/src/types";
 import { useUsers } from "@/src/client/admin/admin-user.hooks";
+import { useDebounce } from "@/src/hooks";
 
 export function useAdminUsers() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebounce(keyword, 400);
+
   const [role, setRole] = useState<Role | "ALL">("ALL");
   const [status, setStatus] = useState<UserStatus | "ALL">("ALL");
 
@@ -17,11 +20,11 @@ export function useAdminUsers() {
     () => ({
       page,
       limit,
-      ...(keyword && { search: keyword }),
+      ...(debouncedKeyword && { search: debouncedKeyword }),
       ...(role !== "ALL" && { role }),
       ...(status !== "ALL" && { status }),
     }),
-    [page, limit, keyword, role, status],
+    [page, limit, debouncedKeyword, role, status],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } =
@@ -33,6 +36,8 @@ export function useAdminUsers() {
     setStatus("ALL");
     setPage(1);
   };
+
+  console.log("key", keyword);
 
   return {
     // react-query
