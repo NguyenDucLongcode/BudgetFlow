@@ -52,13 +52,33 @@ export class WalletService {
       );
     }
 
-    const wallet = await this.walletRepository.create({
-      data: {
-        userId,
-        ...dto,
-        balance: dto.initialBalance ?? 0,
-        initialBalance: dto.initialBalance ?? 0,
-      },
+    const isDefault = walletCount === 0 || dto.isDefault === true;
+    const wallet = await this.walletRepository.prisma.$transaction(async (tx) => {
+      if (isDefault) {
+        await tx.wallet.updateMany({
+          where: { userId, deletedAt: null, isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.wallet.create({
+        data: {
+          userId,
+          name: dto.name,
+          type: dto.type,
+          currency: dto.currency,
+          balance: dto.initialBalance ?? 0,
+          initialBalance: dto.initialBalance ?? 0,
+          icon: dto.icon,
+          color: dto.color,
+          bankName: dto.bankName,
+          accountNumber: dto.accountNumber,
+          accountName: dto.accountName,
+          description: dto.description,
+          isDefault,
+          autoSync: dto.autoSync,
+        },
+      });
     });
 
     return {
@@ -110,11 +130,21 @@ export class WalletService {
     }
 
     // Kiểm tra nếu ví là ví ngân hàng mà không có thông tin tài khoản ngân hàng thì báo lỗi
+    const {
+      isArchived,
+      ...walletData
+    } = dto;
     const updatedWallet = await this.walletRepository.update({
       where: {
         id: walletId,
       },
-      data: dto,
+      data: {
+        ...walletData,
+        ...(isArchived !== undefined && {
+          isArchived,
+          archivedAt: isArchived ? new Date() : null,
+        }),
+      },
     });
 
     return {
@@ -124,7 +154,16 @@ export class WalletService {
   }
 
   async findAll(userId: string, query: PaginationDto) {
-    const { page, limit, search, type, isDefault, sortBy, order } = query;
+    const {
+      page,
+      limit,
+      search,
+      type,
+      isDefault,
+      isArchived,
+      sortBy,
+      order,
+    } = query;
 
     // Tính toán số lượng bản ghi cần bỏ qua dựa trên trang hiện tại và giới hạn
     const skip = (page - 1) * limit;
@@ -147,6 +186,10 @@ export class WalletService {
 
       ...(isDefault !== undefined && {
         isDefault,
+      }),
+
+      ...(isArchived !== undefined && {
+        isArchived,
       }),
     };
 

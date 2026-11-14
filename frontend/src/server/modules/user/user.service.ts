@@ -6,6 +6,11 @@ class UserService {
     const res = await serverApiClient.get<UserProfile>("/users/me");
     return res.data;
   }
+
+  async updatePreferences(data: { language?: "VI" | "EN" | string }) {
+    const res = await serverApiClient.patch("/users/preferences", data);
+    return res.data;
+  }
 }
 
 export const userService = new UserService();

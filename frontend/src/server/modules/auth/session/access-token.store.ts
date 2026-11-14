@@ -41,8 +41,27 @@ export class AccessTokenStore {
     }
 
     try {
-      return JSON.parse(data) as AccessTokenSession;
+      const parsed = JSON.parse(data);
+      if (typeof parsed === "string") {
+        return {
+          accessToken: parsed,
+          userId: "",
+          role: Role.USER,
+          deviceId,
+          expiresAt: 0,
+        };
+      }
+      return parsed as AccessTokenSession;
     } catch {
+      if (data && typeof data === "string" && data.startsWith("ey")) {
+        return {
+          accessToken: data,
+          userId: "",
+          role: Role.USER,
+          deviceId,
+          expiresAt: 0,
+        };
+      }
       return null;
     }
   }

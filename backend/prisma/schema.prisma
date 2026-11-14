@@ -134,6 +134,11 @@ enum AttachmentType {
   DOCUMENT
 }
 
+enum LanguageCode {
+  VI
+  EN
+}
+
 enum AuditAction {
   LOGIN
   LOGOUT
@@ -220,7 +225,7 @@ model UserPreference {
   userId String @unique
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  language String @default("vi")
+  language LanguageCode @default(EN)
   currency Currency @default(VND)
   theme String @default("system")
 

@@ -20,6 +20,7 @@ import {
   UserRepository,
 } from 'src/infrastructure/prisma/repositories';
 import { CsrfService } from 'src/core/security/csrf';
+import { LanguageCode } from 'generated/prisma/enums';
 
 @Injectable()
 export class AuthService {
@@ -162,6 +163,22 @@ export class AuthService {
 
     this.csrfService.setCsrfCookie(res);
 
+    let userLang: LanguageCode = LanguageCode.EN;
+    try {
+      const pref =
+        await this.userRepository.prismaService.userPreference.findUnique({
+          where: { userId: user.id },
+        });
+      if (pref?.language) {
+        userLang =
+          String(pref.language).toUpperCase() === 'VI'
+            ? LanguageCode.VI
+            : LanguageCode.EN;
+      }
+    } catch {
+      userLang = LanguageCode.EN;
+    }
+
     return {
       message: 'Đăng nhập thành công',
       data: {
@@ -175,6 +192,7 @@ export class AuthService {
           email: user.email,
           name: user.name,
           role: user.role,
+          language: userLang,
         },
       },
     };
@@ -311,6 +329,22 @@ export class AuthService {
 
     this.csrfService.setCsrfCookie(res);
 
+    let userLang: LanguageCode = LanguageCode.EN;
+    try {
+      const pref =
+        await this.userRepository.prismaService.userPreference.findUnique({
+          where: { userId: user.id },
+        });
+      if (pref?.language) {
+        userLang =
+          String(pref.language).toUpperCase() === 'VI'
+            ? LanguageCode.VI
+            : LanguageCode.EN;
+      }
+    } catch {
+      userLang = LanguageCode.EN;
+    }
+
     return {
       message: 'Refresh token success',
       data: {
@@ -325,6 +359,7 @@ export class AuthService {
           email: user.email,
           name: user.name,
           role: user.role,
+          language: userLang,
         },
       },
     };

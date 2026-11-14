@@ -9,6 +9,7 @@ export interface UserProfile {
   status: UserStatus;
   provider?: string;
   timezone: string;
+  language?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,6 +24,7 @@ export interface RegisterDto {
   email: string;
   password: string;
   confirmPassword: string;
+  language?: string;
 }
 
 export interface AuthUser {
@@ -30,6 +32,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: Role;
+  language?: string;
 }
 
 export interface AuthResponse {
@@ -46,6 +49,7 @@ export interface RegisterResponse {
   status: UserStatus;
   provider?: string;
   timezone: string;
+  language?: string;
   createdAt: string;
   updatedAt: string;
 }

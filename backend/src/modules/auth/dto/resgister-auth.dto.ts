@@ -1,12 +1,13 @@
 import { Match } from 'src/common/decorators/match.decorator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 import {
   PASSWORD_POLICY_MESSAGE,
   PasswordStrengthRegex,
 } from 'src/common/constants/validate.constants';
 import { Transform } from 'class-transformer';
+import { LanguageCode } from 'generated/prisma/enums';
 
 export class ResgisterAuthDto {
   // validName
@@ -37,4 +38,21 @@ export class ResgisterAuthDto {
   @IsString({ message: 'Mật khẩu xác nhận phải là một chuỗi' })
   @Match('password', { message: 'Mật khẩu xác nhận không khớp' })
   confirmPassword!: string;
+
+  @ApiPropertyOptional({
+    enum: LanguageCode,
+    example: LanguageCode.EN,
+    default: LanguageCode.EN,
+    description: 'Ngôn ngữ của người dùng (VI/EN)',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: any }) => {
+    if (typeof value === 'string') {
+      const upper = value.trim().toUpperCase();
+      return upper === 'VI' ? LanguageCode.VI : LanguageCode.EN;
+    }
+    return value;
+  })
+  @IsEnum(LanguageCode)
+  language?: LanguageCode;
 }

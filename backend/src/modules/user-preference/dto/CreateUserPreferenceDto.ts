@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -9,18 +10,25 @@ import {
   Max,
   Matches,
 } from 'class-validator';
-import { Currency } from 'generated/prisma/enums';
+import { Currency, LanguageCode } from 'generated/prisma/enums';
 
 export class CreateUserPreferenceDto {
   @ApiPropertyOptional({
-    example: 'vi',
-    default: 'vi',
-    description: 'Ngôn ngữ (vi/en)',
+    enum: LanguageCode,
+    example: LanguageCode.EN,
+    default: LanguageCode.EN,
+    description: 'Ngôn ngữ (VI/EN)',
   })
   @IsOptional()
-  @IsString()
-  @Matches(/^(vi|en|ja|ko|zh)$/)
-  language?: string = 'vi';
+  @Transform(({ value }: { value: any }) => {
+    if (typeof value === 'string') {
+      const upper = value.trim().toUpperCase();
+      return upper === 'VI' ? LanguageCode.VI : LanguageCode.EN;
+    }
+    return value;
+  })
+  @IsEnum(LanguageCode)
+  language?: LanguageCode = LanguageCode.EN;
 
   @ApiPropertyOptional({
     enum: Currency,

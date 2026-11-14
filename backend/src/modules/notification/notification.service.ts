@@ -8,12 +8,111 @@ import { CreateNotificationDto } from './dto/CreateNotificationDto';
 import { NotificationQueryDto } from './dto/NotificationQueryDto';
 import { NOTIFICATION } from './notification.constants';
 import { NotificationType, Prisma } from 'generated/prisma/client';
+import { AuditAction } from 'generated/prisma/enums';
+import {
+  AuditLogRepository,
+  UserRepository,
+} from 'src/infrastructure/prisma/repositories';
+import {
+  BroadcastNotificationDto,
+  NotificationTargetRole,
+} from './dto/BroadcastNotificationDto';
 
 @Injectable()
 export class NotificationService {
   constructor(
     private readonly notificationRepository: NotificationRepository,
+    private readonly userRepository: UserRepository,
+    private readonly auditLogRepository: AuditLogRepository,
   ) {}
+
+  async broadcast(adminId: string, dto: BroadcastNotificationDto) {
+    if (dto.specificUserId) {
+      const target = await this.userRepository.findFirst({
+        where: { id: dto.specificUserId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!target) {
+        throw new NotFoundException('Không tìm thấy người nhận thông báo');
+      }
+    }
+
+    const users = await this.userRepository.findMany({
+      where: {
+        deletedAt: null,
+        ...(dto.specificUserId
+          ? { id: dto.specificUserId }
+          : dto.targetRole === NotificationTargetRole.USER
+            ? { role: 'USER' }
+            : {}),
+      },
+      select: { id: true },
+    });
+
+    if (users.length === 0) {
+      throw new BadRequestException('Không có người dùng phù hợp để gửi thông báo');
+    }
+
+    const result = await this.notificationRepository.createMany({
+      data: users.map(({ id }) => ({
+        userId: id,
+        type: dto.type,
+        title: dto.title,
+        message: dto.message,
+        metadata: { broadcast: true, sentBy: adminId },
+      })),
+    });
+
+    await this.auditLogRepository.create({
+      data: {
+        userId: adminId,
+        action: AuditAction.CREATE,
+        entity: 'Notification',
+        metadata: {
+          action: 'BROADCAST',
+          title: dto.title,
+          targetRole: dto.targetRole,
+          specificUserId: dto.specificUserId,
+          recipientCount: result.count,
+        },
+      },
+    });
+
+    return {
+      message: `Đã gửi thông báo đến ${result.count} người dùng`,
+      data: { sentCount: result.count },
+    };
+  }
+
+  async getBroadcastHistory(page = 1, limit = 20) {
+    const where: Prisma.AuditLogWhereInput = {
+      entity: 'Notification',
+      action: AuditAction.CREATE,
+      metadata: { path: ['action'], equals: 'BROADCAST' },
+    };
+    const [logs, total] = await Promise.all([
+      this.auditLogRepository.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      }),
+      this.auditLogRepository.count({ where }),
+    ]);
+
+    return {
+      data: logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 
   async create(userId: string, dto: CreateNotificationDto) {
     // Kiểm tra số lượng thông báo của user
@@ -86,18 +185,20 @@ export class NotificationService {
 
     return {
       message: 'Lấy danh sách thông báo thành công',
-      data: notifications,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNextPage: page * limit < total,
-        hasPrevPage: page > 1,
-      },
-      summary: {
-        total,
-        unread: await this.countUnread(userId),
+      data: {
+        notifications,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: page * limit < total,
+          hasPrevPage: page > 1,
+        },
+        summary: {
+          total,
+          unread: await this.countUnread(userId),
+        },
       },
     };
   }

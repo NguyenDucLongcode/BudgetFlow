@@ -24,6 +24,10 @@ axiosClient.interceptors.request.use((config) => {
 
     config.headers["x-device-id"] = deviceId;
 
+    if (typeof document !== "undefined") {
+      document.cookie = `device_id=${deviceId}; path=/; SameSite=Lax`;
+    }
+
     // Gắn CSRF token cho các thao tác mutation
     const method = (config.method ?? "get").toLowerCase();
     const mutationMethods = ["post", "put", "patch", "delete"];
@@ -43,16 +47,28 @@ let refreshPromise: Promise<void> | null = null;
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
+    const originalRequest = error.config as (InternalAxiosRequestConfig & {
       _retry?: boolean;
-    };
+    }) | undefined;
+
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
 
     const requestUrl = originalRequest.url ?? "";
-    const isAuthRefreshRequest = requestUrl.includes("/auth/refresh");
-    const isAuthLogoutRequest = requestUrl.includes("/auth/logout");
-    const isAuthLogoutAllRequest = requestUrl.includes("/auth/logout-all");
 
-    if (isAuthRefreshRequest || isAuthLogoutRequest || isAuthLogoutAllRequest) {
+    // Bỏ qua các API Auth: không auto-refresh khi chính các endpoint này lỗi 401
+    const isAuthRequest =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register") ||
+      requestUrl.includes("/auth/refresh") ||
+      requestUrl.includes("/auth/logout") ||
+      requestUrl.includes("/auth/logout-all") ||
+      requestUrl.includes("/auth/verify-email") ||
+      requestUrl.includes("/auth/forgot-password") ||
+      requestUrl.includes("/auth/reset-password");
+
+    if (isAuthRequest) {
       return Promise.reject(error);
     }
 
@@ -64,7 +80,7 @@ axiosClient.interceptors.response.use(
           refreshPromise = axiosClient
             .post("/auth/refresh")
             .then(() => {
-              console.log("Refresh token success");
+              console.log("[AxiosClient] Refresh token success");
             })
             .finally(() => {
               refreshPromise = null;
@@ -74,18 +90,15 @@ axiosClient.interceptors.response.use(
         await refreshPromise;
         return axiosClient(originalRequest);
       } catch (refreshError) {
-        // 1. Gọi logout (có try-catch)
+        console.error("[AxiosClient] Refresh token failed, logging out:", refreshError);
+
         try {
-          console.log("Refresh token failed, logging out...");
           await authService.logout();
         } catch (logoutError) {
-          // Log lỗi nhưng vẫn tiếp tục xóa localStorage và redirect
-          console.error("Logout failed:", logoutError);
+          console.error("[AxiosClient] Logout call failed:", logoutError);
         }
 
-        // 2. Xóa device id (LUÔN thực hiện)
         clearAuthState(queryClient);
-
         return Promise.reject(refreshError);
       }
     }

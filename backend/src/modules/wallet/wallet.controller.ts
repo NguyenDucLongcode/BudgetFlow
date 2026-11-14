@@ -41,6 +41,7 @@ export class WalletController {
   }
 
   @Get()
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Wallet'))
   findAll(@CurrentUser('sub') userId: string, @Query() query: PaginationDto) {
     return this.walletService.findAll(userId, query);
   }

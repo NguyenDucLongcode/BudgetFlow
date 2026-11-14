@@ -72,6 +72,12 @@ export class NotificationController {
     return this.notificationService.markAllAsRead(userId);
   }
 
+  @Patch('read-all')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'Notification'))
+  markAllAsReadAlias(@CurrentUser('sub') userId: string) {
+    return this.notificationService.markAllAsRead(userId);
+  }
+
   @Patch('mark-all-unread')
   @CheckPolicies((ability) => ability.can(Action.Update, 'Notification'))
   markAllAsUnread(@CurrentUser('sub') userId: string) {

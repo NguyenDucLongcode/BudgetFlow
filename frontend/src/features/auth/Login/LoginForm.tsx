@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   loginSchema,
   type LoginInput,
@@ -20,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { useLogin } from "@/src/client/auth";
 
 export default function LoginForm() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const { mutateAsync: login, isPending } = useLogin();
 
@@ -50,14 +52,15 @@ export default function LoginForm() {
       console.error("Login error:", error);
     }
   };
+
   return (
     <form onSubmit={handleSubmit(handleLogin)} className="space-y-6">
       {/* Email field */}
       <TextField
         id="email"
-        label="Email"
+        label={t("emailLabel")}
         type="email"
-        placeholder="Enter your email"
+        placeholder={t("emailPlaceholder")}
         leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
         registration={register("email")}
         error={errors.email}
@@ -66,21 +69,21 @@ export default function LoginForm() {
       {/* Password field */}
       <PasswordField
         id="password"
-        label="Password"
-        placeholder="Enter your password"
+        label={t("passwordLabel")}
+        placeholder={t("passwordPlaceholder")}
         registration={register("password")}
         error={errors.password}
       />
 
       {/* Remember me & Forgot password */}
       <div className="flex items-center justify-between">
-        <Checkbox label="Remember me" registration={register("remember")} />
+        <Checkbox label={t("rememberMe")} registration={register("remember")} />
 
         <AppLink
           href="/forgot-password"
           className="text-sm text-indigo-600 hover:text-indigo-700"
         >
-          Forgot password?
+          {t("forgotPassword")}
         </AppLink>
       </div>
 
@@ -90,27 +93,26 @@ export default function LoginForm() {
         isSubmitting={isPending}
         isValid={isValid}
       >
-        Sign In
+        {t("signIn")}
       </SubmitButton>
 
       {/* Sign up link */}
       <p className="text-center text-gray-600 dark:text-gray-400 mt-6">
-        Don&apos;t have an account?{" "}
+        {t("noAccount")}{" "}
         <AppLink
           href="/register"
           className="text-indigo-600 hover:text-indigo-700 font-medium"
         >
-          Sign Up
+          {t("signUp")}
         </AppLink>
       </p>
 
       {/* Divider */}
-      <Divider text="Or With" />
+      <Divider text={t("orWith")} />
 
       {/* Social login buttons */}
       <div className="mt-6 grid grid-cols-2 gap-4">
         <SocialButton provider="google" />
-
         <SocialButton provider="apple" />
       </div>
     </form>

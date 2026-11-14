@@ -41,6 +41,23 @@ export class PrismaService
   async onModuleInit() {
     await this.$connect();
     console.log('✅ Prisma connected to database');
+
+    try {
+      await this.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'UserPreference' AND column_name = 'language'
+          ) THEN
+            UPDATE "UserPreference" SET "language" = 'EN' WHERE "language"::text IN ('en', 'EN');
+            UPDATE "UserPreference" SET "language" = 'VI' WHERE "language"::text IN ('vi', 'VI');
+          END IF;
+        END $$;
+      `);
+    } catch {
+      // Ignored if table or enum doesn't exist yet
+    }
   }
 
   async onModuleDestroy() {

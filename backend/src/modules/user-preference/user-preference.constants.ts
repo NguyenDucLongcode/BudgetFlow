@@ -1,5 +1,7 @@
+import { LanguageCode } from 'generated/prisma/enums';
+
 export const USER_PREFERENCE = {
-  DEFAULT_LANGUAGE: 'vi',
+  DEFAULT_LANGUAGE: LanguageCode.EN,
   DEFAULT_CURRENCY: 'VND',
   DEFAULT_THEME: 'system',
   DEFAULT_WEEK_STARTS_ON: 1,

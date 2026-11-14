@@ -44,6 +44,11 @@ export class PaginationDto {
   isDefault?: boolean;
 
   @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isArchived?: boolean;
+
+  @IsOptional()
   @IsIn(['name', 'balance', 'createdAt'])
   sortBy?: 'name' | 'balance' | 'createdAt' = 'createdAt';
 

@@ -10,7 +10,7 @@ import { ApiAuthSwaggerUI } from 'src/common/decorators/swagger-auth.decorator';
 
 @ApiTags('User Preference')
 @ApiAuthSwaggerUI()
-@Controller('user-preference')
+@Controller(['user-preference', 'users/preferences'])
 export class UserPreferenceController {
   constructor(private readonly userPreferenceService: UserPreferenceService) {}
 

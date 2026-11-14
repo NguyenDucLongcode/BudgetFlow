@@ -12,6 +12,7 @@ import {
 import { SessionService } from '../../session/session.service';
 import { UserUpdateProfileDto } from '../dto/user/user_update-profile.dto';
 import { UserRepository } from 'src/infrastructure/prisma/repositories';
+import { LanguageCode } from 'generated/prisma/enums';
 
 @Injectable()
 export class UserService {
@@ -76,9 +77,28 @@ export class UserService {
       throw new UnauthorizedException('User not found');
     }
 
+    let userLang: LanguageCode = LanguageCode.EN;
+    try {
+      const pref =
+        await this.userRepository.prismaService.userPreference.findUnique({
+          where: { userId },
+        });
+      if (pref?.language) {
+        userLang =
+          String(pref.language).toUpperCase() === 'VI'
+            ? LanguageCode.VI
+            : LanguageCode.EN;
+      }
+    } catch {
+      userLang = LanguageCode.EN;
+    }
+
     return {
       message: 'Get profile successfully',
-      data: user,
+      data: {
+        ...user,
+        language: userLang,
+      },
     };
   }
 

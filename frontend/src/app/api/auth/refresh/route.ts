@@ -8,14 +8,24 @@ export async function POST() {
 
     const nextResponse = NextResponse.json({
       success: true,
+      data: response.data,
     });
 
-    // Forward cookie từ BE sang client
+    // Forward cookie từ BE sang client (refresh_token, XSRF-TOKEN)
     const cookies = response.headers["set-cookie"];
     if (cookies) {
       (Array.isArray(cookies) ? cookies : [cookies]).forEach((cookie) => {
         nextResponse.headers.append("Set-Cookie", cookie);
       });
+    }
+
+    // Set cookie device_id cho BFF và server components bằng headers.append (để KHÔNG ghi đè Set-Cookie từ BE)
+    const deviceId = response.data.data?.deviceId;
+    if (deviceId) {
+      nextResponse.headers.append(
+        "Set-Cookie",
+        `device_id=${deviceId}; Path=/; SameSite=Lax`,
+      );
     }
 
     return nextResponse;

@@ -13,8 +13,8 @@ import {
   WalletRepository,
 } from 'src/infrastructure/prisma/repositories';
 import { EmailQueueService } from 'src/infrastructure/queue/email/email-queue.service';
-import { WalletType } from 'generated/prisma/enums';
-import { Prisma } from 'generated/prisma/browser';
+import { LanguageCode, WalletType } from 'generated/prisma/enums';
+import { Prisma } from 'generated/prisma/client';
 
 @Injectable()
 export class AuthEmailService {
@@ -53,6 +53,11 @@ export class AuthEmailService {
         status: 'PENDING',
         verifyToken,
         verifyTokenExpiresAt,
+        preferences: {
+          create: {
+            language: registerDto.language || LanguageCode.EN,
+          },
+        },
       },
       select: {
         id: true,
@@ -65,6 +70,11 @@ export class AuthEmailService {
         timezone: true,
         createdAt: true,
         updatedAt: true,
+        preferences: {
+          select: {
+            language: true,
+          },
+        },
       },
     });
 
@@ -96,7 +106,11 @@ export class AuthEmailService {
     return {
       message:
         'Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.',
-      data: user,
+      data: {
+        ...user,
+        language:
+          user.preferences?.language || registerDto.language || LanguageCode.EN,
+      },
     };
   }
 

@@ -1,8 +1,8 @@
-import { Currency } from 'generated/prisma/enums';
+import { Currency, LanguageCode } from 'generated/prisma/enums';
 
 export const USER_PREFERENCE_SEED = {
   ADMIN: {
-    language: 'en',
+    language: LanguageCode.EN,
     currency: Currency.USD,
     theme: 'dark',
 
@@ -17,7 +17,7 @@ export const USER_PREFERENCE_SEED = {
   },
 
   USER: {
-    language: 'vi',
+    language: LanguageCode.VI,
     currency: Currency.VND,
     theme: 'system',
 

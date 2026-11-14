@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import {
   type RegisterInput,
@@ -22,6 +23,7 @@ import {
 import { useRegister } from "@/src/client/auth";
 
 export default function RegisterForm() {
+  const t = useTranslations("auth");
   const router = useRouter();
 
   const { mutateAsync: registerUser, isPending } = useRegister();
@@ -57,8 +59,8 @@ export default function RegisterForm() {
       {/* Name */}
       <TextField
         id="name"
-        label="Full Name"
-        placeholder="Enter your full name"
+        label={t("nameLabel")}
+        placeholder={t("namePlaceholder")}
         leftIcon={<User className="w-4 h-4 text-gray-400" />}
         registration={register("name")}
         error={errors.name}
@@ -67,9 +69,9 @@ export default function RegisterForm() {
       {/* Email */}
       <TextField
         id="email"
-        label="Email"
+        label={t("emailLabel")}
         type="email"
-        placeholder="Enter your email"
+        placeholder={t("emailPlaceholder")}
         leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
         registration={register("email")}
         error={errors.email}
@@ -78,8 +80,8 @@ export default function RegisterForm() {
       {/* Password */}
       <PasswordField
         id="password"
-        label="Password"
-        placeholder="Create a password"
+        label={t("passwordLabel")}
+        placeholder={t("createPasswordPlaceholder")}
         registration={register("password")}
         error={errors.password}
       />
@@ -87,8 +89,8 @@ export default function RegisterForm() {
       {/* Confirm Password */}
       <PasswordField
         id="confirmPassword"
-        label="Confirm Password"
-        placeholder="Confirm your password"
+        label={t("confirmPasswordLabel")}
+        placeholder={t("confirmPasswordPlaceholder")}
         registration={register("confirmPassword")}
         error={errors.confirmPassword}
       />
@@ -99,22 +101,22 @@ export default function RegisterForm() {
         isSubmitting={isPending}
         isValid={isValid}
       >
-        Create Account
+        {t("createAccount")}
       </SubmitButton>
 
       {/* Login link */}
       <p className="mt-6 text-center text-gray-600 dark:text-gray-400">
-        Already have an account?{" "}
+        {t("haveAccount")}{" "}
         <AppLink
           href="/login"
           className="font-medium text-indigo-600 hover:text-indigo-700"
         >
-          Sign In
+          {t("signIn")}
         </AppLink>
       </p>
 
       {/* Divider */}
-      <Divider text="Or With" />
+      <Divider text={t("orWith")} />
 
       {/* Social Login */}
       <div className="mt-6 grid grid-cols-2 gap-4">

@@ -21,6 +21,7 @@ import { RateLimit } from 'src/core/security/rate-limit/decorator/rate-limit.dec
 import { RATE_LIMIT } from 'src/core/security/rate-limit/constants/rate-limit.constants';
 import { ApiTags } from '@nestjs/swagger';
 import { ApiAuthSwaggerUI } from 'src/common/decorators/swagger-auth.decorator';
+import { UserStatus } from 'generated/prisma/client';
 
 @ApiTags('Admin')
 @ApiAuthSwaggerUI()
@@ -73,8 +74,11 @@ export class AdminController {
   // Khóa / Mở khóa tài khoản
   @RateLimit(RATE_LIMIT.ADMIN.TOGGLE_ACTIVE)
   @Patch('users/:id/toggle-active')
-  toggleActive(@Param('id', ParseUUIDPipe) id: string) {
-    return this.adminService.toggleActive(id);
+  toggleActive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('status') status?: UserStatus,
+  ) {
+    return this.adminService.toggleActive(id, status);
   }
 
   // Xem tất cả session của user

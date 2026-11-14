@@ -537,7 +537,23 @@ export class AdminService {
   }
 
   // Active/Deactive user
-  async toggleActive(id: string) {
+  async toggleActive(id: string, targetStatus?: UserStatus) {
+    if (targetStatus && targetStatus === UserStatus.PENDING) {
+      throw new BadRequestException(
+        'Admin không được phép đặt trạng thái tài khoản thành PENDING',
+      );
+    }
+
+    if (
+      targetStatus &&
+      targetStatus !== UserStatus.ACTIVE &&
+      targetStatus !== UserStatus.SUSPENDED
+    ) {
+      throw new BadRequestException(
+        'Trạng thái chỉ có thể là ACTIVE hoặc SUSPENDED',
+      );
+    }
+
     const user = await this.userRepository.findUniqueOrThrow({
       where: { id },
     });
@@ -546,18 +562,25 @@ export class AdminService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
+    if (user.status === UserStatus.PENDING && !targetStatus) {
+      throw new BadRequestException(
+        'Tài khoản đang ở trạng thái PENDING (chưa xác thực email), không thể đổi trạng thái',
+      );
+    }
+
     // Xóa toàn bộ session và refresh token của user
-    // 1. Xóa session trong cơ sở dữ liệu và Redis
-    // 2. Xóa refresh token trong cơ sở dữ liệu và Redis
     await this.sessionService.revokeAllUserSessions(user.id);
+
+    const nextStatus = targetStatus
+      ? targetStatus
+      : user.status === UserStatus.ACTIVE
+        ? UserStatus.SUSPENDED
+        : UserStatus.ACTIVE;
 
     const updatedUser = await this.userRepository.update({
       where: { id },
       data: {
-        status:
-          user.status === UserStatus.ACTIVE
-            ? UserStatus.PENDING
-            : UserStatus.ACTIVE,
+        status: nextStatus,
         tokenVersion: {
           increment: 1,
         },
@@ -569,7 +592,7 @@ export class AdminService {
     }
 
     return {
-      message: `User has been ${updatedUser.status === UserStatus.ACTIVE ? 'activated' : 'deactivated'} successfully.`,
+      message: `User has been ${updatedUser.status === UserStatus.ACTIVE ? 'activated' : 'suspended'} successfully.`,
       data: {
         id: updatedUser.id,
         status: updatedUser.status,

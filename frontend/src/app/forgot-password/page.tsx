@@ -4,22 +4,25 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { BrandLogo } from "@/src/components";
 import { AppLink, SubmitButton, TextField } from "@/src/components/ui";
+import { LanguageSwitcher } from "@/src/components/common/LanguageSwitcher";
 import { browserApiClient } from "@/src/lib/bff";
 
 const forgotPasswordSchema = z.object({
   email: z
     .string()
-    .min(1, "Vui lòng nhập địa chỉ email")
-    .email("Định dạng email không hợp lệ")
+    .min(1, "Email is required")
+    .email("Invalid email format")
     .trim(),
 });
 
 type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("authPages");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -40,14 +43,17 @@ export default function ForgotPasswordPage() {
         email: data.email,
       });
       setIsSubmitted(true);
-    } catch (err: any) {
-      // Bảo mật: Luôn hiển thị trạng thái đã gửi hoặc thông báo chung để tránh enumeration email
+    } catch {
+      // Security: always display submitted state to avoid email enumeration
       setIsSubmitted(true);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-slate-50 via-indigo-50 to-white dark:from-gray-950 dark:via-slate-900 dark:to-gray-950">
+    <div className="min-h-screen flex items-center justify-center p-4 relative bg-linear-to-br from-slate-50 via-indigo-50 to-white dark:from-gray-950 dark:via-slate-900 dark:to-gray-950">
+      <div className="absolute top-4 right-4 z-30">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md p-8 sm:p-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-gray-800 shadow-2xl">
         <BrandLogo className="mb-6" />
 
@@ -56,9 +62,9 @@ export default function ForgotPasswordPage() {
             <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h2 className="text-xl font-bold">Kiểm Tra Hộp Thư Của Bạn</h2>
+            <h2 className="text-xl font-bold">{t("checkYourInboxTitle")}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              Nếu địa chỉ email tồn tại trên hệ thống BudgetFlow, chúng tôi đã gửi đường dẫn đặt lại mật khẩu đến hòm thư của bạn. Vui lòng kiểm tra (kể cả hộp thư rác / Spam).
+              {t("checkYourInboxDesc")}
             </p>
 
             <div className="pt-4">
@@ -67,16 +73,16 @@ export default function ForgotPasswordPage() {
                 className="inline-flex items-center justify-center gap-2 w-full px-5 py-2.5 rounded-xl font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Quay Lại Đăng Nhập
+                {t("backToLogin")}
               </AppLink>
             </div>
           </div>
         ) : (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">Quên Mật Khẩu?</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{t("forgotPasswordTitle")}</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Nhập email đã đăng ký. Chúng tôi sẽ gửi đường dẫn khôi phục mật khẩu cho bạn.
+                {t("forgotPasswordDesc")}
               </p>
             </div>
 
@@ -89,7 +95,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <TextField
                 id="email"
-                label="Địa chỉ Email"
+                label="Email"
                 type="email"
                 placeholder="name@example.com"
                 leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
@@ -102,7 +108,7 @@ export default function ForgotPasswordPage() {
                 isSubmitting={isSubmitting}
                 isValid={isValid}
               >
-                Gửi Hướng Dẫn Khôi Phục
+                {t("sendResetInstructions")}
               </SubmitButton>
 
               <div className="text-center pt-2">
@@ -111,7 +117,7 @@ export default function ForgotPasswordPage() {
                   className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Quay lại đăng nhập
+                  {t("backToLogin")}
                 </AppLink>
               </div>
             </form>

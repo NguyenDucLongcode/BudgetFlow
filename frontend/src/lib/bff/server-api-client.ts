@@ -7,19 +7,53 @@ import { ApiError } from "@/src/types/api/api.types";
 import { accessTokenStore } from "@/src/server/modules/auth/session";
 
 class ServerApiClient {
-  private async createClient() {
+  private async createClient(config?: AxiosRequestConfig) {
     const cookieStore = await cookies();
     const headerStore = await headers();
 
-    const deviceId = headerStore.get("x-device-id");
+    // 1. Tìm deviceId từ header hoặc cookie
+    const deviceId =
+      headerStore.get("x-device-id") ||
+      headerStore.get("device-id") ||
+      headerStore.get("deviceId") ||
+      cookieStore.get("device_id")?.value ||
+      cookieStore.get("x-device-id")?.value ||
+      cookieStore.get("deviceId")?.value;
 
-    const session = deviceId ? await accessTokenStore.get(deviceId) : null;
+    let accessToken: string | null = null;
+    if (deviceId) {
+      const session = await accessTokenStore.get(deviceId);
+      accessToken = session?.accessToken ?? null;
+    }
 
-    // Lấy CSRF token từ header x-xsrf-token hoặc từ cookie XSRF-TOKEN
+    // 2. Lấy CSRF token từ config.headers, headerStore hoặc cookieStore
+    const customHeaders = (config?.headers as Record<string, string | undefined>) ?? {};
+    const customCsrf =
+      customHeaders["x-xsrf-token"] ||
+      customHeaders["x-csrf-token"] ||
+      customHeaders["csrf-token"];
+
     const csrfHeader =
-      headerStore.get("x-xsrf-token") || headerStore.get("x-csrf-token");
+      customCsrf ||
+      headerStore.get("x-xsrf-token") ||
+      headerStore.get("x-csrf-token") ||
+      headerStore.get("csrf-token");
+
     const csrfCookie = cookieStore.get("XSRF-TOKEN")?.value;
     const csrfToken = csrfHeader || csrfCookie;
+
+    // 3. Xây dựng Cookie header gửi sang backend (bao gồm cả XSRF-TOKEN)
+    const allCookies = cookieStore.getAll();
+    const cookieMap = new Map<string, string>();
+    for (const c of allCookies) {
+      cookieMap.set(c.name, c.value);
+    }
+    if (csrfToken) {
+      cookieMap.set("XSRF-TOKEN", csrfToken);
+    }
+    const cookieHeader = Array.from(cookieMap.entries())
+      .map(([name, value]) => `${name}=${value}`)
+      .join("; ");
 
     return serverClient.create({
       headers: {
@@ -27,17 +61,19 @@ class ServerApiClient {
           "x-device-id": deviceId,
         }),
 
-        ...(session?.accessToken && {
-          Authorization: `Bearer ${session.accessToken}`,
+        ...(accessToken && {
+          Authorization: `Bearer ${accessToken}`,
         }),
 
         ...(csrfToken && {
           "x-xsrf-token": csrfToken,
         }),
 
-        ...(cookieStore.toString() && {
-          Cookie: cookieStore.toString(),
+        ...(cookieHeader && {
+          Cookie: cookieHeader,
         }),
+
+        ...(config?.headers ?? {}),
       },
 
       withCredentials: true,
@@ -62,7 +98,7 @@ class ServerApiClient {
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     try {
-      const client = await this.createClient();
+      const client = await this.createClient(config);
 
       return await client.get<ApiResponse<T>>(url, {
         ...(config ?? {}),
@@ -82,7 +118,7 @@ class ServerApiClient {
     config?: AxiosRequestConfig<D>,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     try {
-      const client = await this.createClient();
+      const client = await this.createClient(config);
 
       return await client.post<ApiResponse<T>>(url, data, config ?? {});
     } catch (error) {
@@ -96,7 +132,7 @@ class ServerApiClient {
     config?: AxiosRequestConfig<D>,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     try {
-      const client = await this.createClient();
+      const client = await this.createClient(config);
 
       return await client.put<ApiResponse<T>>(url, data, config ?? {});
     } catch (error) {
@@ -110,7 +146,7 @@ class ServerApiClient {
     config?: AxiosRequestConfig<D>,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     try {
-      const client = await this.createClient();
+      const client = await this.createClient(config);
 
       return await client.patch<ApiResponse<T>>(url, data, config ?? {});
     } catch (error) {
@@ -123,7 +159,7 @@ class ServerApiClient {
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     try {
-      const client = await this.createClient();
+      const client = await this.createClient(config);
 
       return await client.delete<ApiResponse<T>>(url, config ?? {});
     } catch (error) {
@@ -143,7 +179,7 @@ class ServerApiClient {
     config?: AxiosRequestConfig<D>,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     try {
-      const client = await this.createClient();
+      const client = await this.createClient(config);
 
       return await client.post<ApiResponse<T>>(url, data, config ?? {});
     } catch (error) {
