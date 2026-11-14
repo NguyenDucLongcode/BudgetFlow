@@ -15,6 +15,12 @@ class ServerApiClient {
 
     const session = deviceId ? await accessTokenStore.get(deviceId) : null;
 
+    // Lấy CSRF token từ header x-xsrf-token hoặc từ cookie XSRF-TOKEN
+    const csrfHeader =
+      headerStore.get("x-xsrf-token") || headerStore.get("x-csrf-token");
+    const csrfCookie = cookieStore.get("XSRF-TOKEN")?.value;
+    const csrfToken = csrfHeader || csrfCookie;
+
     return serverClient.create({
       headers: {
         ...(deviceId && {
@@ -23,6 +29,10 @@ class ServerApiClient {
 
         ...(session?.accessToken && {
           Authorization: `Bearer ${session.accessToken}`,
+        }),
+
+        ...(csrfToken && {
+          "x-xsrf-token": csrfToken,
         }),
 
         ...(cookieStore.toString() && {

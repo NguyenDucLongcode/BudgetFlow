@@ -89,6 +89,58 @@ class AuthService {
     );
     return response.data;
   }
+
+  async verifyEmail(token: string) {
+    const response = await serverApiClient.get<{ message: string }>(
+      "/auth/verify-email",
+      { token },
+    );
+    return response.data;
+  }
+
+  async resendVerificationEmail(email: string) {
+    const response = await serverApiClient.post<{ message: string }>(
+      "/auth/resend-verification-email",
+      { email },
+    );
+    return response.data;
+  }
+
+  async forgotPassword(email: string) {
+    const response = await serverApiClient.post<{ message: string }>(
+      "/auth/forgot-password",
+      { email },
+    );
+    return response.data;
+  }
+
+  async resetPassword(data: {
+    token: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) {
+    const response = await serverApiClient.post<{ message: string }>(
+      "/auth/reset-password",
+      data,
+    );
+    return response.data;
+  }
+
+  async saveSocialSession(
+    deviceId: string,
+    accessToken: string,
+    userId: string,
+    role: any,
+    expiresIn = "15m",
+  ) {
+    await accessTokenStore.save(
+      deviceId,
+      accessToken,
+      userId,
+      role,
+      parseExpiresIn(expiresIn),
+    );
+  }
 }
 
 export const authService = new AuthService();

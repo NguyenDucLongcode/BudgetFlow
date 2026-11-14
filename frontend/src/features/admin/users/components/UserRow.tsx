@@ -7,7 +7,7 @@ import { formatDate, timeAgo } from "@/src/lib/utils";
 import { UserRowActions } from "./UserRowActions";
 import { User } from "@/src/types";
 import { Avatar } from "@/src/components/common/Avatar";
-import { Badge } from "@/src/components/ui/Badge /Badge";
+import { Badge } from "@/src/components/ui/Badge/Badge";
 
 interface UserTableRowProps {
   user: User;
@@ -33,7 +33,7 @@ export function UserTableRow({ user }: UserTableRowProps) {
           href={`/admin/users/${user.id}`}
           className="flex items-center gap-3"
         >
-          <Avatar src={user.avatar} name={user.name} size={36} />
+          <Avatar avatarUrl={user.avatar} name={user.name} size={36} />
 
           <div className="min-w-0">
             <p className="truncate font-medium text-slate-900">{user.name}</p>

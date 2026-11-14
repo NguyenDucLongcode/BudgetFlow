@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { queryClient } from "../react-query/query-client";
 import { authService, clearAuthState } from "@/src/client/auth";
+import { getCookie } from "../utils/cookie";
 
 const axiosClient = axios.create({
   baseURL: "/api",
@@ -11,7 +12,7 @@ const axiosClient = axios.create({
   },
 });
 
-// Chỉ giữ 1 interceptor request
+// Request interceptor: gắn x-device-id và x-xsrf-token
 axiosClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     let deviceId = localStorage.getItem("x-device-id");
@@ -22,6 +23,16 @@ axiosClient.interceptors.request.use((config) => {
     }
 
     config.headers["x-device-id"] = deviceId;
+
+    // Gắn CSRF token cho các thao tác mutation
+    const method = (config.method ?? "get").toLowerCase();
+    const mutationMethods = ["post", "put", "patch", "delete"];
+    if (mutationMethods.includes(method)) {
+      const csrfToken = getCookie("XSRF-TOKEN");
+      if (csrfToken) {
+        config.headers["x-xsrf-token"] = csrfToken;
+      }
+    }
   }
 
   return config;

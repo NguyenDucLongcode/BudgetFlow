@@ -4,7 +4,14 @@ import { usePathname } from "next/navigation";
 
 import { useProfile } from "@/src/client/auth";
 
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/verify-email",
+  "/auth/social-success",
+];
 
 export default function AuthProvider({
   children,

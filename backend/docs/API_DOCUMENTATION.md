@@ -1,855 +1,314 @@
-# BudgetFlow Backend API Documentation
+# Tài Liệu API Backend BudgetFlow (Toàn Diện & Chi Tiết)
 
-> **Version:** 1.0.0  
-> **Last Updated:** 2025  
-> **Base URL:** `http://localhost:3000/api/v1` (configurable via `VERSION_API`)
-
----
-
-## 📋 Table of Contents
-
-1. [Architecture Overview](#architecture-overview)
-2. [Authentication & Authorization](#authentication--authorization)
-3. [API Endpoints](#api-endpoints)
-   - [Auth Module](#auth-module)
-   - [Users Module](#users-module)
-   - [Health Module](#health-module)
-4. [Data Models](#data-models)
-5. [Security Features](#security-features)
-6. [Configuration](#configuration)
-7. [Error Handling](#error-handling)
-8. [Development Setup](#development-setup)
+> **Cập nhật lần cuối:** 11/11/2026  
+> **Nguồn:** Đọc trực tiếp từ code controllers, DTOs, guards, không dựa tài liệu cũ.  
+> **Base URL Chuẩn:** `http://localhost:8080/api/v1` (Cổng 8080, Global Prefix `api`, Version URI `v1`)  
+> **Swagger UI:** `http://localhost:8080/api/docs` (khi `NODE_ENV !== 'production'`)
 
 ---
 
-## 🏗 Architecture Overview
+## 1. Quy Chuẩn Kỹ Thuật Chung
 
-### Tech Stack
+### 1.1. Base URL & Versioning
+- Mọi endpoint nghiệp vụ đều có dạng: `http://localhost:8080/api/v1/<endpoint>`
+- Riêng các endpoint giám sát (Monitoring) được loại trừ khỏi prefix và version:
+  - `GET http://localhost:8080/health`
+  - `GET http://localhost:8080/metrics`
+  - `GET http://localhost:8080/metrics/json`
 
-| Layer          | Technology                           |
-| -------------- | ------------------------------------ |
-| **Framework**  | NestJS 11.x                          |
-| **Language**   | TypeScript 5.x                       |
-| **Database**   | PostgreSQL + Prisma ORM              |
-| **Cache**      | Redis (ioredis)                      |
-| **Auth**       | JWT (Access + Refresh) + Passport.js |
-| **Email**      | Nodemailer + Handlebars templates    |
-| **Validation** | class-validator + class-transformer  |
-| **Docs**       | Swagger/OpenAPI 3.0                  |
-| **Monitoring** | Prometheus metrics                   |
+### 1.2. Cơ Chế Xác Thực & Header Bắt Buộc
+- **Access Token:** Gửi qua header `Authorization: Bearer <access_token>` cho mọi endpoint yêu cầu đăng nhập.
+- **Device ID:** Gửi qua header `x-device-id: <uuid>` cho các luồng auth (`login`, `refresh-token`, `logout`).
+- **CSRF Protection:**
+  - Cơ chế: Double Submit Cookie (`XSRF-TOKEN` cookie và header `x-xsrf-token`).
+  - Mọi request thay đổi dữ liệu (`POST`, `PUT`, `PATCH`, `DELETE`) đến các module nghiệp vụ (ngoại trừ các endpoint gắn `@SkipCsrf()`) **bắt buộc** phải kèm header `x-xsrf-token` khớp với cookie `XSRF-TOKEN`.
 
-### Project Structure
-
-```
-src/
-├── common/                 # Shared utilities
-│   ├── configs/           # Configuration files
-│   ├── decorators/        # Custom decorators
-│   ├── guards/            # Global guards
-│   ├── interfaces/        # TypeScript interfaces
-│   ├── utils/             # Helper functions
-│   └── constants/         # Application constants
-├── modules/               # Feature modules
-│   ├── auth/              # Authentication & Authorization
-│   ├── user/              # User management
-│   ├── redis/             # Redis cache service
-│   └── health/            # Health checks
-├── email/                 # Email module
-├── prisma/                # Prisma service & schema
-└── main.ts                # Application entry point
-```
-
-### Module Dependencies
-
-```mermaid
-graph TD
-    AppModule --> AuthModule
-    AppModule --> UsersModule
-    AppModule --> EmailModule
-    AppModule --> RedisModule
-    AppModule --> HealthModule
-
-    AuthModule --> UsersModule
-    AuthModule --> EmailModule
-    AuthModule --> RedisModule
-    AuthModule --> PrismaModule
-    AuthModule --> JwtModule
-    AuthModule --> PassportModule
-```
-
----
-
-## 🔐 Authentication & Authorization
-
-### Token Strategy
-
-| Token Type        | Algorithm | Expiry          | Storage                 | Use Case          |
-| ----------------- | --------- | --------------- | ----------------------- | ----------------- |
-| **Access Token**  | HS256     | 15 min (config) | Memory / Header         | API Authorization |
-| **Refresh Token** | HS256     | 7 days (config) | HttpOnly Cookie + Redis | Token Renewal     |
-
-### Token Payload (JwtPayload)
-
-```typescript
-interface JwtPayload {
-  sub: string; // User ID (UUID)
-  email: string; // User email
-  role: Role; // USER | ADMIN
-  tv: number; // Token Version (for revocation)
-}
-```
-
-### Device-Based Sessions
-
-- Each login binds to a **deviceId** (sent via `X-Device-Id` header)
-- Refresh tokens stored in Redis with key: `refresh:{userId}:{deviceId}`
-- Supports **multiple concurrent sessions** per user
-- `logout-all` increments `tokenVersion` → invalidates all tokens
-
-### Google OAuth 2.0
-
-| Config                 | Description                                         |
-| ---------------------- | --------------------------------------------------- |
-| `GOOGLE_CLIENT_ID`     | Google OAuth Client ID                              |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Secret                                 |
-| `GOOGLE_CALLBACK_URL`  | Callback URL (e.g., `/api/v1/auth/google/callback`) |
-| `state` param          | Used to pass `deviceId` for session binding         |
-
-**Flow:**
-
-```
-GET /auth/google                    → Redirect to Google
-GET /auth/google/callback?state=xxx → Google redirects back
-                                     → Creates/links account
-                                     → Issues tokens
-                                     → Redirects to frontend with accessToken
-```
-
-### Guards & Decorators
-
-| Guard/Decorator     | Purpose                                          |
-| ------------------- | ------------------------------------------------ |
-| `JWTAuthGuard`      | Validates access token, skips `@Public()` routes |
-| `GoogleAuthGuard`   | Initiates Google OAuth flow                      |
-| `@Public()`         | Marks endpoint as public (no auth required)      |
-| `@CurrentUser()`    | Extracts current user from request               |
-| `@ApiAccessToken()` | Swagger decorator for Bearer token               |
-
----
-
-## 📡 API Endpoints
-
-### Auth Module (`/api/v1/auth`)
-
-#### **POST** `/auth/register`
-
-Register a new user with email verification.
-
-**Headers:** `X-Device-Id: <uuid>`
-
-**Request:**
+### 1.3. Định Dạng Phản Hồi Chuẩn (Standard Response Format)
+Hệ thống sử dụng `ResponseInterceptor` để chuẩn hóa dữ liệu trả về:
 
 ```json
 {
-  "name": "Nguyen Van A",
-  "email": "user@example.com",
-  "password": "StrongPass123@",
-  "confirmPassword": "StrongPass123@"
+  "statusCode": 200,
+  "message": "Thành công",
+  "data": { ... }
 }
 ```
 
-**Response (201):**
-
-```json
-{
-  "message": "Đăng ký thành công. Vui lòng kiểm tra email để kích hoạt tài khoản.",
-  "data": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "name": "Nguyen Van A",
-    "role": "USER",
-    "isActive": false,
-    "createdAt": "2025-01-15T10:30:00.000Z"
-  }
-}
-```
-
-**Validation Rules:**
-
-- `name`: Required, string
-- `email`: Required, valid email format
-- `password`: Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
-- `confirmPassword`: Must match `password`
-
----
-
-#### **POST** `/auth/login`
-
-Authenticate with email/password.
-
-**Headers:** `X-Device-Id: <uuid>`
-
-**Request:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "StrongPass123@"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "Đăng nhập thành công",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-    "tokenType": "Bearer",
-    "expiresIn": "15m",
-    "user": {
-      "id": "uuid",
-      "email": "user@example.com",
-      "name": "Nguyen Van A",
-      "role": "USER"
-    }
-  }
-}
-```
-
-**Cookies Set:**
-
-- `refresh_token` (HttpOnly, Secure, SameSite=Strict, 7 days)
-
-**Errors:**
-
-- `400` - Missing deviceId
-- `401` - Invalid credentials / OAuth account / Email not verified
-
----
-
-#### **POST** `/auth/refresh-token`
-
-Rotate access & refresh tokens.
-
-**Headers:**
-
-- `X-Device-Id: <uuid>`
-- `Cookie: refresh_token=<token>`
-
-**Response (200):**
-
-```json
-{
-  "message": "Refresh token success",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-    "tokenType": "Bearer",
-    "expiresIn": "15m",
-    "user": { ... }
-  }
-}
-```
-
-**Security:** Verifies refresh token hash in Redis + tokenVersion match
-
----
-
-#### **POST** `/auth/logout`
-
-Logout from current device.
-
-**Headers:**
-
-- `Authorization: Bearer <accessToken>`
-- `X-Device-Id: <uuid>`
-
-**Response (200):**
-
-```json
-{ "message": "Logout successful" }
-```
-
----
-
-#### **POST** `/auth/logout-all`
-
-Logout from all devices (revokes all tokens).
-
-**Headers:** `Authorization: Bearer <accessToken>`
-
-**Response (200):**
-
-```json
-{ "message": "Logout all devices successfully" }
-```
-
----
-
-#### **GET** `/auth/sessions`
-
-List active sessions for current user.
-
-**Headers:** `Authorization: Bearer <accessToken>`
-
-**Response (200):**
-
-```json
-{
-  "data": [
-    {
-      "deviceId": "uuid",
-      "userAgent": "Mozilla/5.0...",
-      "ipAddress": "192.168.1.1",
-      "lastLoginAt": "2025-01-15T10:30:00.000Z",
-      "lastActiveAt": "2025-01-15T12:00:00.000Z"
-    }
-  ]
-}
-```
-
----
-
-#### **DELETE** `/auth/sessions/:deviceId`
-
-Revoke specific session.
-
-**Headers:** `Authorization: Bearer <accessToken>`
-
-**Response (200):**
-
-```json
-{ "message": "Session revoked" }
-```
-
----
-
-#### **GET** `/auth/verify-email?token=<token>`
-
-Verify email address (click link in email).
-
-**Response (200):**
-
-```json
-{ "message": "Xác thực email thành công. Bạn có thể đăng nhập." }
-```
-
----
-
-#### **POST** `/auth/resend-verification-email`
-
-Resend verification email.
-
-**Request:**
-
-```json
-{ "email": "user@example.com" }
-```
-
----
-
-#### **POST** `/auth/forgot-password`
-
-Request password reset.
-
-**Request:**
-
-```json
-{ "email": "user@example.com" }
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu."
-}
-```
-
----
-
-#### **POST** `/auth/reset-password`
-
-Reset password with token from email.
-
-**Request:**
-
-```json
-{
-  "token": "reset-token-from-email",
-  "password": "NewStrongPass123@",
-  "confirmPassword": "NewStrongPass123@"
-}
-```
-
-**Response (200):**
-
-```json
-{ "message": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại." }
-```
-
----
-
-#### **GET** `/auth/google`
-
-Initiate Google OAuth login.
-
-**Query:** `?deviceId=<uuid>`
-
-**Redirects to:** Google OAuth consent screen
-
----
-
-#### **GET** `/auth/google/callback`
-
-Google OAuth callback.
-
-**Query:** `?code=xxx&state=<deviceId>`
-
-**Redirects to:** `${FRONTEND_URL}/auth/social-success?token=<accessToken>`
-
----
-
-### Users Module (`/api/v1/users`)
-
-All endpoints require authentication (`Authorization: Bearer <token>`).
-
-#### **POST** `/users`
-
-Create new user (Admin only).
-
-**Request:**
-
-```json
-{
-  "email": "newuser@example.com",
-  "password": "StrongPass123@",
-  "name": "New User",
-  "role": "USER"
-}
-```
-
----
-
-#### **GET** `/users`
-
-List all users.
-
-**Response (200):**
-
-```json
-[
-  {
-    "id": "uuid",
-    "email": "user@example.com",
-    "name": "User Name",
-    "role": "USER",
-    "isActive": true,
-    "createdAt": "2025-01-15T10:30:00.000Z"
-  }
-]
-```
-
----
-
-#### **GET** `/users/me`
-
-Get current user profile.
-
-**Response (200):**
-
-```json
-{
-  "message": "Get profile successfully",
-  "data": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "name": "User Name",
-    "role": "USER",
-    "isActive": true,
-    "provider": null,
-    "timezone": "UTC",
-    "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
-  }
-}
-```
-
----
-
-#### **GET** `/users/:id`
-
-Get user by ID.
-
----
-
-#### **PATCH** `/users/:id`
-
-Update user.
-
-**Request:**
-
-```json
-{
-  "name": "Updated Name",
-  "email": "newemail@example.com"
-}
-```
-
----
-
-#### **DELETE** `/users/:id`
-
-Delete user.
-
----
-
-#### **PATCH** `/users/:id/toggle-active`
-
-Activate/deactivate user.
-
----
-
-#### **GET** `/users/count`
-
-Get total user count.
-
----
-
-### Health Module (`/api/v1/health`)
-
-#### **GET** `/health`
-
-Basic health check.
-
-**Response (200):**
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2025-01-15T10:30:00.000Z",
-  "uptime": 3600
-}
-```
-
----
-
-## 🗄 Data Models
-
-### User Model (Prisma)
-
-```prisma
-model User {
-  id                    String    @id @default(uuid())
-  email                 String    @unique
-  password              String?   // Null for OAuth users
-  name                  String
-  role                  Role      @default(USER)
-  isActive              Boolean   @default(false)
-  provider              String?   // "google", "github"
-  providerId            String?   // OAuth provider user ID
-  avatar                String?   // Profile picture URL
-  timezone              String    @default("UTC")
-  tokenVersion          Int       @default(0)  // For token revocation
-  verifyToken           String?
-  verifyTokenExpiresAt  DateTime?
-  verifiedAt            DateTime?
-  resetPasswordToken    String?
-  resetPasswordExpiresAt DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  sessions              UserSession[]
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-```
-
-### UserSession Model
-
-```prisma
-model UserSession {
-  id            String   @id @default(uuid())
-  userId        String
-  deviceId      String
-  userAgent     String?
-  ipAddress     String?
-  lastLoginAt   DateTime @default(now())
-  lastActiveAt  DateTime @default(now())
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, deviceId])
-  @@index([userId])
-}
-```
-
----
-
-## 🛡 Security Features
-
-| Feature                   | Implementation                                          |
-| ------------------------- | ------------------------------------------------------- |
-| **Password Hashing**      | bcrypt (cost: 10)                                       |
-| **Token Storage**         | Refresh tokens hashed (SHA-256) in Redis                |
-| **Token Rotation**        | New refresh token on each refresh                       |
-| **Token Revocation**      | `tokenVersion` increment on logout-all / password reset |
-| **HttpOnly Cookies**      | Refresh token in secure cookie                          |
-| **SameSite**              | Strict (CSRF protection)                                |
-| **Rate Limiting**         | Nodemailer pool (5 connections, 100 msg/conn)           |
-| **Email Verification**    | 24h expiry token                                        |
-| **Password Reset**        | 1h expiry token                                         |
-| **OAuth Account Linking** | Links by email if no provider exists                    |
-
-### Security Headers (Helmet)
-
-Configured in `helmet.config.ts`:
-
-- CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy
-
----
-
-## ⚙ Configuration
-
-### Environment Variables (`.env`)
-
-```env
-# App
-NODE_ENV=development
-PORT=3000
-VERSION_API=api/v1
-FRONTEND_URL=http://localhost:3000
-
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/budgetflow?schema=public
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
-
-# JWT
-JWT_ACCESS_SECRET=your-super-secret-access-key
-JWT_ACCESS_EXPIRES_IN=15m
-JWT_REFRESH_SECRET=your-super-secret-refresh-key
-JWT_REFRESH_EXPIRES_IN=7d
-
-# SMTP (Gmail example)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-SMTP_FROM_NAME=BudgetFlow
-SMTP_FROM_EMAIL=noreply@budgetflow.com
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
-```
-
-### Email Templates
-
-Located in `src/email/templates/`:
-
-- `verify-email.hbs`
-- `reset-password.hbs`
-- `welcome.hbs`
-
----
-
-## ❌ Error Handling
-
-### Standard Error Response
-
-```json
-{
-  "statusCode": 401,
-  "message": "Token đã hết hạn, vui lòng đăng nhập lại.",
-  "error": "Unauthorized"
-}
-```
-
-### Common HTTP Status Codes
-
-| Code | Description                              |
-| ---- | ---------------------------------------- |
-| 200  | Success                                  |
-| 201  | Created                                  |
-| 204  | No Content                               |
-| 400  | Bad Request (validation)                 |
-| 401  | Unauthorized (invalid/expired token)     |
-| 403  | Forbidden (inactive user, revoked token) |
-| 404  | Not Found                                |
-| 409  | Conflict (duplicate email)               |
-| 429  | Too Many Requests                        |
-| 500  | Internal Server Error                    |
-
-### Validation Errors (400)
-
+Khi xảy ra lỗi (qua `AllExceptionsFilter`):
 ```json
 {
   "statusCode": 400,
-  "message": ["Email không hợp lệ", "Mật khẩu phải chứa ít nhất 8 ký tự..."],
-  "error": "Bad Request"
+  "timestamp": "2026-11-11T09:30:00.000Z",
+  "path": "/api/v1/auth/login",
+  "message": "Validation failed",
+  "errors": ["email must be an email"]
 }
 ```
 
 ---
 
-## 🚀 Development Setup
+## 2. Danh Sách Đầy Đủ Các API Endpoints
 
-### Prerequisites
+### 2.1. Bảo Mật CSRF (`/api/v1/csrf`)
+Quản lý mã chống giả mạo request liên trang (Double Submit Cookie).
 
-- Node.js 20+
-- PostgreSQL 15+
-- Redis 7+
-- pnpm (recommended) or npm
-
-### Installation
-
-```bash
-# Install dependencies
-pnpm install
-
-# Setup database
-pnpm prisma migrate dev
-pnpm prisma generate
-
-# Start development server
-pnpm start:dev
-```
-
-### Useful Commands
-
-```bash
-# Build for production
-pnpm build
-
-# Start production
-pnpm start:prod
-
-# Run tests
-pnpm test
-pnpm test:cov
-pnpm test:e2e
-
-# Lint & Format
-pnpm lint
-pnpm format
-
-# Prisma Studio
-pnpm prisma studio
-
-# Database seed
-pnpm seed
-```
-
-### Docker (Optional)
-
-```dockerfile
-# Dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN pnpm install --prod
-COPY . .
-RUN pnpm build
-EXPOSE 3000
-CMD ["node", "dist/main.js"]
-```
+| Method | Endpoint | Quyền | CSRF | Mô tả |
+|---|---|---|---|---|
+| `GET` | `/csrf/token` | Public | Skip | Tạo và thiết lập cookie `XSRF-TOKEN`, trả về token |
+| `GET` | `/csrf/refresh` | Public | Skip | Làm mới cookie `XSRF-TOKEN` và trả về token mới |
 
 ---
 
-## 📚 API Documentation (Swagger)
+### 2.2. Xác Thực & Ủy Quyền (`/api/v1/auth`)
+Module quản lý phiên, đăng ký, đăng nhập và khôi phục tài khoản. Tất cả đều có `@SkipCsrf()`.
 
-Access interactive docs at:
-
-```
-http://localhost:3000/api/docs
-```
-
-### Swagger Tags
-
-| Tag            | Description                    |
-| -------------- | ------------------------------ |
-| Authentication | Login, register, tokens, OAuth |
-| Users          | User management                |
-| Health         | Health checks                  |
-
----
-
-## 🔄 Token Flow Diagrams
-
-### Login Flow
-
-```
-Client                          Server
-  │                                │
-  ├─ POST /auth/login ────────────►│
-  │   {email, password}            │
-  │   Header: X-Device-Id          │
-  │                                │
-  │◄──── 200 OK + Access Token ────┤
-  │   Cookie: refresh_token        │
-  │   Redis: refresh:{userId}:{deviceId} = hash(refreshToken)
-  │                                │
-```
-
-### Token Refresh Flow
-
-```
-Client                          Server
-  │                                │
-  ├─ POST /auth/refresh-token ────►│
-  │   Header: X-Device-Id          │
-  │   Cookie: refresh_token        │
-  │                                │
-  │   1. Verify JWT (refresh)      │
-  │   2. Check Redis hash match    │
-  │   3. Check tokenVersion match  │
-  │   4. Issue new access+refresh  │
-  │   5. Update Redis + Cookie     │
-  │                                │
-  │◄──── 200 OK + New Tokens ──────┤
-```
-
-### Logout All Flow
-
-```
-Client                          Server
-  │                                │
-  ├─ POST /auth/logout-all ───────►│
-  │   Header: Authorization        │
-  │                                │
-  │   1. Get all user sessions     │
-  │   2. Delete all Redis keys     │
-  │   3. Delete all UserSessions   │
-  │   4. Increment tokenVersion    │
-  │   5. Clear cookie              │
-  │                                │
-  │◄──── 200 OK ───────────────────┤
-```
+| Method | Endpoint | Body / Query | Headers | Mô tả |
+|---|---|---|---|---|
+| `POST` | `/auth/login` | `{ email, password, remember? }` | `x-device-id` | Đăng nhập tài khoản email/mật khẩu, trả về Access Token + set cookie `refresh_token` và `XSRF-TOKEN` |
+| `POST` | `/auth/refresh-token` | Không có | `x-device-id`, Cookie: `refresh_token` | Cấp mới Access Token và Refresh Token xoay vòng (Token Rotation) |
+| `POST` | `/auth/register` | `{ email, password, confirmPassword, name }` | Không | Đăng ký tài khoản mới, gửi email kích hoạt |
+| `POST` | `/auth/logout` | Không có | `x-device-id` | Hủy session thiết bị hiện tại, xóa refresh token trong Redis và xóa cookie |
+| `POST` | `/auth/logout-all` | Không có | Bearer Token | Đăng xuất toàn bộ các thiết bị (yêu cầu đăng nhập) |
+| `GET` | `/auth/verify-email` | Query: `?token=<verify_token>` | Không | Xác thực tài khoản qua link email |
+| `POST` | `/auth/resend-verification-email`| `{ email }` | Không | Gửi lại email xác thực |
+| `POST` | `/auth/forgot-password`| `{ email }` | Không | Gửi email yêu cầu đặt lại mật khẩu |
+| `POST` | `/auth/reset-password` | `{ token, newPassword, confirmPassword }` | Không | Cập nhật mật khẩu mới bằng reset token |
+| `GET` | `/auth/google` | Query: `?state=<deviceId>` | Không | Chuyển hướng tới trang đăng nhập Google OAuth |
+| `GET` | `/auth/google/callback` | OAuth Callback Params | Không | Tiếp nhận đăng nhập Google, redirect về `${FRONTEND_URL}/auth/social-success?token=...` |
 
 ---
 
-## 📝 Changelog
+### 2.3. Người Dùng Hiện Tại (`/api/v1/users`)
+Quản lý hồ sơ cá nhân và phiên đăng nhập của người dùng.
 
-### v1.0.0 (2025-01-15)
-
-- ✅ Authentication module (JWT + Refresh + OAuth)
-- ✅ User management module
-- ✅ Email verification & password reset
-- ✅ Device-based session management
-- ✅ Redis token storage with rotation
-- ✅ Swagger documentation
-- ✅ Health checks
-- ✅ Security hardening (Helmet, CORS, Rate limiting)
+| Method | Endpoint | Quyền / Guard | CSRF | Mô tả |
+|---|---|---|---|---|
+| `GET` | `/users/me` | Bearer Token | Bỏ qua (GET) | Lấy thông tin chi tiết tài khoản hiện tại |
+| `PATCH`| `/users/me` | Bearer Token | Bắt buộc | Cập nhật tên, múi giờ (`timezone`) |
+| `PATCH`| `/users/me/change-password` | Bearer Token | Bắt buộc | Đổi mật khẩu (`currentPassword`, `newPassword`, `confirmPassword`) |
+| `PATCH`| `/users/me/avatar` | Bearer Token | Bắt buộc | Tải lên file ảnh đại diện |
+| `GET` | `/users/me/sessions` | Bearer Token | Bỏ qua (GET) | Danh sách các phiên đăng nhập đang hoạt động |
+| `DELETE`| `/users/me/sessions/:sessionId` | Bearer Token | Bắt buộc | Hủy một phiên đăng nhập cụ thể theo ID |
+| `DELETE`| `/users/me/sessions` | Bearer Token | Bắt buộc | Hủy tất cả phiên đăng nhập khác của người dùng |
 
 ---
 
-## 📄 License
+### 2.4. Quản Trị Hệ Thống (`/api/v1/admin`)
+Dành riêng cho người dùng có vai trò `ADMIN`.
 
-MIT License - BudgetFlow Team
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `GET` | `/admin/dashboard` | Không | Thống kê số liệu dashboard tổng quan admin |
+| `GET` | `/admin/users` | Query: `page`, `limit`, `search`, `role`, `status` | Danh sách người dùng hệ thống có phân trang |
+| `GET` | `/admin/users/:id` | Param: UUID user | Chi tiết thông tin một người dùng |
+| `PATCH`| `/admin/users/:id` | `{ name?, role?, status? }` | Cập nhật vai trò/trạng thái người dùng |
+| `PATCH`| `/admin/users/:id/toggle-active` | Không | Bật/tắt kích hoạt trạng thái tài khoản |
+| `GET` | `/admin/users/:id/sessions` | Param: UUID user | Xem danh sách phiên đăng nhập của user |
+| `DELETE`| `/admin/users/:userId/sessions/:sessionId` | Param: userId, sessionId | Buộc đăng xuất một phiên của user |
+| `DELETE`| `/admin/users/:id/sessions` | Param: UUID user | Buộc đăng xuất toàn bộ phiên của user |
+| `DELETE`| `/admin/users/:id` | Param: UUID user | Xóa mềm người dùng |
+
+---
+
+### 2.5. Ví Tiền (`/api/v1/wallets`)
+Quản lý các nguồn tiền của người dùng (`CASH`, `BANK`, `E_WALLET`, `CREDIT`, `INVESTMENT`).
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/wallets` | `{ name, type, initialBalance?, currency?, icon?, color?, bankName?, accountNumber?, accountName?, description? }` | Tạo ví mới (kiểm tra trùng tên theo user) |
+| `GET` | `/wallets` | Query: `page`, `limit`, `search`, `type`, `isArchived` | Danh sách ví của người dùng |
+| `GET` | `/wallets/:id` | Param: UUID ví | Xem chi tiết thông tin và số dư ví |
+| `PATCH`| `/wallets/:id` | Cập nhật thông tin ví | Sửa thông tin ví (tên, icon, color, description...) |
+| `DELETE`| `/wallets/:id` | Param: UUID ví | Xóa ví (Soft-delete nếu có giao dịch liên kết) |
+| `PATCH`| `/wallets/:id/set-default` | Param: UUID ví | Đặt ví này làm ví mặc định |
+
+---
+
+### 2.6. Giao Dịch (`/api/v1/transactions`)
+Quản lý giao dịch thu (`INCOME`), chi (`EXPENSE`) và chuyển khoản (`TRANSFER`).
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/transactions` | `{ type, amount, currency?, date?, categoryId?, walletId?, fromWalletId?, toWalletId?, description?, note? }` | Tạo giao dịch (tự động cộng/trừ số dư ví) |
+| `GET` | `/transactions` | Query phân trang, lọc theo date, walletId, categoryId, type, status | Danh sách lịch sử giao dịch |
+| `GET` | `/transactions/statistics` | Query: `startDate`, `endDate`, `walletId` | Báo cáo thống kê tổng thu, tổng chi, số dư theo kỳ |
+| `GET` | `/transactions/:id` | Param: UUID giao dịch | Chi tiết giao dịch |
+| `PATCH`| `/transactions/:id` | Cập nhật số tiền, ví, danh mục | Sửa giao dịch (tự bù trừ điều chỉnh số dư ví) |
+| `DELETE`| `/transactions/:id` | Param: UUID giao dịch | Xóa giao dịch (hoàn lại số dư ví tương ứng) |
+| `POST` | `/transactions/:id/tags` | `{ tagIds: string[] }` | Gán danh sách thẻ vào giao dịch |
+| `GET` | `/transactions/:id/tags` | Param: UUID giao dịch | Lấy danh sách thẻ đã gắn vào giao dịch |
+| `PUT` | `/transactions/:id/tags` | `{ tagIds: string[] }` | Thay thế toàn bộ thẻ của giao dịch |
+| `DELETE`| `/transactions/:id/tags/:tagId` | Param: transactionId, tagId | Gỡ một thẻ ra khỏi giao dịch |
+| `POST` | `/transactions/:id/attachments`| Multipart file upload | Tải tệp/hóa đơn đính kèm giao dịch |
+| `GET` | `/transactions/:id/attachments`| Param: UUID giao dịch | Xem danh sách hóa đơn đính kèm |
+| `GET` | `/transactions/:id/attachments/:attachmentId` | Param IDs | Chi tiết tệp đính kèm |
+| `PATCH`| `/transactions/:id/attachments/:attachmentId` | Cập nhật thông tin | Sửa tên/ghi chú tệp đính kèm |
+| `DELETE`| `/transactions/:id/attachments/:attachmentId` | Param IDs | Xóa tệp đính kèm |
+| `DELETE`| `/transactions/:id/attachments` | Param: UUID giao dịch | Xóa tất cả tệp đính kèm của giao dịch |
+
+---
+
+### 2.7. Danh Mục Thu Chi (`/api/v1/categories`)
+Phân loại các khoản chi tiêu và nguồn thu nhập.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/categories` | `{ name, type, icon?, color?, parentId? }` | Tạo danh mục mới (hỗ trợ phân cấp cha/con) |
+| `GET` | `/categories` | Query: `type`, `parentId` | Danh sách danh mục (gồm danh mục hệ thống + cá nhân) |
+| `GET` | `/categories/:id` | Param: UUID danh mục | Xem chi tiết danh mục |
+| `PATCH`| `/categories/:id` | `{ name?, icon?, color?, parentId? }` | Cập nhật danh mục |
+| `DELETE`| `/categories/:id` | Param: UUID danh mục | Xóa danh mục |
+
+---
+
+### 2.8. Ngân Sách Chi Tiêu (`/api/v1/budgets`)
+Lập hạn mức chi tiêu theo danh mục và chu kỳ thời gian.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/budgets` | `{ categoryId, amount, startDate, endDate, period?, alertThreshold?, isAlertEnabled?, description? }` | Tạo kế hoạch ngân sách |
+| `GET` | `/budgets` | Query phân trang, period, active | Danh sách ngân sách |
+| `GET` | `/budgets/summary` | Query: thời gian | Thống kê tổng quan tình hình ngân sách (tiêu bao nhiêu / hạn mức) |
+| `GET` | `/budgets/:id` | Param: UUID ngân sách | Chi tiết ngân sách cụ thể |
+| `PATCH`| `/budgets/:id` | Cập nhật hạn mức, ngày, cảnh báo | Sửa ngân sách |
+| `DELETE`| `/budgets/:id` | Param: UUID ngân sách | Xóa ngân sách |
+
+---
+
+### 2.9. Giao Dịch Định Kỳ (`/api/v1/recurring-transactions`)
+Tự động hóa các khoản chi/thu lặp lại (tiền thuê nhà, lương, dịch vụ hàng tháng).
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/recurring-transactions` | `{ name, walletId, categoryId?, amount, type, frequency, interval?, startDate, endDate?, description? }` | Tạo lịch giao dịch định kỳ |
+| `GET` | `/recurring-transactions` | Query phân trang, trạng thái | Danh sách lịch định kỳ |
+| `GET` | `/recurring-transactions/:id` | Param: UUID lịch | Chi tiết lịch định kỳ |
+| `PATCH`| `/recurring-transactions/:id` | Sửa số tiền, tần suất, ví | Cập nhật lịch |
+| `POST` | `/recurring-transactions/:id/mark-run` | Không | Kích hoạt chạy ngay một chu kỳ giao dịch thủ công |
+| `PATCH`| `/recurring-transactions/:id/pause` | Không | Tạm dừng lịch định kỳ |
+| `PATCH`| `/recurring-transactions/:id/resume`| Không | Kích hoạt tiếp tục chạy |
+| `DELETE`| `/recurring-transactions/:id` | Param: UUID | Xóa lịch định kỳ |
+
+---
+
+### 2.10. Mục Tiêu Tiết Kiệm (`/api/v1/goals`)
+Quản lý mục tiêu tài chính, đóng góp tiền và theo dõi tiến độ hoàn thành.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/goals` | `{ name, targetAmount, startDate, targetDate, priority?, walletId?, description? }` | Tạo mục tiêu tiết kiệm |
+| `GET` | `/goals` | Query: status, priority, phân trang | Danh sách mục tiêu |
+| `GET` | `/goals/summary` | Không | Thống kê tổng số mục tiêu, tiền đã tiết kiệm, tiến độ |
+| `GET` | `/goals/:id` | Param: UUID mục tiêu | Chi tiết mục tiêu |
+| `PATCH`| `/goals/:id` | Sửa mục tiêu | Cập nhật mục tiêu |
+| `DELETE`| `/goals/:id` | Param: UUID mục tiêu | Xóa mục tiêu |
+| `POST` | `/goals/:id/deposit` | `{ amount, walletId, note? }` | Nạp tiền vào mục tiêu (trừ số dư ví tương ứng) |
+| `POST` | `/goals/:id/withdraw` | `{ amount, walletId, note? }` | Rút tiền từ mục tiêu về ví |
+| `PATCH`| `/goals/:id/pause` | Không | Tạm dừng mục tiêu |
+| `PATCH`| `/goals/:id/resume` | Không | Tiếp tục mục tiêu |
+| `POST` | `/goals/:id/contributions` | `{ amount, walletId?, contributionDate?, note? }` | Ghi nhận khoản đóng góp |
+| `GET` | `/goals/:id/contributions` | Query phân trang | Danh sách các khoản đóng góp của mục tiêu |
+| `GET` | `/goals/:id/contributions/stats` | Không | Thống kê lịch sử đóng góp |
+| `GET` | `/goals/:id/contributions/:contributionId` | Param IDs | Chi tiết một khoản đóng góp |
+| `PATCH`| `/goals/:id/contributions/:contributionId` | Sửa khoản đóng góp | Cập nhật khoản đóng góp |
+| `DELETE`| `/goals/:id/contributions/:contributionId` | Param IDs | Xóa khoản đóng góp |
+| `DELETE`| `/goals/:id/contributions` | Param: UUID goal | Xóa toàn bộ lịch sử đóng góp của mục tiêu |
+
+---
+
+### 2.11. Quản Lý Khoản Nợ & Vay (`/api/v1/debts` & `/api/v1/debt-payments`)
+Theo dõi các khoản mình vay (`LOAN`) hoặc cho vay (`DEBT`) và lịch trình trả nợ.
+
+#### Khoản Nợ (`/debts`)
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/debts` | `{ name, type, totalAmount, startDate, dueDate, interestRate?, monthlyPayment?, contactName?, borrower?, walletId? }` | Tạo khoản nợ/vay |
+| `GET` | `/debts` | Query phân trang, status, type | Danh sách nợ/vay |
+| `GET` | `/debts/summary` | Không | Tổng hợp số nợ phải trả và số nợ cần thu |
+| `GET` | `/debts/:id` | Param: UUID nợ | Chi tiết khoản nợ |
+| `PATCH`| `/debts/:id` | Sửa thông tin nợ | Cập nhật khoản nợ |
+| `DELETE`| `/debts/:id` | Param: UUID nợ | Xóa khoản nợ |
+
+#### Thanh Toán Nợ (`/debt-payments`)
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/debt-payments` | `{ debtId, amount, paymentDate, method, note? }` | Ghi nhận thanh toán nợ (tự động cập nhật `paidAmount` của debt) |
+| `GET` | `/debt-payments` | Query: `debtId`, phân trang | Lịch sử thanh toán của khoản nợ |
+| `GET` | `/debt-payments/:id` | Param: UUID thanh toán | Chi tiết đợt thanh toán |
+| `PATCH`| `/debt-payments/:id` | Sửa số tiền thanh toán | Cập nhật đợt thanh toán |
+| `DELETE`| `/debt-payments/:id` | Param: UUID thanh toán | Xóa đợt thanh toán |
+
+---
+
+### 2.12. Thẻ Giao Dịch (`/api/v1/tags`)
+Gán nhãn tùy biến cho các giao dịch để phân tích chi tiết.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/tags` | `{ name, color?, icon? }` | Tạo một thẻ mới |
+| `POST` | `/tags/bulk` | `{ names: string[] }` | Tạo nhanh nhiều thẻ cùng lúc |
+| `GET` | `/tags` | Query phân trang, search | Danh sách thẻ |
+| `GET` | `/tags/autocomplete` | Query: `keyword` | Tìm kiếm nhanh tên thẻ cho dropdown gợi ý |
+| `GET` | `/tags/popular` | Query: `limit` | Lấy các thẻ được dùng nhiều nhất |
+| `GET` | `/tags/:id` | Param: UUID thẻ | Chi tiết thẻ |
+| `PATCH`| `/tags/:id` | `{ name?, color?, icon? }` | Đổi tên/màu thẻ |
+| `DELETE`| `/tags/:id` | Param: UUID thẻ | Xóa thẻ |
+
+---
+
+### 2.13. Tùy Chọn Người Dùng (`/api/v1/user-preference`)
+Cấu hình ngôn ngữ, tiền tệ mặc định, theme và cài đặt thông báo.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/user-preference` | Tạo mới tùy chọn người dùng | Khởi tạo bảng preferences |
+| `GET` | `/user-preference` | Không | Lấy cài đặt tùy chọn của tài khoản |
+| `PATCH`| `/user-preference` | `{ language?, currency?, theme?, weekStartsOn?, dateFormat?, timeFormat?, budgetNotification?, ... }` | Cập nhật cấu hình hiển thị & thông báo |
+| `DELETE`| `/user-preference/reset` | Không | Đặt lại cấu hình về mặc định hệ thống |
+
+---
+
+### 2.14. Thông Báo (`/api/v1/notifications`)
+Hệ thống thông báo cảnh báo ngân sách, đến hạn trả nợ, đạt mục tiêu tiết kiệm.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/notifications` | Tạo thông báo mới (nội bộ/admin) | Tạo notification |
+| `GET` | `/notifications` | Query phân trang, `isRead`, `type` | Danh sách thông báo |
+| `GET` | `/notifications/unread-count` | Không | Lấy số lượng thông báo chưa đọc |
+| `GET` | `/notifications/:id` | Param: UUID | Chi tiết thông tin thông báo |
+| `PATCH`| `/notifications/:id/read` | Param: UUID | Đánh dấu 1 thông báo là đã đọc |
+| `PATCH`| `/notifications/mark-all-read` | Không | Đánh dấu tất cả thông báo là đã đọc |
+| `PATCH`| `/notifications/mark-all-unread` | Không | Đánh dấu tất cả là chưa đọc |
+| `DELETE`| `/notifications/:id` | Param: UUID | Xóa một thông báo |
+| `DELETE`| `/notifications/clear-read` | Không | Dọn sạch tất cả thông báo đã đọc |
+
+---
+
+### 2.15. Kiểm Tra Sức Khỏe & Giám Sát (Health & Metrics)
+Các endpoint này **không có** tiền tố `/api` và không có URI version `/v1`.
+
+| Method | Endpoint | Định dạng trả về | Mô tả |
+|---|---|---|---|
+| `GET` | `/health` | JSON | Terminus Ping Check kết nối PostgreSQL qua Prisma |
+| `GET` | `/metrics` | `text/plain` | Prometheus metrics định dạng chuẩn |
+| `GET` | `/metrics/json` | JSON | Prometheus metrics dạng dữ liệu JSON |
+
+---
+
+### 2.16. Email Dịch Vụ (`/api/v1/email`)
+Endpoint hỗ trợ gửi email trực tiếp hoặc qua queue và kiểm tra mẫu email.
+
+| Method | Endpoint | Body / Query | Mô tả |
+|---|---|---|---|
+| `POST` | `/email/send` | `{ to, subject, template, context }` | Gửi email đơn lẻ |
+| `POST` | `/email/send-bulk` | `{ emails: [...] }` | Gửi email hàng loạt |
+| `GET` | `/email/test/welcome` | Không | Kiểm tra gửi mẫu email chào mừng |
+| `GET` | `/email/test/reset` | Không | Kiểm tra gửi mẫu email đặt lại mật khẩu |
+
+---
+
+## 3. Điểm Cần Lưu Ý / TODO Cho API
+1. **Thiếu CSRF Token ở Client khi gọi Mutation:** Các endpoint của `wallets`, `transactions`, `budgets`, `goals`, `debts`,... đều được bảo vệ bởi `CsrfGuard`. Phía client cần gọi `GET /api/v1/csrf/token` trước hoặc nhận cookie `XSRF-TOKEN` từ lúc đăng nhập và luôn đính kèm header `x-xsrf-token`.
+2. **Swagger và Production:** Swagger tại `/api/docs` bị ẩn khi chạy production (`NODE_ENV=production`).
+3. **Mâu thuẫn biến cấu hình Version:** Tài liệu cũ ghi `VERSION_API`, nhưng biến thực tế trong `main.ts` là `API_VERSION` (mặc định `'1'`) và `API_PREFIX` (mặc định `'api'`).

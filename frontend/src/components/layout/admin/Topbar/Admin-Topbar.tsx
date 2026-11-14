@@ -102,7 +102,7 @@ export function AdminTopbar({ onMenu }: AdminTopbarProps) {
   }, []);
 
   const handleLogout = (all?: boolean) => {
-    logout({ all });
+    logout(all !== undefined ? { all } : undefined);
     setMenuOpen(false);
   };
 
