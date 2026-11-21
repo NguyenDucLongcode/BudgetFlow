@@ -9,6 +9,7 @@ export { StatCard } from "./legacy-card/StatCard";
 export type { StatCardColor } from "./legacy-card/StatCard";
 
 // Shadcn UI components
+export * from "./currency-input";
 export * from "./button";
 export * from "./badge";
 export * from "./card";

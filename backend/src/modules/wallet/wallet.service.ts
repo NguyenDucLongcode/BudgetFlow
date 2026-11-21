@@ -25,10 +25,16 @@ export class WalletService {
       },
     });
 
-    if (walletCount >= WALLET.MAX_WALLETS) {
-      throw new BadRequestException(
-        `Bạn chỉ được tạo tối đa ${WALLET.MAX_WALLETS} ví`,
-      );
+    const maxWallets =
+      Number(process.env.MAX_WALLETS_PER_USER) || WALLET.MAX_WALLETS || 5;
+
+    if (walletCount >= maxWallets) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: `Bạn chỉ được tạo tối đa ${maxWallets} ví`,
+        error: 'MAX_WALLETS_REACHED',
+        maxWallets,
+      });
     }
     // kiểm tra tên ví đã tồn tại chưa
     const existed = await this.walletRepository.findFirst({

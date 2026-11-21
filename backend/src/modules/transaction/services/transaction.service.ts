@@ -145,6 +145,12 @@ export class TransactionService {
     userId: string,
     dto: CreateTransactionDto,
   ) {
+    const txDate = dto.date ? new Date(dto.date) : new Date();
+    const isFuture = txDate.getTime() > Date.now();
+    const finalStatus = isFuture
+      ? TransactionStatus.PENDING
+      : (dto.status || TransactionStatus.COMPLETED);
+
     // Tạo transaction
     const transaction = await tx.transaction.create({
       data: {
@@ -154,8 +160,8 @@ export class TransactionService {
         currency: dto.currency ?? Currency.VND,
         description: dto.description,
         note: dto.note,
-        date: dto.date ? new Date(dto.date) : new Date(),
-        status: dto.status || TransactionStatus.COMPLETED,
+        date: txDate,
+        status: finalStatus,
         walletId: dto.walletId,
         categoryId: dto.categoryId,
         metadata: dto.metadata,
@@ -190,6 +196,12 @@ export class TransactionService {
     userId: string,
     dto: CreateTransactionDto,
   ) {
+    const txDate = dto.date ? new Date(dto.date) : new Date();
+    const isFuture = txDate.getTime() > Date.now();
+    const finalStatus = isFuture
+      ? TransactionStatus.PENDING
+      : (dto.status || TransactionStatus.COMPLETED);
+
     // Tạo transaction
     const transaction = await tx.transaction.create({
       data: {
@@ -199,8 +211,8 @@ export class TransactionService {
         currency: dto.currency ?? Currency.VND,
         description: dto.description,
         note: dto.note,
-        date: dto.date ? new Date(dto.date) : new Date(),
-        status: dto.status || TransactionStatus.COMPLETED,
+        date: txDate,
+        status: finalStatus,
         walletId: dto.walletId,
         categoryId: dto.categoryId,
         metadata: dto.metadata,
@@ -297,6 +309,12 @@ export class TransactionService {
     userId: string,
     dto: CreateTransactionDto,
   ) {
+    const txDate = dto.date ? new Date(dto.date) : new Date();
+    const isFuture = txDate.getTime() > Date.now();
+    const finalStatus = isFuture
+      ? TransactionStatus.PENDING
+      : (dto.status || TransactionStatus.COMPLETED);
+
     // Tạo transaction
     const transaction = await tx.transaction.create({
       data: {
@@ -306,8 +324,8 @@ export class TransactionService {
         currency: dto.currency || 'VND',
         description: dto.description || 'Chuyển khoản',
         note: dto.note,
-        date: dto.date ? new Date(dto.date) : new Date(),
-        status: dto.status || TransactionStatus.COMPLETED,
+        date: txDate,
+        status: finalStatus,
         fromWalletId: dto.fromWalletId,
         toWalletId: dto.toWalletId,
         metadata: dto.metadata,
@@ -371,24 +389,35 @@ export class TransactionService {
     // Validate dữ liệu cập nhật
     await this.validateUpdate(userId, existing, dto);
 
+    // Tính toán ngày và trạng thái mới:
+    // Nếu ngày > hiện tại -> PENDING. Nếu ngày <= hiện tại -> COMPLETED (hoặc giữ theo dto.status nếu có)
+    const newDate = dto.date ? new Date(dto.date) : existing.date;
+    const isFuture = newDate.getTime() > Date.now();
+    const targetStatus = isFuture
+      ? TransactionStatus.PENDING
+      : (dto.status || (existing.status === TransactionStatus.PENDING ? TransactionStatus.COMPLETED : existing.status));
+
     const needAdjustBudget =
       existing.type === TransactionType.EXPENSE &&
       (dto.amount !== undefined ||
         dto.categoryId !== undefined ||
         dto.date !== undefined ||
-        dto.status !== undefined);
+        dto.status !== undefined ||
+        existing.status !== targetStatus);
 
     // Sử dụng transaction để đảm bảo tính toàn vẹn
     return await this.transactionRepository.prisma.$transaction(async (tx) => {
-      // Nếu thay đổi số tiền hoặc ví, cần điều chỉnh số dư
+      // Nếu thay đổi số tiền, ví, ngày, hoặc trạng thái -> cần bù trừ lại số dư
       const needAdjustBalance =
         dto.amount !== undefined ||
         dto.walletId !== undefined ||
         dto.fromWalletId !== undefined ||
         dto.toWalletId !== undefined ||
-        dto.status !== undefined;
+        dto.date !== undefined ||
+        dto.status !== undefined ||
+        existing.status !== targetStatus;
 
-      // Hoàn tác tác động của transaction cũ nếu trạng thái là COMPLETED và có thay đổi
+      // Hoàn tác tác động của transaction cũ nếu trạng thái cũ là COMPLETED và có thay đổi
       if (
         needAdjustBalance &&
         existing.status === TransactionStatus.COMPLETED
@@ -415,10 +444,10 @@ export class TransactionService {
         currency: dto.currency,
         description: dto.description,
         note: dto.note,
-        status: dto.status,
+        status: targetStatus,
         metadata: dto.metadata,
         reference: dto.reference,
-        ...(dto.date ? { date: new Date(dto.date) } : {}),
+        ...(dto.date ? { date: newDate } : {}),
         ...(dto.categoryId === undefined ? {} : { categoryId: dto.categoryId }),
         ...(dto.walletId === undefined ? {} : { walletId: dto.walletId }),
         ...(dto.fromWalletId === undefined
@@ -438,7 +467,7 @@ export class TransactionService {
         },
       });
 
-      // Áp dụng tác động mới nếu trạng thái là COMPLETED
+      // Áp dụng tác động mới nếu trạng thái mới là COMPLETED
       if (transaction.status === TransactionStatus.COMPLETED) {
         await this.applyBalance(tx, transaction);
       }
@@ -666,16 +695,28 @@ export class TransactionService {
         ],
       }),
       ...(categoryId && { categoryId }),
-      ...(fromDate && {
-        date: {
-          gte: new Date(fromDate),
-        },
-      }),
-      ...(toDate && {
-        date: {
-          lte: new Date(toDate + 'T23:59:59.999Z'),
-        },
-      }),
+      ...(fromDate || toDate
+        ? {
+            date: {
+              ...(fromDate
+                ? {
+                    gte: new Date(
+                      fromDate.includes('T')
+                        ? fromDate
+                        : fromDate + 'T00:00:00.000Z',
+                    ),
+                  }
+                : {}),
+              ...(toDate
+                ? {
+                    lte: new Date(
+                      toDate.includes('T') ? toDate : toDate + 'T23:59:59.999Z',
+                    ),
+                  }
+                : {}),
+            },
+          }
+        : {}),
     };
 
     const orderBy = sortBy ? { [sortBy]: order } : { date: 'desc' as const };
@@ -822,17 +863,31 @@ export class TransactionService {
     const where: Prisma.TransactionWhereInput = {
       userId,
       deletedAt: null,
-      status: TransactionStatus.COMPLETED,
-      ...(fromDate && {
-        date: {
-          gte: new Date(fromDate),
-        },
-      }),
-      ...(toDate && {
-        date: {
-          lte: new Date(toDate + 'T23:59:59.999Z'),
-        },
-      }),
+      status: { in: [TransactionStatus.COMPLETED, TransactionStatus.PENDING] },
+      ...(fromDate || toDate
+        ? {
+            date: {
+              ...(fromDate
+                ? {
+                    gte: new Date(
+                      fromDate.includes('T')
+                        ? fromDate
+                        : fromDate + 'T00:00:00.000Z',
+                    ),
+                  }
+                : {}),
+              ...(toDate
+                ? {
+                    lte: new Date(
+                      toDate.includes('T')
+                        ? toDate
+                        : toDate + 'T23:59:59.999Z',
+                    ),
+                  }
+                : {}),
+            },
+          }
+        : {}),
     };
 
     // Thống kê theo loại
@@ -991,6 +1046,15 @@ export class TransactionService {
           incomeCount: incomeStats._count || 0,
           expenseCount: expenseStats._count || 0,
         },
+        income: {
+          total: totalIncome,
+          count: incomeStats._count || 0,
+        },
+        expense: {
+          total: totalExpense,
+          count: expenseStats._count || 0,
+        },
+        net: totalIncome - totalExpense,
         topCategories: enrichedCategoryStats,
         walletStats: enrichedWalletStats,
       },

@@ -1,4 +1,5 @@
 import { AuthTokenResponse } from "./type";
+import type { AxiosRequestConfig } from "axios";
 import { serverApiClient } from "@/src/lib/bff/server-api-client";
 import { parseExpiresIn } from "@/src/server/modules/auth/hepler";
 import { accessTokenStore } from "@/src/server/modules/auth/session";
@@ -35,9 +36,11 @@ class AuthService {
     };
   }
 
-  async refresh() {
+  async refresh(config?: AxiosRequestConfig) {
     const response = await serverApiClient.postWithoutRetry<AuthTokenResponse>(
       "/auth/refresh-token",
+      undefined,
+      config,
     );
 
     const { accessToken, deviceId, user, expiresIn } = response.data.data;
@@ -64,7 +67,15 @@ class AuthService {
   }
 
   async logout(deviceId: string) {
-    const response = await serverApiClient.post("/auth/logout");
+    const response = await serverApiClient.post(
+      "/auth/logout",
+      undefined,
+      {
+        headers: {
+          "x-device-id": deviceId,
+        },
+      },
+    );
 
     // Xoá access token trong Redis BFF
     await accessTokenStore.remove(deviceId);

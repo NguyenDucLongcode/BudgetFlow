@@ -18,17 +18,10 @@ class AdminService {
     return res.data;
   }
 
-  async toggleActive(id: string, csrfToken?: string, status?: string) {
+  async toggleActive(id: string, status?: string) {
     const res = await serverApiClient.patch<any>(
       `/admin/users/${id}/toggle-active`,
       status ? { status } : {},
-      csrfToken
-        ? {
-            headers: {
-              "x-xsrf-token": csrfToken,
-            },
-          }
-        : undefined,
     );
     return res.data;
   }
@@ -38,34 +31,16 @@ class AdminService {
     return res.data;
   }
 
-  async revokeUserSession(
-    userId: string,
-    sessionId: string,
-    csrfToken?: string,
-  ) {
+  async revokeUserSession(userId: string, sessionId: string) {
     const res = await serverApiClient.delete<any>(
       `/admin/users/${userId}/sessions/${sessionId}`,
-      csrfToken
-        ? {
-            headers: {
-              "x-xsrf-token": csrfToken,
-            },
-          }
-        : undefined,
     );
     return res.data;
   }
 
-  async revokeAllUserSessions(userId: string, csrfToken?: string) {
+  async revokeAllUserSessions(userId: string) {
     const res = await serverApiClient.delete<any>(
       `/admin/users/${userId}/sessions`,
-      csrfToken
-        ? {
-            headers: {
-              "x-xsrf-token": csrfToken,
-            },
-          }
-        : undefined,
     );
     return res.data;
   }

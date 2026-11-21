@@ -1,10 +1,30 @@
 import { authService } from "@/src/server/modules/auth/auth.service";
 import { NextResponse } from "next/server";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
+import type { NextRequest } from "next/server";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const response = await authService.refresh();
+    const deviceId =
+      request.headers.get("x-device-id") ??
+      request.cookies.get("device_id")?.value;
+    const refreshToken = request.cookies.get("refresh_token")?.value;
+
+    if (!deviceId || !refreshToken) {
+      const missingTokenResponse = NextResponse.json(
+        { statusCode: 401, message: "Missing refresh session" },
+        { status: 401 },
+      );
+      clearAuthCookies(missingTokenResponse);
+      return missingTokenResponse;
+    }
+
+    const response = await authService.refresh({
+      headers: {
+        "x-device-id": deviceId,
+        Cookie: `refresh_token=${refreshToken}`,
+      },
+    });
 
     const nextResponse = NextResponse.json({
       success: true,
@@ -20,16 +40,33 @@ export async function POST() {
     }
 
     // Set cookie device_id cho BFF và server components bằng headers.append (để KHÔNG ghi đè Set-Cookie từ BE)
-    const deviceId = response.data.data?.deviceId;
-    if (deviceId) {
+    const responseDeviceId = response.data.data?.deviceId;
+    if (responseDeviceId) {
       nextResponse.headers.append(
         "Set-Cookie",
-        `device_id=${deviceId}; Path=/; SameSite=Lax`,
+        `device_id=${responseDeviceId}; Path=/; SameSite=Lax`,
       );
     }
 
     return nextResponse;
   } catch (error) {
-    return handleApiError(error);
+    const errorResponse = handleApiError(error);
+    clearAuthCookies(errorResponse);
+    return errorResponse;
   }
+}
+
+function clearAuthCookies(response: NextResponse) {
+  response.cookies.set("refresh_token", "", {
+    path: "/",
+    maxAge: 0,
+  });
+  response.cookies.set("device_id", "", {
+    path: "/",
+    maxAge: 0,
+  });
+  response.cookies.set("XSRF-TOKEN", "", {
+    path: "/",
+    maxAge: 0,
+  });
 }

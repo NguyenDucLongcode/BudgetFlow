@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "react-toastify/dist/ReactToastify.css";
 import Providers from "../providers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { ToastContainer } from "react-toastify";
 
 export const metadata: Metadata = {
   title: "BudgetFlow - Personal Finance Management",
@@ -21,7 +23,21 @@ export default async function RootLayout({
     <html lang={locale} className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <ToastContainer
+              position="top-right"
+              autoClose={3500}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="dark"
+            />
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -1,0 +1,476 @@
+"use client";
+
+import { useMemo } from "react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { useTranslations } from "next-intl";
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  ArrowDownRight,
+  Target,
+  Plus,
+  ArrowRight,
+  Utensils,
+  Home,
+  ShoppingBag,
+  Car,
+  Film,
+  Calendar,
+  Sparkles,
+  Tag,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+} from "recharts";
+import { useAuth } from "@/src/hooks/useAuth";
+import { useWallets } from "@/src/client/wallet/wallet.hooks";
+import {
+  useTransactions,
+  useTransactionStatistics,
+} from "@/src/client/transaction/transaction.hooks";
+import { Skeleton } from "@/src/components/ui/skeleton";
+import { TransactionType } from "@/src/types/enums";
+
+export default function UserDashboardPage() {
+  const t = useTranslations("userDashboard");
+  const { user } = useAuth();
+
+  // Greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t("goodMorning");
+    if (hour < 18) return t("goodAfternoon");
+    return t("goodEvening");
+  };
+
+  // Tính toán khoảng ngày tháng hiện tại cho thống kê
+  const { fromDate, toDate } = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    const fYear = firstDay.getFullYear();
+    const fMonth = String(firstDay.getMonth() + 1).padStart(2, "0");
+    const fDay = String(firstDay.getDate()).padStart(2, "0");
+
+    const lYear = lastDay.getFullYear();
+    const lMonth = String(lastDay.getMonth() + 1).padStart(2, "0");
+    const lDay = String(lastDay.getDate()).padStart(2, "0");
+
+    return {
+      fromDate: `${fYear}-${fMonth}-${fDay}`,
+      toDate: `${lYear}-${lMonth}-${lDay}`,
+    };
+  }, []);
+
+  // 1. Lấy danh sách ví thật để tính Tổng số dư thực tế
+  const { data: wallets = [], isLoading: isLoadingWallets } = useWallets({
+    isArchived: false,
+  });
+
+  const totalBalance = useMemo(() => {
+    return wallets.reduce((acc, w) => acc + Number(w.balance || 0), 0);
+  }, [wallets]);
+
+  // 2. Lấy Thống kê Thu / Chi thật trong tháng hiện tại
+  const { data: statsData, isLoading: isLoadingStats } = useTransactionStatistics({
+    fromDate,
+    toDate,
+  });
+
+  // 3. Lấy 5 Giao dịch gần đây nhất từ API thật
+  const {
+    data: recentData,
+    isLoading: isLoadingRecent,
+  } = useTransactions({
+    page: 1,
+    limit: 5,
+    sortBy: "date",
+    order: "desc",
+  });
+
+  const recentTransactions = recentData?.transactions || [];
+
+  // 4 Stat Cards với dữ liệu thực tế
+  const statCards = [
+    {
+      title: t("totalBalance"),
+      value: isLoadingWallets
+        ? null
+        : `${totalBalance.toLocaleString("en-US")} ₫`,
+      change: `${wallets.length} ví hoạt động`,
+      isPositive: true,
+      changeText: "Tài sản khả dụng",
+      icon: Wallet,
+      color: "emerald",
+      bgGradient: "from-emerald-500/10 to-teal-500/5",
+      iconBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    },
+    {
+      title: t("monthlyIncome"),
+      value: isLoadingStats
+        ? null
+        : `+${(statsData?.income?.total || 0).toLocaleString("en-US")} ₫`,
+      change: `${statsData?.income?.count || 0} khoản`,
+      isPositive: true,
+      changeText: "Tháng này",
+      icon: TrendingUp,
+      color: "indigo",
+      bgGradient: "from-indigo-500/10 to-blue-500/5",
+      iconBg: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    },
+    {
+      title: t("monthlyExpense"),
+      value: isLoadingStats
+        ? null
+        : `-${(statsData?.expense?.total || 0).toLocaleString("en-US")} ₫`,
+      change: `${statsData?.expense?.count || 0} khoản`,
+      isPositive: false,
+      changeText: "Tháng này",
+      icon: ArrowDownRight,
+      color: "rose",
+      bgGradient: "from-rose-500/10 to-pink-500/5",
+      iconBg: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    },
+    {
+      title: t("savingsOrDebt"),
+      value: isLoadingStats
+        ? null
+        : (() => {
+            const net =
+              (statsData?.income?.total || 0) - (statsData?.expense?.total || 0);
+            return `${net >= 0 ? "+" : ""}${net.toLocaleString("en-US")} ₫`;
+          })(),
+      change: "Dòng tiền ròng",
+      isPositive: (statsData?.income?.total || 0) >= (statsData?.expense?.total || 0),
+      changeText: "Thu trừ Chi tháng này",
+      icon: Target,
+      color: "amber",
+      bgGradient: "from-amber-500/10 to-orange-500/5",
+      iconBg: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    },
+  ];
+
+  // Spending Breakdown mock data for visual chart
+  const spendingData = [
+    { name: t("categoryFood"), value: 6387500, percent: 35, color: "#6366F1", icon: Utensils },
+    { name: t("categoryHousing"), value: 4562500, percent: 25, color: "#EC4899", icon: Home },
+    { name: t("categoryShopping"), value: 2737500, percent: 15, color: "#F59E0B", icon: ShoppingBag },
+    { name: t("categoryTransport"), value: 1825000, percent: 10, color: "#10B981", icon: Car },
+    { name: t("categoryEntertainment"), value: 2737500, percent: 15, color: "#8B5CF6", icon: Film },
+  ];
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur-md">
+          <p className="text-xs font-semibold text-white">{data.name}</p>
+          <p className="text-xs text-indigo-400 font-mono mt-0.5">
+            {data.value.toLocaleString("en-US")} ₫ ({data.percent}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-300">
+      {/* 1. Welcome Greeting Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-indigo-950/40 border border-slate-800/80 shadow-xl backdrop-blur-xl">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium mb-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>BudgetFlow Overview</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            {getGreeting()}, {user?.name || t("defaultUser")}! 👋
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+            <span>{t("welcomeDesc")}</span>
+          </p>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/transactions"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 transition-all transform hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Ghi chép giao dịch</span>
+          </Link>
+          <Link
+            href="/wallets"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 hover:text-white border border-slate-700/60 transition-all"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>Ví của tôi</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 2. Top Summary Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((card, idx) => {
+          const Icon = card.icon;
+
+          return (
+            <div
+              key={idx}
+              className={`p-5 rounded-3xl border border-slate-800 bg-gradient-to-br ${card.bgGradient} bg-[#111827]/70 backdrop-blur-md shadow-lg flex flex-col justify-between space-y-4 hover:border-slate-700/80 transition-all hover:-translate-y-0.5`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">
+                  {card.title}
+                </span>
+                <div className={`p-2.5 rounded-2xl border ${card.iconBg}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div>
+                {card.value === null ? (
+                  <Skeleton className="h-7 w-32 bg-slate-800 my-1" />
+                ) : (
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {card.value}
+                  </h3>
+                )}
+                <div className="flex items-center gap-1.5 mt-1 text-xs">
+                  <span
+                    className={`font-semibold ${
+                      card.isPositive ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {card.change}
+                  </span>
+                  <span className="text-slate-500">•</span>
+                  <span className="text-slate-400 text-[11px] truncate">
+                    {card.changeText}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 3. Main Analytics & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Spending Breakdown Chart (7 Cols) */}
+        <div className="lg:col-span-7 p-6 sm:p-7 rounded-3xl border border-slate-800 bg-[#111827]/80 shadow-lg backdrop-blur-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {t("spendingBreakdown")}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {t("spendingSubtitle")}
+                </p>
+              </div>
+
+              <span className="text-xs font-medium text-slate-400 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
+                {t("thisMonth")}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
+              {/* Donut Chart */}
+              <div className="sm:col-span-6 h-56 relative flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Pie
+                      data={spendingData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      paddingAngle={4}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {spendingData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Label */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wider">Tổng chi</span>
+                  <span className="text-base font-extrabold text-white">
+                    {((statsData?.expense?.total || 0) / 1000000).toFixed(1)}M
+                  </span>
+                </div>
+              </div>
+
+              {/* Category Breakdown Details */}
+              <div className="sm:col-span-6 space-y-2.5">
+                {spendingData.map((item, idx) => {
+                  const CategoryIcon = item.icon;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/50 border border-slate-800/80 hover:border-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <CategoryIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="text-xs font-medium text-slate-300 truncate">
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-semibold text-white">
+                          {item.percent}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+            <span>Dòng tiền ròng tháng này: <strong className="text-indigo-400 font-semibold">{((statsData?.income?.total || 0) - (statsData?.expense?.total || 0)).toLocaleString("en-US")} ₫</strong></span>
+            <span className="text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full font-medium border border-emerald-500/20">
+              {statsData?.expense?.count || 0} giao dịch chi
+            </span>
+          </div>
+        </div>
+
+        {/* Right Column: 5 Recent Transactions (5 Cols) */}
+        <div className="lg:col-span-5 p-6 sm:p-7 rounded-3xl border border-slate-800 bg-[#111827]/80 shadow-lg backdrop-blur-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  5 Giao dịch gần đây
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Dữ liệu đồng bộ trực tiếp từ hệ thống
+                </p>
+              </div>
+
+              <Link
+                href="/transactions"
+                className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+              >
+                <span>Xem tất cả</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {/* List */}
+            <div className="space-y-3">
+              {isLoadingRecent ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/40 border border-slate-800/60 animate-pulse"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-9 h-9 rounded-xl bg-slate-800" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-3.5 w-28 bg-slate-800" />
+                        <Skeleton className="h-2.5 w-20 bg-slate-800" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-16 bg-slate-800" />
+                  </div>
+                ))
+              ) : recentTransactions.length > 0 ? (
+                recentTransactions.map((tx) => {
+                  const isIncome = tx.type === TransactionType.INCOME;
+                  const txDate = new Date(tx.date);
+
+                  return (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700/80 transition-all hover:-translate-y-0.5"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`p-2 rounded-xl border ${
+                            isIncome
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                          }`}
+                        >
+                          {isIncome ? (
+                            <TrendingUp className="w-4 h-4" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-white truncate">
+                            {tx.description || tx.category?.name || "Giao dịch"}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {tx.wallet?.name || "Ví"} • {format(txDate, "dd/MM")}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0 ml-2">
+                        <p
+                          className={`text-xs font-bold font-mono ${
+                            isIncome ? "text-emerald-400" : "text-rose-400"
+                          }`}
+                        >
+                          {isIncome ? "+" : "-"}
+                          {Number(tx.amount).toLocaleString("en-US")} ₫
+                        </p>
+                        <span className="text-[10px] text-slate-500">
+                          {tx.category?.name || (isIncome ? "Thu nhập" : "Chi tiêu")}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-slate-500">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800/40 text-slate-500 flex items-center justify-center mx-auto mb-2">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Chưa có giao dịch gần đây nào
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-slate-800/80 text-center">
+            <Link
+              href="/transactions"
+              className="inline-flex items-center justify-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+            >
+              <span>Xem lịch sử sổ giao dịch</span>
+              <ArrowRight className="w-3.5 h-3.5 text-indigo-400" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

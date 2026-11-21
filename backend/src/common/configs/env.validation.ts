@@ -7,6 +7,7 @@ export const envValidationSchema = Joi.object({
     .default('development'),
 
   PORT: Joi.number().default(8080),
+  MAX_WALLETS_PER_USER: Joi.number().default(5),
 
   // Database
   DATABASE_URL: Joi.string().required(),

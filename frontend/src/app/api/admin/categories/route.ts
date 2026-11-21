@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { serverApiClient } from "@/src/lib/bff/server-api-client";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
 
-import { getCsrfToken } from "@/src/lib/bff/utils/csrf";
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -51,21 +49,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const csrfToken = await getCsrfToken(request);
-    const res = await serverApiClient.post<any>(
-      "/categories",
-      {
-        ...body,
-        isSystem: true,
-      },
-      csrfToken
-        ? {
-            headers: {
-              "x-xsrf-token": csrfToken,
-            },
-          }
-        : undefined,
-    );
+    const res = await serverApiClient.post<any>("/categories", {
+      ...body,
+      isSystem: true,
+    });
     return NextResponse.json(res.data);
   } catch (error) {
     return handleApiError(error);

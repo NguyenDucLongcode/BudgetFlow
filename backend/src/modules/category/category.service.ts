@@ -190,7 +190,7 @@ export class CategoryService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.CategoryWhereInput = {
-      userId,
+      OR: [{ userId }, { isSystem: true }],
       deletedAt: null,
       ...(search && {
         name: {
@@ -214,27 +214,6 @@ export class CategoryService {
         skip,
         take: limit,
         orderBy,
-        include: {
-          parent: {
-            select: {
-              id: true,
-              name: true,
-              icon: true,
-              color: true,
-            },
-          },
-          children: {
-            where: {
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              name: true,
-              icon: true,
-              color: true,
-            },
-          },
-        },
       }),
       this.categoryRepository.count({
         where,

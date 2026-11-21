@@ -1,0 +1,102 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
+import { useTranslations } from "next-intl";
+import { transactionService } from "./transaction.service";
+import { transactionKeys } from "./transactionKeys";
+import type {
+  CreateTransactionInput,
+  UpdateTransactionInput,
+  TransactionFilterParams,
+} from "@/src/types/api";
+
+export function useTransactions(params?: TransactionFilterParams) {
+  return useQuery({
+    queryKey: transactionKeys.list(params),
+    queryFn: () => transactionService.getTransactions(params),
+    staleTime: 60 * 1000, // 1 phút
+  });
+}
+
+export function useTransactionDetail(id: string) {
+  return useQuery({
+    queryKey: transactionKeys.detail(id),
+    queryFn: () => transactionService.getTransaction(id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useTransactionStatistics(params?: {
+  fromDate?: string;
+  toDate?: string;
+}) {
+  return useQuery({
+    queryKey: transactionKeys.statistics(params),
+    queryFn: () => transactionService.getStatistics(params),
+    staleTime: 60 * 1000, // 1 phút
+  });
+}
+
+export function useCreateTransaction() {
+  const queryClient = useQueryClient();
+  const t = useTranslations("transactions");
+
+  return useMutation({
+    mutationFn: (data: CreateTransactionInput) =>
+      transactionService.createTransaction(data),
+    onSuccess: async () => {
+      toast.success(t("toastCreated"));
+      await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
+      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await queryClient.refetchQueries({ queryKey: transactionKeys.all });
+    },
+    onError: (error: any) => {
+      const responseData = error?.response?.data || error;
+      const message = responseData?.message || error?.message || t("errorSave");
+      toast.error(message);
+    },
+  });
+}
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+  const t = useTranslations("transactions");
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTransactionInput }) =>
+      transactionService.updateTransaction(id, data),
+    onSuccess: async (_, variables) => {
+      toast.success(t("toastUpdated"));
+      await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
+      await queryClient.invalidateQueries({
+        queryKey: transactionKeys.detail(variables.id),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await queryClient.refetchQueries({ queryKey: transactionKeys.all });
+    },
+    onError: (error: any) => {
+      const responseData = error?.response?.data || error;
+      const message = responseData?.message || error?.message || t("errorSave");
+      toast.error(message);
+    },
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+  const t = useTranslations("transactions");
+
+  return useMutation({
+    mutationFn: (id: string) => transactionService.deleteTransaction(id),
+    onSuccess: async () => {
+      toast.success(t("toastDeleted"));
+      await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
+      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await queryClient.refetchQueries({ queryKey: transactionKeys.all });
+    },
+    onError: (error: any) => {
+      const responseData = error?.response?.data || error;
+      const message = responseData?.message || error?.message || t("errorSave");
+      toast.error(message);
+    },
+  });
+}

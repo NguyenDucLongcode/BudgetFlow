@@ -137,8 +137,7 @@ export function AdminLayoutClient({
             <Button
               variant="destructive"
               onClick={() => {
-                clearAuthState(queryClient);
-                router.replace("/login");
+                clearAuthState(queryClient, "/login?error=auth_failed");
               }}
               className="flex-1 bg-rose-600 hover:bg-rose-700 text-xs text-white"
             >

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminService } from "@/src/server/modules/admin/admin.service";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
-import { getCsrfToken } from "@/src/lib/bff/utils/csrf";
 
 export async function DELETE(
   request: NextRequest,
@@ -19,12 +18,7 @@ export async function DELETE(
       );
     }
 
-    const csrfToken = await getCsrfToken(request);
-    const res = await adminService.revokeUserSession(
-      userId,
-      sessionId,
-      csrfToken,
-    );
+    const res = await adminService.revokeUserSession(userId, sessionId);
     return NextResponse.json(res);
   } catch (error) {
     return handleApiError(error);

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminService } from "@/src/server/modules/admin/admin.service";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
-import { getCsrfToken } from "@/src/lib/bff/utils/csrf";
 
 export async function PATCH(
   request: NextRequest,
@@ -43,12 +42,7 @@ export async function PATCH(
       );
     }
 
-    const csrfToken = await getCsrfToken(request);
-    const response = await adminService.toggleActive(
-      id,
-      csrfToken,
-      targetStatus,
-    );
+    const response = await adminService.toggleActive(id, targetStatus);
     return NextResponse.json(response);
   } catch (error) {
     return handleApiError(error);

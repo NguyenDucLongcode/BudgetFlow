@@ -14,7 +14,9 @@ import { queryClient } from "@/src/lib/react-query/query-client";
 class AuthService {
   async login(data: LoginDto) {
     const res = await browserApiClient.post<AuthResponse>("/auth/login", data);
-
+    if (res.data?.data?.deviceId && typeof window !== "undefined") {
+      localStorage.setItem("x-device-id", res.data.data.deviceId);
+    }
     return res.data;
   }
 
@@ -47,16 +49,22 @@ export const authService = new AuthService();
 
 export function clearAuthState(
   activeQueryClient: QueryClient = queryClient,
-  redirectTo = "/login",
+  redirectTo = "/login?error=session_expired",
 ) {
   if (typeof window === "undefined") {
     return;
   }
 
-  localStorage.removeItem("x-device-id");
-  activeQueryClient.removeQueries({
-    queryKey: authKeys.profile(),
-  });
+  try {
+    localStorage.removeItem("x-device-id");
+    activeQueryClient.removeQueries({ queryKey: authKeys.profile() });
+    activeQueryClient.clear();
+    document.cookie = "device_id=; path=/; max-age=0";
+    document.cookie = "refresh_token=; path=/; max-age=0";
+    document.cookie = "XSRF-TOKEN=; path=/; max-age=0";
+  } catch (err) {
+    console.error("[clearAuthState] Error clearing client cookies:", err);
+  }
 
   window.location.replace(redirectTo);
 }

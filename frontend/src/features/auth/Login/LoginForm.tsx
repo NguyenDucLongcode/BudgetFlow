@@ -17,12 +17,10 @@ import {
   SubmitButton,
   TextField,
 } from "@/src/components/ui";
-import { useRouter } from "next/navigation";
 import { useLogin } from "@/src/client/auth";
 
 export default function LoginForm() {
   const t = useTranslations("auth");
-  const router = useRouter();
   const { mutateAsync: login, isPending } = useLogin();
 
   const {
@@ -43,11 +41,12 @@ export default function LoginForm() {
     try {
       const response = await login(data);
 
-      if (response.data.user.role === "ADMIN") {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
+      const targetPath =
+        response.data.user.role === "ADMIN"
+          ? "/admin/dashboard"
+          : "/dashboard";
+
+      window.location.href = targetPath;
     } catch (error) {
       console.error("Login error:", error);
     }

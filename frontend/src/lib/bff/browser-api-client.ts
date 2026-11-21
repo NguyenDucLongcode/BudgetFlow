@@ -8,9 +8,20 @@ class BrowserApiClient {
     params?: Record<string, unknown>,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
+    // Tự động tháo gỡ nếu caller truyền dạng { params: { ... } }
+    const actualParams =
+      params &&
+      typeof params === "object" &&
+      "params" in params &&
+      Object.keys(params).length === 1 &&
+      params.params &&
+      typeof params.params === "object"
+        ? (params.params as Record<string, unknown>)
+        : params;
+
     return axiosClient.get<ApiResponse<T>>(url, {
       ...config,
-      ...(params && { params }),
+      ...(actualParams && { params: actualParams }),
     });
   }
 
