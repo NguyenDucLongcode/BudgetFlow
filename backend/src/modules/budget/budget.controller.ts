@@ -51,8 +51,19 @@ export class BudgetController {
 
   @Get('summary')
   @CheckPolicies((ability) => ability.can(Action.Read, 'Budget'))
-  summary(@CurrentUser('sub') userId: string) {
-    return this.budgetService.summary(userId);
+  summary(
+    @CurrentUser('sub') userId: string,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('month') month?: number,
+    @Query('year') year?: number,
+  ) {
+    return this.budgetService.summary(userId, {
+      fromDate,
+      toDate,
+      month,
+      year,
+    });
   }
 
   @Get(':id')

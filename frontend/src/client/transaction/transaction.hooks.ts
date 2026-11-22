@@ -46,8 +46,12 @@ export function useCreateTransaction() {
     onSuccess: async () => {
       toast.success(t("toastCreated"));
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
       await queryClient.refetchQueries({ queryKey: transactionKeys.all });
+      await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
+      await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
     onError: (error: any) => {
       const responseData = error?.response?.data || error;
@@ -70,8 +74,12 @@ export function useUpdateTransaction() {
       await queryClient.invalidateQueries({
         queryKey: transactionKeys.detail(variables.id),
       });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
       await queryClient.refetchQueries({ queryKey: transactionKeys.all });
+      await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
+      await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
     onError: (error: any) => {
       const responseData = error?.response?.data || error;
@@ -90,8 +98,12 @@ export function useDeleteTransaction() {
     onSuccess: async () => {
       toast.success(t("toastDeleted"));
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
+      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
       await queryClient.refetchQueries({ queryKey: transactionKeys.all });
+      await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
+      await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
     onError: (error: any) => {
       const responseData = error?.response?.data || error;

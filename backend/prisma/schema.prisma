@@ -485,7 +485,6 @@ model Budget {
   @@index([isActive])  
   @@index([period])    
   @@index([deletedAt]) 
-  @@unique([userId, categoryId, startDate, endDate])
 }
 
 // ============================================

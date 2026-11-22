@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -98,24 +98,8 @@ export function TransactionDialog({
   const selectedCurrency = selectedWallet?.currency ?? "VND";
 
   // Lấy danh mục phù hợp theo loại giao dịch đang chọn
-  const { data: rawCategories = [], isLoading: isLoadingCategories } =
+  const { data: categories = [], isLoading: isLoadingCategories } =
     useCategories(selectedType);
-
-  const categories = useMemo(
-    () => {
-      const uniqueCategories = Array.from(
-        new Map(rawCategories.map((c) => [c.id, c])).values(),
-      );
-      const seenNames = new Set<string>();
-      return uniqueCategories.filter((category) => {
-        const key = `${category.type}:${category.name.trim().toLocaleLowerCase()}`;
-        if (seenNames.has(key)) return false;
-        seenNames.add(key);
-        return true;
-      });
-    },
-    [rawCategories],
-  );
 
   // Kiểm tra ngày tương lai
   const isFutureDate = () => {
@@ -324,22 +308,29 @@ export function TransactionDialog({
                   <span className="text-rose-400">*</span>
                 </span>
               </label>
-              <select
-                {...register("categoryId")}
-                disabled={isLoadingCategories}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900/90 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all cursor-pointer"
-              >
-                <option value="" disabled>
-                  {isLoadingCategories
-                    ? "Đang tải danh mục..."
-                    : t("selectCategoryPlaceholder")}
-                </option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="bg-slate-900 text-slate-100">
-                    {cat.icon ? `${cat.icon} ` : ""}{cat.name}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field }) => (
+                  <select
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    disabled={isLoadingCategories}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900/90 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      {isLoadingCategories
+                        ? "Đang tải danh mục..."
+                        : t("selectCategoryPlaceholder")}
+                    </option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-slate-900 text-slate-100">
+                        {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
               {errors.categoryId && (
                 <p className="mt-1 text-xs text-rose-400">
                   {errors.categoryId.message}

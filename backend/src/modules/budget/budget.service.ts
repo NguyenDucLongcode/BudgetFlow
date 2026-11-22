@@ -3,10 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, BudgetType, CategoryType } from 'generated/prisma/client';
+import {
+  Prisma,
+  BudgetType,
+  CategoryType,
+  TransactionType,
+  TransactionStatus,
+} from 'generated/prisma/client';
 import {
   BudgetRepository,
   CategoryRepository,
+  TransactionRepository,
 } from 'src/infrastructure/prisma/repositories';
 import { CreateBudgetDto } from './dto/CreateBudgetDto';
 import { UpdateBudgetDto } from './dto/UpdateBudgetDto';
@@ -17,13 +24,14 @@ export class BudgetService {
   constructor(
     private readonly budgetRepository: BudgetRepository,
     private readonly categoryRepository: CategoryRepository,
+    private readonly transactionRepository: TransactionRepository,
   ) {}
 
   async create(userId: string, dto: CreateBudgetDto) {
     const category = await this.categoryRepository.findFirst({
       where: {
         id: dto.categoryId,
-        userId,
+        OR: [{ userId }, { isSystem: true }],
         deletedAt: null,
       },
     });
@@ -46,14 +54,53 @@ export class BudgetService {
       throw new BadRequestException('Ngày kết thúc phải sau ngày bắt đầu');
     }
 
+    const startDate = new Date(dto.startDate);
+    const endDate = new Date(dto.endDate);
+    const duplicateBudget = await this.budgetRepository.findFirst({
+      where: {
+        userId,
+        categoryId: dto.categoryId,
+        startDate,
+        endDate,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (duplicateBudget) {
+      throw new BadRequestException(
+        'Đã tồn tại ngân sách cho danh mục này trong khoảng thời gian đã chọn.',
+      );
+    }
+
+    // Query bảng Transaction để tính tổng amount các chi tiêu trong khoảng thời gian
+    const expenseAgg = await this.transactionRepository.aggregate({
+      where: {
+        userId,
+        type: TransactionType.EXPENSE,
+        categoryId: dto.categoryId,
+        status: TransactionStatus.COMPLETED,
+        deletedAt: null,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const initialSpent = Number(expenseAgg._sum.amount || 0);
+
     const budget = await this.budgetRepository.create({
       data: {
         userId,
         categoryId: dto.categoryId,
         amount: dto.amount,
-        spent: 0,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
+        spent: initialSpent,
+        startDate,
+        endDate,
         period: dto.period,
         type: dto.type,
         alertThreshold: dto.alertThreshold,
@@ -92,7 +139,7 @@ export class BudgetService {
       const category = await this.categoryRepository.findFirst({
         where: {
           id: nextCategoryId,
-          userId,
+          OR: [{ userId }, { isSystem: true }],
           deletedAt: null,
         },
       });
@@ -122,6 +169,32 @@ export class BudgetService {
       throw new BadRequestException('Ngày kết thúc phải sau ngày bắt đầu');
     }
 
+    // Nếu người dùng thay đổi Danh mục hoặc Khoảng thời gian, tính toán lại spent từ đầu
+    let nextSpent: number | undefined = undefined;
+    if (
+      dto.categoryId !== undefined ||
+      dto.startDate !== undefined ||
+      dto.endDate !== undefined
+    ) {
+      const expenseAgg = await this.transactionRepository.aggregate({
+        where: {
+          userId,
+          type: TransactionType.EXPENSE,
+          categoryId: nextCategoryId,
+          status: TransactionStatus.COMPLETED,
+          deletedAt: null,
+          date: {
+            gte: nextStartDate,
+            lte: nextEndDate,
+          },
+        },
+        _sum: {
+          amount: true,
+        },
+      });
+      nextSpent = Number(expenseAgg._sum.amount || 0);
+    }
+
     const updatedBudget = await this.budgetRepository.update({
       where: {
         id: budgetId,
@@ -130,6 +203,7 @@ export class BudgetService {
         ...dto,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        ...(nextSpent !== undefined ? { spent: nextSpent } : {}),
       },
       include: {
         category: true,
@@ -151,14 +225,42 @@ export class BudgetService {
       period,
       categoryId,
       isActive,
+      fromDate,
+      toDate,
+      month,
+      year,
       sortBy,
       order,
     } = query;
     const skip = (page - 1) * limit;
 
+    let dateRangeFilter: Prisma.BudgetWhereInput = {};
+    if (fromDate && toDate) {
+      dateRangeFilter = {
+        startDate: {
+          lte: new Date(
+            toDate.includes('T') ? toDate : `${toDate}T23:59:59.999Z`,
+          ),
+        },
+        endDate: {
+          gte: new Date(
+            fromDate.includes('T') ? fromDate : `${fromDate}T00:00:00.000Z`,
+          ),
+        },
+      };
+    } else if (month && year) {
+      const start = new Date(Date.UTC(Number(year), Number(month) - 1, 1, 0, 0, 0));
+      const end = new Date(Date.UTC(Number(year), Number(month), 0, 23, 59, 59, 999));
+      dateRangeFilter = {
+        startDate: { lte: end },
+        endDate: { gte: start },
+      };
+    }
+
     const where: Prisma.BudgetWhereInput = {
       userId,
       deletedAt: null,
+      ...dateRangeFilter,
       ...(search && {
         OR: [
           {
@@ -240,11 +342,51 @@ export class BudgetService {
     };
   }
 
-  async summary(userId: string) {
+  async summary(
+    userId: string,
+    query?: {
+      fromDate?: string;
+      toDate?: string;
+      month?: number;
+      year?: number;
+    },
+  ) {
+    let dateRangeFilter: Prisma.BudgetWhereInput = {};
+    if (query?.fromDate && query?.toDate) {
+      dateRangeFilter = {
+        startDate: {
+          lte: new Date(
+            query.toDate.includes('T')
+              ? query.toDate
+              : `${query.toDate}T23:59:59.999Z`,
+          ),
+        },
+        endDate: {
+          gte: new Date(
+            query.fromDate.includes('T')
+              ? query.fromDate
+              : `${query.fromDate}T00:00:00.000Z`,
+          ),
+        },
+      };
+    } else if (query?.month && query?.year) {
+      const start = new Date(
+        Date.UTC(Number(query.year), Number(query.month) - 1, 1, 0, 0, 0),
+      );
+      const end = new Date(
+        Date.UTC(Number(query.year), Number(query.month), 0, 23, 59, 59, 999),
+      );
+      dateRangeFilter = {
+        startDate: { lte: end },
+        endDate: { gte: start },
+      };
+    }
+
     const budgets = await this.budgetRepository.findMany({
       where: {
         userId,
         deletedAt: null,
+        ...dateRangeFilter,
       },
       select: {
         amount: true,
@@ -301,7 +443,6 @@ export class BudgetService {
       where: {
         id: budgetId,
         userId,
-        deletedAt: null,
       },
     });
 
@@ -309,11 +450,8 @@ export class BudgetService {
       throw new NotFoundException('Không tìm thấy ngân sách');
     }
 
-    await this.budgetRepository.update({
+    await this.budgetRepository.delete({
       where: { id: budgetId },
-      data: {
-        deletedAt: new Date(),
-      },
     });
 
     return {

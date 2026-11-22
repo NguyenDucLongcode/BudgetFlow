@@ -6,6 +6,7 @@ import {
 import {
   BudgetType,
   Currency,
+  NotificationType,
   TransactionType,
   TransactionStatus,
 } from 'generated/prisma/client';
@@ -15,6 +16,7 @@ import {
   TransactionRepository,
   WalletRepository,
 } from 'src/infrastructure/prisma/repositories';
+import { NotificationGateway } from 'src/modules/notification/notification.gateway';
 import { CreateTransactionDto } from '../dto/CreateTransactionDto';
 import { PaginationTransactionDto } from '../dto/PaginationTransactionDto';
 import { UpdateTransactionDto } from '../dto/UpdateTransactionDto';
@@ -24,6 +26,7 @@ export class TransactionService {
     private readonly transactionRepository: TransactionRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly notificationGateway: NotificationGateway,
   ) {}
 
   async create(userId: string, dto: CreateTransactionDto) {
@@ -286,22 +289,77 @@ export class TransactionService {
           gte: transaction.date,
         },
       },
+      include: {
+        category: true,
+      },
     });
 
     if (!budget) {
       return;
     }
 
-    await tx.budget.update({
+    const currentSpent = Number(budget.spent);
+    const txAmount = Number(transaction.amount);
+    const newSpent =
+      mode === 'increment'
+        ? currentSpent + txAmount
+        : Math.max(0, currentSpent - txAmount);
+
+    const updatedBudget = await tx.budget.update({
       where: {
         id: budget.id,
       },
       data: {
-        spent: {
-          [mode]: transaction.amount,
-        },
+        spent: newSpent,
+      },
+      include: {
+        category: true,
       },
     });
+
+    if (mode === 'increment' && updatedBudget.isAlertEnabled) {
+      const budgetAmount = Number(updatedBudget.amount);
+      const rawThreshold = updatedBudget.alertThreshold
+        ? Number(updatedBudget.alertThreshold)
+        : 80;
+
+      const thresholdAmount =
+        rawThreshold <= 100
+          ? (budgetAmount * rawThreshold) / 100
+          : rawThreshold;
+
+      if (newSpent >= thresholdAmount || newSpent >= budgetAmount) {
+        const isExceeded = newSpent >= budgetAmount;
+        const percent = Math.round((newSpent / budgetAmount) * 100);
+        const categoryName = updatedBudget.category?.name || 'Chi tiêu';
+        const title = isExceeded
+          ? 'Cảnh báo vượt quá ngân sách!'
+          : `Cảnh báo chi tiêu đạt ${percent}% ngân sách`;
+        const message = isExceeded
+          ? `Bạn đã chi ${newSpent.toLocaleString('vi-VN')} VND cho danh mục "${categoryName}", vượt quá hạn mức ngân sách ${budgetAmount.toLocaleString('vi-VN')} VND.`
+          : `Bạn đã chi ${newSpent.toLocaleString('vi-VN')} VND cho danh mục "${categoryName}", đạt ${percent}% hạn mức ngân sách ${budgetAmount.toLocaleString('vi-VN')} VND.`;
+
+        const notification = await tx.notification.create({
+          data: {
+            userId,
+            type: NotificationType.BUDGET,
+            title,
+            message,
+            metadata: {
+              budgetId: updatedBudget.id,
+              categoryId: updatedBudget.categoryId,
+              spent: newSpent,
+              amount: budgetAmount,
+              percent,
+              isExceeded,
+            },
+          },
+        });
+
+        // Bắn WebSocket thông báo tới user
+        this.notificationGateway.sendNotification(userId, notification);
+      }
+    }
   }
 
   private async createTransfer(

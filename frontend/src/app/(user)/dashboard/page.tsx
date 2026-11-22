@@ -20,6 +20,7 @@ import {
   Calendar,
   Sparkles,
   Tag,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -34,6 +35,7 @@ import {
   useTransactions,
   useTransactionStatistics,
 } from "@/src/client/transaction/transaction.hooks";
+import { useBudgetSummary } from "@/src/client/budget/budget.hooks";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { TransactionType } from "@/src/types/enums";
 
@@ -98,6 +100,24 @@ export default function UserDashboardPage() {
   });
 
   const recentTransactions = recentData?.transactions || [];
+
+  // 4. Lấy dữ liệu Ngân sách tháng này
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const { data: budgetSummary, isLoading: isLoadingBudgetSummary } =
+    useBudgetSummary({
+      month: currentMonth,
+      year: currentYear,
+    });
+
+  const budgetTotalAllocated = Number(budgetSummary?.totalAllocated || 0);
+  const budgetTotalSpent = Number(budgetSummary?.totalSpent || 0);
+  const budgetPercent =
+    budgetTotalAllocated > 0
+      ? Math.round((budgetTotalSpent / budgetTotalAllocated) * 100)
+      : 0;
 
   // 4 Stat Cards với dữ liệu thực tế
   const statCards = [
@@ -221,7 +241,7 @@ export default function UserDashboardPage() {
       </div>
 
       {/* 2. Top Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
 
@@ -264,6 +284,69 @@ export default function UserDashboardPage() {
             </div>
           );
         })}
+
+        {/* 5th Card: Ngân sách tháng này */}
+        <Link
+          href="/budgets"
+          className="p-5 rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-blue-500/5 bg-[#111827]/70 backdrop-blur-md shadow-lg flex flex-col justify-between space-y-3 hover:border-indigo-500/60 transition-all hover:-translate-y-0.5 group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-indigo-300">
+              Ngân sách tháng này
+            </span>
+            <div className="p-2.5 rounded-2xl border border-indigo-500/30 bg-indigo-500/20 text-indigo-300 group-hover:scale-105 transition-transform">
+              <PieChartIcon className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div>
+            {isLoadingBudgetSummary ? (
+              <Skeleton className="h-7 w-32 bg-slate-800 my-1" />
+            ) : (
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <h3 className="text-lg sm:text-xl font-black text-white tracking-tight font-mono">
+                    {budgetTotalSpent.toLocaleString("vi-VN")} ₫
+                  </h3>
+                  <span className="text-xs text-slate-400 font-semibold font-mono">
+                    / {budgetTotalAllocated.toLocaleString("vi-VN")} ₫
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden mt-2 mb-1.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      budgetPercent > 100
+                        ? "bg-rose-500"
+                        : budgetPercent >= 80
+                        ? "bg-amber-400"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${Math.min(budgetPercent, 100)}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">
+                    {budgetSummary?.totalBudgets || 0} danh mục
+                  </span>
+                  <span
+                    className={`font-bold font-mono ${
+                      budgetPercent > 100
+                        ? "text-rose-400"
+                        : budgetPercent >= 80
+                        ? "text-amber-400"
+                        : "text-emerald-400"
+                    }`}
+                  >
+                    {budgetPercent}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </Link>
       </div>
 
       {/* 3. Main Analytics & Recent Activity */}

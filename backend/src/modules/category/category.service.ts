@@ -190,7 +190,10 @@ export class CategoryService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.CategoryWhereInput = {
-      OR: [{ userId }, { isSystem: true }],
+      OR: [
+        { userId },
+        { userId: null, isSystem: true },
+      ],
       deletedAt: null,
       ...(search && {
         name: {
@@ -300,20 +303,6 @@ export class CategoryService {
         'Không thể xóa danh mục vì còn danh mục con',
       );
     }
-
-    // Kiểm tra nếu category đang được sử dụng trong transaction (tuỳ chọn)
-    // const transactionCount = await this.transactionRepository.count({
-    //   where: {
-    //     categoryId: categoryId,
-    //     deletedAt: null,
-    //   },
-    // });
-    //
-    // if (transactionCount > 0) {
-    //   throw new BadRequestException(
-    //     'Không thể xóa danh mục vì đang được sử dụng trong giao dịch',
-    //   );
-    // }
 
     await this.categoryRepository.update({
       where: {

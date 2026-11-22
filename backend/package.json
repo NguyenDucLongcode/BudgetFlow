@@ -106,7 +106,8 @@
       "ts"
     ],
     "moduleNameMapper": {
-      "^generated/(.*)$": "<rootDir>/../generated/$1"
+      "^generated/(.*)$": "<rootDir>/../generated/$1",
+      "^src/(.*)$": "<rootDir>/$1"
     },
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",

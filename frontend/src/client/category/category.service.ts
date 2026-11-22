@@ -23,12 +23,7 @@ class CategoryService {
       list = rawData.data.categories;
     }
 
-    // Dedup bằng Map theo id để tránh trùng lặp
-    return Array.from(
-      new Map<string, TransactionCategory>(
-        list.map((item: any) => [item.id, item as TransactionCategory]),
-      ).values(),
-    );
+    return Array.isArray(list) ? (list as TransactionCategory[]) : [];
   }
 }
 

@@ -52,6 +52,28 @@ export class PaginationBudgetDto {
   @Type(() => Boolean)
   isActive?: boolean;
 
+  @ApiPropertyOptional({ example: '2026-07-01' })
+  @IsOptional()
+  @IsString()
+  fromDate?: string;
+
+  @ApiPropertyOptional({ example: '2026-07-31' })
+  @IsOptional()
+  @IsString()
+  toDate?: string;
+
+  @ApiPropertyOptional({ example: 7 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  month?: number;
+
+  @ApiPropertyOptional({ example: 2026 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  year?: number;
+
   @ApiPropertyOptional({ example: 'startDate' })
   @IsOptional()
   @IsString()

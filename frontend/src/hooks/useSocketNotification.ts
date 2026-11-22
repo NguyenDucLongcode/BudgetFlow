@@ -48,7 +48,37 @@ export function useSocketNotification(userId?: string | null) {
 
       // Tự động làm mới dữ liệu giao dịch và ví
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["statistics"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["notifications"], exact: false });
+
+      queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
+      queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
+    });
+
+    socket.on("notification", (notif: any) => {
+      console.log("[Socket] Received notification:", notif);
+      if (notif?.title) {
+        if (notif.type === "BUDGET") {
+          toast.warning(`${notif.title}: ${notif.message}`, {
+            autoClose: 7000,
+            toastId: `budget-alert-${notif.id || Date.now()}`,
+          });
+        } else {
+          toast.info(`${notif.title}: ${notif.message}`, {
+            autoClose: 5000,
+            toastId: `notif-${notif.id || Date.now()}`,
+          });
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["notifications"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+
+      queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
+      queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     });
 
     socket.on("disconnect", () => {
