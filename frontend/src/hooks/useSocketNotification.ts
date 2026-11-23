@@ -6,6 +6,20 @@ import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
 import { transactionKeys } from "@/src/client/transaction/transactionKeys";
 
+interface TransactionCompletedData {
+  amount?: number | string;
+  currency?: string;
+  description?: string;
+  transactionId?: string | number;
+}
+
+interface SocketNotification {
+  title?: string;
+  message?: string;
+  type?: string;
+  id?: string | number;
+}
+
 export function useSocketNotification(userId?: string | null) {
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
@@ -30,7 +44,7 @@ export function useSocketNotification(userId?: string | null) {
       socket.emit("join", { userId });
     });
 
-    socket.on("transaction_completed", (data: any) => {
+    socket.on("transaction_completed", (data: TransactionCompletedData) => {
       console.log("[Socket] Received transaction_completed:", data);
       const amount = data?.amount
         ? Number(data.amount).toLocaleString("vi-VN")
@@ -58,7 +72,7 @@ export function useSocketNotification(userId?: string | null) {
       queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     });
 
-    socket.on("notification", (notif: any) => {
+    socket.on("notification", (notif: SocketNotification) => {
       console.log("[Socket] Received notification:", notif);
       if (notif?.title) {
         if (notif.type === "BUDGET") {

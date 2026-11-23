@@ -1,5 +1,5 @@
 import { BudgetPeriod, BudgetType } from "../enums";
-import type { TransactionCategory } from "./transaction.types";
+import type { TransactionCategory } from "./category.types";
 
 export interface Budget {
   id: string;

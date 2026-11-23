@@ -18,9 +18,12 @@ export function handleApiError(error: unknown) {
   }
 
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as any;
+    const data = error.response?.data as { message?: unknown } | undefined;
     const statusCode = error.response?.status || 500;
-    const message = data?.message || error.message || "Internal Server Error";
+    const message =
+      (typeof data?.message === "string" && data.message) ||
+      error.message ||
+      "Internal Server Error";
     return NextResponse.json(
       {
         statusCode,

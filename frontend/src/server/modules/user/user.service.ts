@@ -1,5 +1,5 @@
 import { serverApiClient } from "@/src/lib/bff/server-api-client";
-import { UserProfile } from "@/src/types/api";
+import { UserProfile, ApiResponse, UserPreference } from "@/src/types";
 
 class UserService {
   async getMe() {
@@ -8,7 +8,7 @@ class UserService {
   }
 
   async updatePreferences(data: { language?: "VI" | "EN" | string }) {
-    const res = await serverApiClient.patch("/users/preferences", data);
+    const res = await serverApiClient.patch<ApiResponse<UserPreference>>("/users/preferences", data);
     return res.data;
   }
 }

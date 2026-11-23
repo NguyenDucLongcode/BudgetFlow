@@ -101,9 +101,17 @@ export function AdminLayoutClient({
 
   // Trường hợp gặp lỗi tải Profile: Hiển thị giao diện báo lỗi rõ ràng kèm tùy chọn thử lại / đăng nhập lại
   if (isError && !currentUser) {
+    const errorDetails = error as {
+      response?: { data?: { message?: unknown } };
+      message?: unknown;
+    };
     const errorMsg =
-      (error as any)?.response?.data?.message ||
-      (error as any)?.message ||
+      (typeof errorDetails.response?.data?.message === "string"
+        ? errorDetails.response.data.message
+        : undefined) ||
+      (typeof errorDetails.message === "string"
+        ? errorDetails.message
+        : undefined) ||
       initialError ||
       "Không thể xác thực thông tin tài khoản qua /api/users/me.";
 

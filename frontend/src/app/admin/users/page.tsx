@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
 import { Skeleton } from "@/src/components/ui/skeleton";
+import type { ApiResponse } from "@/src/types";
 import {
   UserStatusDropdown,
   UserVerifyCell,
@@ -76,11 +77,16 @@ export default function UsersAdminPage() {
       if (roleFilter !== "ALL") params.role = roleFilter;
       if (statusFilter !== "ALL") params.status = statusFilter;
 
-      const res = await browserApiClient.get<{ data: UsersApiResponse }>(
+      const res = await browserApiClient.get<ApiResponse<UsersApiResponse> | UsersApiResponse>(
         "/admin/users",
         params,
       );
-      return (res.data as any).data || res.data;
+      const resData = res.data;
+      return (
+        typeof resData === "object" && resData !== null && "data" in resData
+          ? (resData as ApiResponse<UsersApiResponse>).data
+          : resData
+      ) as UsersApiResponse;
     },
   });
 
@@ -89,10 +95,15 @@ export default function UsersAdminPage() {
     queryKey: ["admin", "user", selectedUserId],
     queryFn: async () => {
       if (!selectedUserId) throw new Error("No user selected");
-      const res = await browserApiClient.get<{ data: UserDetail }>(
+      const res = await browserApiClient.get<ApiResponse<UserDetail> | UserDetail>(
         `/admin/users/${selectedUserId}`,
       );
-      return (res.data as any).data || res.data;
+      const resData = res.data;
+      return (
+        typeof resData === "object" && resData !== null && "data" in resData
+          ? (resData as ApiResponse<UserDetail>).data
+          : resData
+      ) as UserDetail;
     },
     enabled: !!selectedUserId,
   });
@@ -120,8 +131,15 @@ export default function UsersAdminPage() {
       showToast(t("statusUpdateSuccess"));
       setActionMenuOpenId(null);
     },
-    onError: (err: any) => {
-      showToast(err?.response?.data?.message || t("statusUpdateError"), true);
+    onError: (err: unknown) => {
+      let msg = t("statusUpdateError");
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        if (typeof respData?.message === "string") msg = respData.message;
+      }
+      showToast(msg, true);
     },
   });
 
@@ -137,8 +155,15 @@ export default function UsersAdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "sessions"] });
       showToast(t("sessionRevokeSuccess"));
     },
-    onError: (err: any) => {
-      showToast(err?.response?.data?.message || t("sessionRevokeError"), true);
+    onError: (err: unknown) => {
+      let msg = t("sessionRevokeError");
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        if (typeof respData?.message === "string") msg = respData.message;
+      }
+      showToast(msg, true);
     },
   });
 

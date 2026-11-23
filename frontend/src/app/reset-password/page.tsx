@@ -67,11 +67,15 @@ function ResetPasswordContent() {
         confirmPassword: data.confirmPassword,
       });
       setIsSuccess(true);
-    } catch (err: any) {
-      setServerError(
-        err.response?.data?.message ||
-          "Failed to reset password. The link might have expired or already been used.",
-      );
+    } catch (err: unknown) {
+      let msg = "Failed to reset password. The link might have expired or already been used.";
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        if (typeof respData?.message === "string") msg = respData.message;
+      }
+      setServerError(msg);
     }
   };
 

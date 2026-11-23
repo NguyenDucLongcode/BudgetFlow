@@ -25,12 +25,26 @@ const chartTheme = {
   grid: '#f1f5f9',
 }
 
-function ChartTooltip({ active, payload, label, formatter }: any) {
+interface ChartTooltipPayloadItem {
+  color?: string;
+  fill?: string;
+  name?: string;
+  value?: number | string;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: ChartTooltipPayloadItem[];
+  label?: string;
+  formatter?: (val: unknown) => string | number;
+}
+
+function ChartTooltip({ active, payload, label, formatter }: ChartTooltipProps) {
   if (!active || !payload?.length) return null
   return (
     <div className="chart-tooltip">
       <p className="chart-tooltip-label">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <p key={i} className="chart-tooltip-item">
           <span className="chart-tooltip-dot" style={{ background: p.color || p.fill }} />
           <span>{p.name}</span>

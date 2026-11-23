@@ -249,8 +249,14 @@ export class BudgetService {
         },
       };
     } else if (month && year) {
-      const start = new Date(Date.UTC(Number(year), Number(month) - 1, 1, 0, 0, 0));
-      const end = new Date(Date.UTC(Number(year), Number(month), 0, 23, 59, 59, 999));
+      const start = new Date(
+        Date.UTC(Number(year), Number(month) - 1, 1, 0, 0, 0),
+      );
+
+      const end = new Date(
+        Date.UTC(Number(year), Number(month), 0, 23, 59, 59, 999),
+      );
+
       dateRangeFilter = {
         startDate: { lte: end },
         endDate: { gte: start },

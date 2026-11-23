@@ -190,10 +190,7 @@ export class CategoryService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.CategoryWhereInput = {
-      OR: [
-        { userId },
-        { userId: null, isSystem: true },
-      ],
+      OR: [{ userId }, { userId: null, isSystem: true }],
       deletedAt: null,
       ...(search && {
         name: {
@@ -208,7 +205,6 @@ export class CategoryService {
         parentId: parentId || null,
       }),
     };
-
     const orderBy = sortBy ? { [sortBy]: order } : { name: 'asc' as const };
 
     const [categories, total] = await Promise.all([

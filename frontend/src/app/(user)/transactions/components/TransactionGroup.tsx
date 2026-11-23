@@ -38,7 +38,7 @@ interface TransactionGroupProps {
   onView: (tx: Transaction) => void;
 }
 
-function parseAmount(val: any): number {
+function parseAmount(val: unknown): number {
   if (val == null) return 0;
   if (typeof val === "number") return isNaN(val) ? 0 : val;
   if (typeof val === "string") {
@@ -46,10 +46,11 @@ function parseAmount(val: any): number {
     const parsed = Number(cleaned);
     return isNaN(parsed) ? 0 : parsed;
   }
-  if (typeof val === "object") {
-    if (typeof val.toNumber === "function") return val.toNumber();
-    if (typeof val.toString === "function") {
-      const parsed = Number(val.toString());
+  if (typeof val === "object" && val !== null) {
+    const obj = val as Record<string, unknown>;
+    if (typeof obj.toNumber === "function") return (obj.toNumber as () => number)();
+    if (typeof obj.toString === "function") {
+      const parsed = Number(obj.toString());
       return isNaN(parsed) ? 0 : parsed;
     }
   }

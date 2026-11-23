@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
 
+interface PrometheusMetricValue {
+  value?: number;
+  labels?: Record<string, string>;
+}
+
+interface PrometheusMetric {
+  name: string;
+  values?: PrometheusMetricValue[];
+}
+
 export async function GET() {
   const backendUrl = process.env.BACKEND_API_URL?.replace("/api/v1", "") || "http://localhost:8080";
 
@@ -15,11 +25,11 @@ export async function GET() {
       cache: "no-store",
     });
     if (metricsRes.ok) {
-      const metricsList = await metricsRes.json();
+      const metricsList = (await metricsRes.json()) as PrometheusMetric[];
       if (Array.isArray(metricsList)) {
         // Uptime
         const uptimeMetric = metricsList.find(
-          (m: any) => m.name === "process_uptime_seconds",
+          (m) => m.name === "process_uptime_seconds",
         );
         if (uptimeMetric?.values?.[0]?.value) {
           uptime = Math.floor(uptimeMetric.values[0].value);
@@ -27,7 +37,7 @@ export async function GET() {
 
         // Memory
         const heapMetric = metricsList.find(
-          (m: any) => m.name === "nodejs_heap_size_used_bytes",
+          (m) => m.name === "nodejs_heap_size_used_bytes",
         );
         if (heapMetric?.values?.[0]?.value) {
           memoryUsedMb = Math.floor(heapMetric.values[0].value / (1024 * 1024));
@@ -35,11 +45,11 @@ export async function GET() {
 
         // Requests & Errors
         const reqMetric = metricsList.find(
-          (m: any) => m.name === "http_requests_total",
+          (m) => m.name === "http_requests_total",
         );
         if (reqMetric?.values && Array.isArray(reqMetric.values)) {
           let errCount = 0;
-          reqMetric.values.forEach((v: any) => {
+          reqMetric.values.forEach((v) => {
             const val = v.value || 0;
             totalRequests += val;
             const status = v.labels?.status || "";
@@ -54,7 +64,7 @@ export async function GET() {
 
         // Duration
         const durationMetric = metricsList.find(
-          (m: any) => m.name === "http_request_duration_seconds",
+          (m) => m.name === "http_request_duration_seconds",
         );
         if (durationMetric?.values?.[0]?.value) {
           responseTime = Math.round(durationMetric.values[0].value * 1000);

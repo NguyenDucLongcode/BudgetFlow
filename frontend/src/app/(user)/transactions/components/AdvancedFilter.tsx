@@ -38,10 +38,13 @@ export function AdvancedFilter({
 
   const hasFilter = Boolean(value.fromDate || value.toDate);
 
-  useEffect(() => {
-    setLocalFrom(value.fromDate ?? "");
-    setLocalTo(value.toDate ?? "");
-  }, [value.fromDate, value.toDate]);
+  const handleToggle = () => {
+    if (!open) {
+      setLocalFrom(value.fromDate ?? "");
+      setLocalTo(value.toDate ?? "");
+    }
+    setOpen((v) => !v);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -84,7 +87,7 @@ export function AdvancedFilter({
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggle}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
           hasFilter
             ? "bg-indigo-600 text-white border border-indigo-500 shadow-sm shadow-indigo-600/30"

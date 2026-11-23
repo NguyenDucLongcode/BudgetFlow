@@ -1,5 +1,5 @@
 import { browserApiClient } from "@/src/lib/bff";
-import type { TransactionCategory } from "@/src/types/api";
+import type { TransactionCategory, ApiResponse } from "@/src/types";
 
 class CategoryService {
   async getCategories(type?: "INCOME" | "EXPENSE" | "ALL"): Promise<TransactionCategory[]> {
@@ -10,20 +10,21 @@ class CategoryService {
     if (type && type !== "ALL") {
       params.type = type;
     }
-    const res = await browserApiClient.get<any>("/categories", params);
-    const rawData = res.data as any;
-    // Backend trả về { message, data: [...], pagination: {...} }
-    // rawData có thể là response object hoặc đã được unwrap bởi axios interceptor
-    let list: any[] = [];
+    const res = await browserApiClient.get<ApiResponse<TransactionCategory[]> | TransactionCategory[]>(
+      "/categories",
+      params,
+    );
+    const rawData = res.data;
     if (Array.isArray(rawData)) {
-      list = rawData;
-    } else if (Array.isArray(rawData?.data)) {
-      list = rawData.data;
-    } else if (Array.isArray(rawData?.data?.categories)) {
-      list = rawData.data.categories;
+      return rawData;
     }
-
-    return Array.isArray(list) ? (list as TransactionCategory[]) : [];
+    if (typeof rawData === "object" && rawData !== null && "data" in rawData) {
+      const nested = (rawData as ApiResponse<TransactionCategory[]>).data;
+      if (Array.isArray(nested)) {
+        return nested;
+      }
+    }
+    return [];
   }
 }
 

@@ -26,6 +26,19 @@ export function useWallet(id: string) {
   });
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "object" && error !== null) {
+    const errObj = error as Record<string, unknown>;
+    const response = errObj.response as Record<string, unknown> | undefined;
+    const responseData = (response?.data || error) as Record<string, unknown> | undefined;
+    const msg = responseData?.message || errObj.message;
+    if (typeof msg === "string") return msg;
+    if (Array.isArray(msg)) return msg.join(", ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export function useCreateWallet() {
   const queryClient = useQueryClient();
   const t = useTranslations("wallets");
@@ -37,9 +50,11 @@ export function useCreateWallet() {
       await queryClient.invalidateQueries({ queryKey: ["wallets"] });
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
-    onError: (error: any) => {
-      const responseData = error?.response?.data || error;
-      const message = responseData?.message || error?.message || "";
+    onError: (error: unknown) => {
+      const errObj = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : null;
+      const response = errObj?.response as Record<string, unknown> | undefined;
+      const responseData = (response?.data || error) as Record<string, unknown> | undefined;
+      const message = responseData?.message || errObj?.message || "";
       const isMaxWallets =
         responseData?.error === "MAX_WALLETS_REACHED" ||
         responseData?.code === "MAX_WALLETS_REACHED" ||
@@ -49,10 +64,10 @@ export function useCreateWallet() {
             message.includes("maximum")));
 
       if (isMaxWallets) {
-        const max = responseData?.maxWallets || 5;
+        const max = (responseData?.maxWallets as number) || 5;
         toast.error(t("maxWalletsError", { max }));
       } else {
-        toast.error(message || t("errorSave"));
+        toast.error(typeof message === "string" && message ? message : t("errorSave"));
       }
     },
   });
@@ -71,8 +86,8 @@ export function useUpdateWallet() {
       await queryClient.invalidateQueries({ queryKey: walletKeys.detail(variables.id) });
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || error?.message || t("errorSave"));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t("errorSave")));
     },
   });
 }
@@ -88,8 +103,8 @@ export function useDeleteWallet() {
       await queryClient.invalidateQueries({ queryKey: ["wallets"] });
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || error?.message || "Không thể xóa ví đã có giao dịch!");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Không thể xóa ví đã có giao dịch!"));
     },
   });
 }
@@ -105,8 +120,8 @@ export function useSetDefaultWallet() {
       await queryClient.invalidateQueries({ queryKey: ["wallets"] });
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || error?.message || "Không thể đặt làm ví mặc định!");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Không thể đặt làm ví mặc định!"));
     },
   });
 }
@@ -127,8 +142,8 @@ export function useArchiveWallet() {
       await queryClient.invalidateQueries({ queryKey: ["wallets"] });
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || error?.message || "Có lỗi xảy ra khi thao tác lưu trữ ví!");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Có lỗi xảy ra khi thao tác lưu trữ ví!"));
     },
   });
 }

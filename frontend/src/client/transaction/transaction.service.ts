@@ -5,35 +5,62 @@ import type {
   UpdateTransactionInput,
   TransactionFilterParams,
   TransactionStatistics,
-} from "@/src/types/api";
+  ApiResponse,
+  PaginationResponse,
+} from "@/src/types";
 
 export interface PaginatedTransactionsResponse {
   transactions: Transaction[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+  pagination: PaginationResponse;
+}
+
+interface RawStatisticsPayload {
+  summary?: {
+    totalIncome?: number;
+    incomeCount?: number;
+    totalExpense?: number;
+    expenseCount?: number;
+    netAmount?: number;
   };
+  income?: {
+    total?: number;
+    count?: number;
+    _sum?: { amount?: number };
+    _count?: number;
+  };
+  expense?: {
+    total?: number;
+    count?: number;
+    _sum?: { amount?: number };
+    _count?: number;
+  };
+  net?: number;
 }
 
 class TransactionService {
   async getTransactions(
     params?: TransactionFilterParams,
   ): Promise<PaginatedTransactionsResponse> {
-    const res = await browserApiClient.get<any>(
+    const res = await browserApiClient.get<ApiResponse<Transaction[]> | Transaction[]>(
       "/transactions",
       params as Record<string, unknown>,
     );
-    const rawData = res.data as any;
-
-    const data = rawData?.data ?? rawData;
-    const pagination = rawData?.pagination ?? {
-      page: params?.page ?? 1,
-      limit: params?.limit ?? 10,
-      total: Array.isArray(data) ? data.length : 0,
-      totalPages: 1,
-    };
+    const rawData = res.data;
+    const isWrapped = typeof rawData === "object" && rawData !== null && "data" in rawData;
+    const data: Transaction[] = isWrapped
+      ? (rawData as ApiResponse<Transaction[]>).data
+      : Array.isArray(rawData)
+        ? (rawData as Transaction[])
+        : [];
+    const pagination: PaginationResponse =
+      isWrapped && (rawData as ApiResponse<Transaction[]>).pagination
+        ? (rawData as ApiResponse<Transaction[]>).pagination!
+        : {
+            page: params?.page ?? 1,
+            limit: params?.limit ?? 10,
+            total: Array.isArray(data) ? data.length : 0,
+            totalPages: 1,
+          };
 
     return {
       transactions: Array.isArray(data) ? data : [],
@@ -42,40 +69,49 @@ class TransactionService {
   }
 
   async getTransaction(id: string): Promise<Transaction> {
-    const res = await browserApiClient.get<any>(`/transactions/${id}`);
-    const rawData = res.data as any;
-    return rawData?.data ?? rawData;
+    const res = await browserApiClient.get<ApiResponse<Transaction> | Transaction>(`/transactions/${id}`);
+    const rawData = res.data;
+    return typeof rawData === "object" && rawData !== null && "data" in rawData
+      ? (rawData as ApiResponse<Transaction>).data
+      : (rawData as Transaction);
   }
 
   async createTransaction(data: CreateTransactionInput): Promise<Transaction> {
-    const res = await browserApiClient.post<any>("/transactions", data);
-    const rawData = res.data as any;
-    return rawData?.data ?? rawData;
+    const res = await browserApiClient.post<ApiResponse<Transaction> | Transaction>("/transactions", data);
+    const rawData = res.data;
+    return typeof rawData === "object" && rawData !== null && "data" in rawData
+      ? (rawData as ApiResponse<Transaction>).data
+      : (rawData as Transaction);
   }
 
   async updateTransaction(
     id: string,
     data: UpdateTransactionInput,
   ): Promise<Transaction> {
-    const res = await browserApiClient.patch<any>(`/transactions/${id}`, data);
-    const rawData = res.data as any;
-    return rawData?.data ?? rawData;
+    const res = await browserApiClient.patch<ApiResponse<Transaction> | Transaction>(`/transactions/${id}`, data);
+    const rawData = res.data;
+    return typeof rawData === "object" && rawData !== null && "data" in rawData
+      ? (rawData as ApiResponse<Transaction>).data
+      : (rawData as Transaction);
   }
 
   async deleteTransaction(id: string): Promise<void> {
-    await browserApiClient.delete<void>(`/transactions/${id}`);
+    await browserApiClient.delete<ApiResponse<null>>(`/transactions/${id}`);
   }
 
   async getStatistics(params?: {
     fromDate?: string;
     toDate?: string;
   }): Promise<TransactionStatistics> {
-    const res = await browserApiClient.get<any>(
+    const res = await browserApiClient.get<ApiResponse<RawStatisticsPayload> | RawStatisticsPayload>(
       "/transactions/statistics",
       params as Record<string, unknown>,
     );
-    const rawData = res.data as any;
-    const stats = rawData?.data ?? rawData;
+    const rawData = res.data;
+    const stats: RawStatisticsPayload =
+      typeof rawData === "object" && rawData !== null && "data" in rawData
+        ? (rawData as ApiResponse<RawStatisticsPayload>).data
+        : (rawData as RawStatisticsPayload);
     const summary = stats?.summary ?? {};
 
     const totalIncome = Number(

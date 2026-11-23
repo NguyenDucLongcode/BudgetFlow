@@ -12,11 +12,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export interface NotificationItem {
   id: string;
@@ -24,7 +20,13 @@ export interface NotificationItem {
   title: string;
   message: string;
   isRead: boolean;
-  metadata?: Record<string, any> | null;
+  metadata?: {
+    amount?: number | string;
+    currency?: string;
+    type?: string;
+    transactionId?: string;
+    [key: string]: unknown;
+  } | null;
   createdAt: string;
 }
 
@@ -36,7 +38,9 @@ const iconsByType = {
   RECURRING: RefreshCw,
 };
 
-export function formatNotificationDateTime(dateStr?: string | Date | null): string {
+export function formatNotificationDateTime(
+  dateStr?: string | Date | null,
+): string {
   if (!dateStr) return "—";
   try {
     const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
@@ -67,10 +71,13 @@ export function NotificationDetailModal({
   };
 
   return (
-    <Dialog open={Boolean(notification)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={Boolean(notification)}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <DialogContent
         showCloseButton={false}
-        className="w-full sm:max-w-[500px] space-y-6 rounded-3xl border border-slate-700 bg-[#0F172A] p-6 text-slate-100 shadow-2xl sm:p-7"
+        className="w-full sm:max-w-125 space-y-6 rounded-3xl border border-slate-700 bg-[#0F172A] p-6 text-slate-100 shadow-2xl sm:p-7"
       >
         {notification && (
           <>
@@ -112,33 +119,41 @@ export function NotificationDetailModal({
                 </span>
               </div>
 
-              {notification.metadata && Object.keys(notification.metadata).length > 0 && (
-                <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-sm">
-                  <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Thông tin đính kèm
-                  </span>
-                  {notification.metadata.amount !== undefined && (
-                    <div className="flex items-center justify-between text-slate-300">
-                      <span>Số tiền:</span>
-                      <span className="text-base font-bold text-emerald-400">
-                        {Number(notification.metadata.amount).toLocaleString("vi-VN")} {notification.metadata.currency || "VND"}
-                      </span>
-                    </div>
-                  )}
-                  {notification.metadata.type && (
-                    <div className="flex items-center justify-between text-slate-300">
-                      <span>Loại giao dịch:</span>
-                      <span className="font-semibold text-slate-200">{notification.metadata.type}</span>
-                    </div>
-                  )}
-                  {notification.metadata.transactionId && (
-                    <div className="flex items-center justify-between border-t border-slate-800 pt-1 font-mono text-xs text-slate-400">
-                      <span>Mã GD:</span>
-                      <span className="max-w-[240px] truncate">{notification.metadata.transactionId}</span>
-                    </div>
-                  )}
-                </div>
-              )}
+              {notification.metadata &&
+                Object.keys(notification.metadata).length > 0 && (
+                  <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-sm">
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Thông tin đính kèm
+                    </span>
+                    {notification.metadata.amount !== undefined && (
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Số tiền:</span>
+                        <span className="text-base font-bold text-emerald-400">
+                          {Number(notification.metadata.amount).toLocaleString(
+                            "vi-VN",
+                          )}{" "}
+                          {notification.metadata.currency || "VND"}
+                        </span>
+                      </div>
+                    )}
+                    {notification.metadata.type && (
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Loại giao dịch:</span>
+                        <span className="font-semibold text-slate-200">
+                          {notification.metadata.type}
+                        </span>
+                      </div>
+                    )}
+                    {notification.metadata.transactionId && (
+                      <div className="flex items-center justify-between border-t border-slate-800 pt-1 font-mono text-xs text-slate-400">
+                        <span>Mã GD:</span>
+                        <span className="max-w-60 truncate">
+                          {notification.metadata.transactionId}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
 
             <div className="flex items-center justify-end gap-3 border-t border-slate-800 pt-4">

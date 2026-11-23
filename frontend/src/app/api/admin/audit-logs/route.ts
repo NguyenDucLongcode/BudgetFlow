@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverApiClient } from "@/src/lib/bff/server-api-client";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
+import type { AuditLogItem, AuditLogsApiResponse } from "@/src/types";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,19 +12,24 @@ export async function GET(request: NextRequest) {
     const entity = searchParams.get("entity");
     const search = searchParams.get("search");
 
-    let logsData: any[] = [];
+    let logsData: AuditLogItem[] = [];
     let totalCount = 0;
 
     // Thử gọi backend nếu có endpoint /admin/audit-logs
     try {
-      const res = await serverApiClient.get<any>("/admin/audit-logs", {
+      const res = await serverApiClient.get<AuditLogsApiResponse | AuditLogItem[]>("/admin/audit-logs", {
         page,
         limit,
         ...(action && { action }),
         ...(entity && { entity }),
       });
-      logsData = res.data?.data?.logs || res.data?.data || [];
-      totalCount = res.data?.data?.total || logsData.length;
+      const dataPayload = res.data?.data;
+      if (Array.isArray(dataPayload)) {
+        logsData = dataPayload;
+      } else if (dataPayload && "logs" in dataPayload && Array.isArray(dataPayload.logs)) {
+        logsData = dataPayload.logs;
+      }
+      totalCount = dataPayload && "pagination" in dataPayload ? dataPayload.pagination.total : logsData.length;
     } catch {
       // Fallback: Tạo danh sách audit events hệ thống thực tế từ các hoạt động an ninh
       const actionsList = [

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const user = await userService.getMe();
     const res = NextResponse.json(user);
 
-    const userLang = (user?.data as any)?.language;
+    const userLang = user?.data?.language;
     if (userLang) {
       const locale = String(userLang).toLowerCase();
       res.cookies.set("NEXT_LOCALE", locale, {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.warn(
       "[BFF /api/users/me] Profile fetch error:",
-      (error as any)?.message || error,
+      error instanceof Error ? error.message : String(error),
     );
     return handleApiError(error);
   }

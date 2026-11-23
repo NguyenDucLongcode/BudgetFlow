@@ -23,7 +23,7 @@ export default async function UserLayout({
     const res = await userService.getMe();
     currentUser = res.data;
   } catch (err) {
-    console.warn("[UserLayout] userService.getMe() note:", (err as any)?.message || err);
+    console.warn("[UserLayout] userService.getMe() note:", err instanceof Error ? err.message : String(err));
   }
 
   return (

@@ -3,13 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Bell,
-  Info,
-  Target,
-  WalletCards,
-  CheckCheck,
-} from "lucide-react";
+import { Bell, Info, Target, WalletCards, CheckCheck } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
 import {
   NotificationDetailModal,
@@ -40,15 +34,17 @@ export function NotificationBell() {
   const { data } = useQuery({
     queryKey: ["notifications", "latest"],
     queryFn: async () => {
-      const response = await browserApiClient.get<any>(
+      const response = await browserApiClient.get<NotificationResponse>(
         "/notifications",
         { page: 1, limit: 10 },
       );
       const raw = response.data?.data ?? response.data;
       return {
-        notifications: Array.isArray(raw?.notifications) ? raw.notifications : [],
+        notifications: Array.isArray(raw?.notifications)
+          ? raw.notifications
+          : [],
         summary: raw?.summary ?? { unread: 0 },
-      } as NotificationResponse;
+      };
     },
     refetchInterval: 30_000,
   });
@@ -135,7 +131,7 @@ export function NotificationBell() {
 
       {/* Dropdown Menu (Chuẩn Dark Mode, z-[999] để không bị đè) */}
       {dropdownOpen && (
-        <div className="absolute right-0 z-[999] mt-2 w-88 sm:w-96 rounded-2xl border border-slate-700 bg-[#0F172A] shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
+        <div className="absolute right-0 z-999 mt-2 w-88 sm:w-96 rounded-2xl border border-slate-700 bg-[#0F172A] shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-4 py-3.5">
             <div className="flex items-center gap-2">
@@ -169,7 +165,7 @@ export function NotificationBell() {
           </div>
 
           {/* List Notifications */}
-          <div className="max-h-[380px] divide-y divide-slate-800/80 overflow-y-auto">
+          <div className="max-h-95 divide-y divide-slate-800/80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="py-12 text-center text-slate-500">
                 <Bell className="mx-auto h-8 w-8 opacity-40 mb-2" />

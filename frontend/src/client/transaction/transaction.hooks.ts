@@ -36,6 +36,19 @@ export function useTransactionStatistics(params?: {
   });
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "object" && error !== null) {
+    const errObj = error as Record<string, unknown>;
+    const response = errObj.response as Record<string, unknown> | undefined;
+    const responseData = (response?.data || error) as Record<string, unknown> | undefined;
+    const msg = responseData?.message || errObj.message;
+    if (typeof msg === "string") return msg;
+    if (Array.isArray(msg)) return msg.join(", ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
   const t = useTranslations("transactions");
@@ -53,10 +66,8 @@ export function useCreateTransaction() {
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
-    onError: (error: any) => {
-      const responseData = error?.response?.data || error;
-      const message = responseData?.message || error?.message || t("errorSave");
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t("errorSave")));
     },
   });
 }
@@ -81,10 +92,8 @@ export function useUpdateTransaction() {
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
-    onError: (error: any) => {
-      const responseData = error?.response?.data || error;
-      const message = responseData?.message || error?.message || t("errorSave");
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t("errorSave")));
     },
   });
 }
@@ -105,10 +114,8 @@ export function useDeleteTransaction() {
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
-    onError: (error: any) => {
-      const responseData = error?.response?.data || error;
-      const message = responseData?.message || error?.message || t("errorSave");
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, t("errorSave")));
     },
   });
 }

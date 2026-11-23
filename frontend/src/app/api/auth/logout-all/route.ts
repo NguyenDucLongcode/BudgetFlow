@@ -16,8 +16,9 @@ export async function POST(req: NextRequest) {
     if (deviceId) {
       await accessTokenStore.remove(deviceId).catch(() => {});
     }
-  } catch (error: any) {
-    console.warn("[BFF /api/auth/logout-all] Exception during logoutAll (ignored):", error?.message || error);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn("[BFF /api/auth/logout-all] Exception during logoutAll (ignored):", msg);
   }
 
   const nextResponse = NextResponse.json({

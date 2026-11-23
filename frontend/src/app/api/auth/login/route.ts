@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Set cookie NEXT_LOCALE từ user.language để đồng bộ đa thiết bị
-    const userLang = (response.data.data?.user as any)?.language;
+    const userLang = (response.data.data?.user as { language?: string } | undefined)?.language;
     if (userLang) {
       const locale = String(userLang).toLowerCase();
       nextResponse.headers.append(

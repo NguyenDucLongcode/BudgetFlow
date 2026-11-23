@@ -30,11 +30,13 @@ export function MonthYearPicker({ value, onChange, locale = "vi" }: MonthYearPic
   const ref = useRef<HTMLDivElement>(null);
   const months = locale === "vi" ? MONTHS_VI : MONTHS_EN;
 
-  // Sync picker state with external value
-  useEffect(() => {
-    setPickerMonth(value.getMonth());
-    setPickerYear(value.getFullYear());
-  }, [value]);
+  const handleToggle = () => {
+    if (!open) {
+      setPickerMonth(value.getMonth());
+      setPickerYear(value.getFullYear());
+    }
+    setOpen((v) => !v);
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -63,7 +65,7 @@ export function MonthYearPicker({ value, onChange, locale = "vi" }: MonthYearPic
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggle}
         className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-100 bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:border-slate-600 transition-all cursor-pointer shadow-sm"
       >
         <Calendar className="w-3.5 h-3.5 text-indigo-400" />

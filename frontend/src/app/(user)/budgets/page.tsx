@@ -130,11 +130,14 @@ export default function BudgetsPage() {
       }
       setDialogOpen(false);
       setEditingBudget(null);
-    } catch (err: any) {
-      const errorMessage =
-        err?.response?.data?.message ??
-        err?.data?.message ??
-        err?.message;
+    } catch (err: unknown) {
+      let errorMessage: unknown = "Có lỗi xảy ra khi lưu ngân sách";
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        errorMessage = respData?.message ?? (errObj.data as Record<string, unknown>)?.message ?? errObj.message;
+      }
       toast.error(
         Array.isArray(errorMessage)
           ? errorMessage.join(", ")
@@ -151,8 +154,16 @@ export default function BudgetsPage() {
       await deleteMutation.mutateAsync(deleteConfirmId);
       toast.success("Đã xóa ngân sách thành công!");
       setDeleteConfirmId(null);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Không thể xóa ngân sách");
+    } catch (err: unknown) {
+      let errorMessage = "Không thể xóa ngân sách";
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        const msg = respData?.message ?? errObj.message;
+        if (typeof msg === "string") errorMessage = msg;
+      }
+      toast.error(errorMessage);
     }
   };
 

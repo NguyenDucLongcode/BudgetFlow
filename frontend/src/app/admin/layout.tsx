@@ -34,8 +34,8 @@ export default async function AdminLayout({
       );
       redirect("/dashboard");
     }
-  } catch (err: any) {
-    serverError = err?.message || "Failed to load user profile on server";
+  } catch (err: unknown) {
+    serverError = err instanceof Error ? err.message : "Failed to load user profile on server";
     console.warn("[AdminLayout] userService.getMe() note:", serverError);
   }
 

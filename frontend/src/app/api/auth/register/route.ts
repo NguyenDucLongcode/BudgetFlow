@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     });
 
     const nextResponse = NextResponse.json(response, {
-      status: response.statusCode,
+      status: response.statusCode ?? 201,
     });
 
     return nextResponse;

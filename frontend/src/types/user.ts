@@ -32,17 +32,3 @@ export interface UserPreference {
   createdAt: string;
   updatedAt: string;
 }
-
-// ===== User Session =====
-export interface UserSession {
-  id: string;
-  userId: string;
-  deviceId: string;
-  userAgent?: string | null;
-  ipAddress?: string | null;
-  isRemember: boolean;
-  lastLoginAt: string;
-  lastActiveAt: string;
-  createdAt: string;
-  updatedAt: string;
-}

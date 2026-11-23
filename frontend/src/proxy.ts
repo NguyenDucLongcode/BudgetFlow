@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-function parseJwtPayload(token: string): Record<string, any> | null {
+interface JwtPayload {
+  sub: string;
+  email: string;
+  role: string;
+  tv: number;
+  exp?: number;
+  [key: string]: unknown; // Cho phép các trường khác nếu có
+}
+
+function parseJwtPayload(token: string): JwtPayload | null {
   try {
     const parts = token.split(".");
     if (parts.length < 2) return null;
@@ -12,11 +21,15 @@ function parseJwtPayload(token: string): Record<string, any> | null {
     }
     const jsonStr = decodeURIComponent(
       Array.prototype.map
-        .call(atob(base64), (c: string) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .call(
+          atob(base64),
+          (c: string) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2),
+        )
+        .join(""),
     );
     return JSON.parse(jsonStr);
-  } catch (e: any) {
+  } catch (e: unknown) {
+    // Fallback an toàn nếu decodeURIComponent bị lỗi
     try {
       const parts = token.split(".");
       const base64Url = parts[1];
@@ -24,15 +37,19 @@ function parseJwtPayload(token: string): Record<string, any> | null {
       while (base64.length % 4 !== 0) {
         base64 += "=";
       }
-      return JSON.parse(atob(base64));
+      return JSON.parse(atob(base64)) as JwtPayload;
     } catch {
-      console.error("[Proxy Guard] Failed to parse JWT token:", e?.message);
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      console.error("[Proxy Guard] Failed to parse JWT token:", errorMessage);
       return null;
     }
   }
 }
 
-function ensureLocaleCookie(response: NextResponse, request: NextRequest): NextResponse {
+function ensureLocaleCookie(
+  response: NextResponse,
+  request: NextRequest,
+): NextResponse {
   const localeCookie = request.cookies.get("NEXT_LOCALE")?.value?.toLowerCase();
   if (!localeCookie || (localeCookie !== "vi" && localeCookie !== "en")) {
     response.cookies.set("NEXT_LOCALE", "en", {
@@ -64,16 +81,23 @@ export async function proxy(request: NextRequest) {
   );
 
   const refreshPayload = refreshToken ? parseJwtPayload(refreshToken) : null;
-  const refreshExpired =
-    Boolean(refreshPayload?.exp) && refreshPayload!.exp * 1000 <= Date.now();
-  const refreshInvalid = Boolean(refreshToken) && (!refreshPayload || refreshExpired);
+
+  const expTime = refreshPayload?.exp ? Number(refreshPayload.exp) : null;
+
+  const refreshExpired = expTime !== null && expTime * 1000 <= Date.now();
+
+  const refreshInvalid =
+    Boolean(refreshToken) && (!refreshPayload || refreshExpired);
 
   // 1. Nếu refresh token không hợp lệ hoặc hết hạn: xóa cookie và hiển thị trang (nếu public/home) hoặc redirect về /login (nếu private)
   if (refreshInvalid) {
-    console.warn(`[Proxy Guard] Invalid or expired refresh token on ${pathname} -> clearing auth cookies`);
-    const response = isPublicRoute || isHome
-      ? NextResponse.next()
-      : NextResponse.redirect(new URL("/login", request.url));
+    console.warn(
+      `[Proxy Guard] Invalid or expired refresh token on ${pathname} -> clearing auth cookies`,
+    );
+    const response =
+      isPublicRoute || isHome
+        ? NextResponse.next()
+        : NextResponse.redirect(new URL("/login", request.url));
     clearAuthCookies(response);
     return ensureLocaleCookie(response, request);
   }
@@ -85,8 +109,13 @@ export async function proxy(request: NextRequest) {
     if (refreshToken && refreshPayload && !refreshExpired) {
       const role = refreshPayload.role;
       const dest = role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
-      console.log(`[Proxy Guard] Authenticated user on home (/) -> redirecting to ${dest} (role: ${role})`);
-      return ensureLocaleCookie(NextResponse.redirect(new URL(dest, request.url)), request);
+      console.log(
+        `[Proxy Guard] Authenticated user on home (/) -> redirecting to ${dest} (role: ${role})`,
+      );
+      return ensureLocaleCookie(
+        NextResponse.redirect(new URL(dest, request.url)),
+        request,
+      );
     }
     return ensureLocaleCookie(NextResponse.next(), request);
   }
@@ -120,7 +149,10 @@ export async function proxy(request: NextRequest) {
     console.log(
       `[Proxy Guard] Authenticated user on ${pathname} -> redirecting to ${dest} (role: ${role})`,
     );
-    return ensureLocaleCookie(NextResponse.redirect(new URL(dest, request.url)), request);
+    return ensureLocaleCookie(
+      NextResponse.redirect(new URL(dest, request.url)),
+      request,
+    );
   }
 
   // 5. Nếu chưa có refresh_token mà truy cập route private (user hoặc admin) -> redirect về /login
@@ -128,7 +160,10 @@ export async function proxy(request: NextRequest) {
     console.log(
       `[Proxy Guard] Unauthenticated access to private route (${pathname}) -> redirect to /login`,
     );
-    return ensureLocaleCookie(NextResponse.redirect(new URL("/login", request.url)), request);
+    return ensureLocaleCookie(
+      NextResponse.redirect(new URL("/login", request.url)),
+      request,
+    );
   }
 
   // 6. Bảo vệ riêng khu vực Admin (/admin/*): Phải có refresh_token và role là ADMIN
@@ -147,7 +182,10 @@ export async function proxy(request: NextRequest) {
       console.warn(
         `[Proxy Guard] Access Denied: User role ("${role}") is not ADMIN -> redirect to /dashboard`,
       );
-      return ensureLocaleCookie(NextResponse.redirect(new URL("/dashboard", request.url)), request);
+      return ensureLocaleCookie(
+        NextResponse.redirect(new URL("/dashboard", request.url)),
+        request,
+      );
     }
   }
 

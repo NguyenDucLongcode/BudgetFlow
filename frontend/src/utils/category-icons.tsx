@@ -21,6 +21,7 @@ import {
   Tag,
   type LucideIcon,
 } from "lucide-react";
+import { createElement } from "react";
 
 /**
  * Mapping các tên danh mục (tiếng Việt, tiếng Anh, không dấu) sang Lucide Icon
@@ -29,101 +30,101 @@ export const CATEGORY_ICONS_MAP: Record<string, LucideIcon> = {
   // Ăn uống
   "ăn uống": Utensils,
   "an uong": Utensils,
-  "food": Utensils,
-  "dining": Utensils,
+  food: Utensils,
+  dining: Utensils,
   "nhà hàng": Utensils,
-  "cafe": Coffee,
+  cafe: Coffee,
   "cà phê": Coffee,
-  "coffee": Coffee,
+  coffee: Coffee,
   "đồ uống": Coffee,
 
   // Mua sắm
   "mua sắm": ShoppingBag,
   "mua sam": ShoppingBag,
-  "shopping": ShoppingBag,
+  shopping: ShoppingBag,
   "quần áo": ShoppingBag,
   "siêu thị": ShoppingBag,
 
   // Nhà cửa
   "nhà cửa": Home,
   "nha cua": Home,
-  "home": Home,
+  home: Home,
   "tiền nhà": Home,
 
   // Di chuyển
   "di chuyển": Car,
   "di chuyen": Car,
-  "transport": Car,
-  "xe": Car,
+  transport: Car,
+  xe: Car,
   "xăng xe": Car,
   "du lịch": Plane,
-  "travel": Plane,
+  travel: Plane,
 
   // Giải trí
   "giải trí": Gamepad2,
   "giai tri": Gamepad2,
-  "entertainment": Gamepad2,
-  "games": Gamepad2,
+  entertainment: Gamepad2,
+  games: Gamepad2,
   "chơi game": Gamepad2,
-  "phim": Film,
-  "movies": Film,
+  phim: Film,
+  movies: Film,
   "âm nhạc": Music,
 
   // Sức khỏe
   "sức khỏe": HeartPulse,
   "suc khoe": HeartPulse,
-  "health": HeartPulse,
+  health: HeartPulse,
   "y tế": HeartPulse,
   "bệnh viện": HeartPulse,
-  "thuốc": HeartPulse,
+  thuốc: HeartPulse,
 
   // Giáo dục
   "giáo dục": GraduationCap,
   "giao duc": GraduationCap,
-  "education": GraduationCap,
+  education: GraduationCap,
   "học tập": GraduationCap,
   "khóa học": GraduationCap,
-  "sách": GraduationCap,
+  sách: GraduationCap,
 
   // Hóa đơn
   "hóa đơn": Receipt,
   "hoa don": Receipt,
-  "bill": Receipt,
-  "bills": Receipt,
-  "điện": Receipt,
-  "nước": Receipt,
-  "internet": Receipt,
+  bill: Receipt,
+  bills: Receipt,
+  điện: Receipt,
+  nước: Receipt,
+  internet: Receipt,
 
   // Thu nhập / Lương
-  "lương": Banknote,
-  "luong": Banknote,
-  "salary": Banknote,
-  "income": Banknote,
+  lương: Banknote,
+  luong: Banknote,
+  salary: Banknote,
+  income: Banknote,
   "tiền lương": Banknote,
 
   // Thưởng
-  "thưởng": Gift,
-  "thuong": Gift,
-  "bonus": Gift,
+  thưởng: Gift,
+  thuong: Gift,
+  bonus: Gift,
   "quà tặng": Gift,
-  "gift": Gift,
+  gift: Gift,
 
   // Đầu tư
   "đầu tư": TrendingUp,
   "dau tu": TrendingUp,
-  "investment": TrendingUp,
+  investment: TrendingUp,
   "cổ phiếu": TrendingUp,
-  "crypto": TrendingUp,
+  crypto: TrendingUp,
 
   // Kinh doanh
   "kinh doanh": Briefcase,
-  "business": Briefcase,
+  business: Briefcase,
   "công việc": Briefcase,
 
   // Tiết kiệm
   "tiết kiệm": PiggyBank,
   "tiet kiem": PiggyBank,
-  "savings": PiggyBank,
+  savings: PiggyBank,
 
   // Công nghệ / Thiết bị
   "thiết bị": Smartphone,
@@ -205,8 +206,6 @@ export function CategoryIconBadge({
   isIncome?: boolean | undefined;
   size?: "sm" | "md" | "lg" | undefined;
 }) {
-  const IconComponent = getCategoryIcon(name, icon);
-
   const sizeClasses = {
     sm: "w-8 h-8 rounded-lg",
     md: "w-10 h-10 rounded-xl",
@@ -222,10 +221,15 @@ export function CategoryIconBadge({
   const bgStyle = color
     ? `${color}20`
     : isIncome
-    ? "rgba(16, 185, 129, 0.15)"
-    : "rgba(244, 63, 94, 0.15)";
+      ? "rgba(16, 185, 129, 0.15)"
+      : "rgba(244, 63, 94, 0.15)";
 
   const textColor = color || (isIncome ? "#10B981" : "#F43F5E");
+
+  // Tạo React Element trực tiếp từ icon mapping
+  const iconElement = createElement(getCategoryIcon(name, icon), {
+    className: iconSizes,
+  });
 
   return (
     <div
@@ -235,7 +239,7 @@ export function CategoryIconBadge({
         color: textColor,
       }}
     >
-      <IconComponent className={iconSizes} />
+      {iconElement}
     </div>
   );
 }

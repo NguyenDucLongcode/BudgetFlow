@@ -4,6 +4,7 @@ import { serverApiClient } from "@/src/lib/bff/server-api-client";
 import { parseExpiresIn } from "@/src/server/modules/auth/hepler";
 import { accessTokenStore } from "@/src/server/modules/auth/session";
 import { LoginDto, RegisterDto, RegisterResponse } from "@/src/types/api";
+import { Role } from "@/src/types";
 
 class AuthService {
   async login(data: LoginDto) {
@@ -67,15 +68,11 @@ class AuthService {
   }
 
   async logout(deviceId: string) {
-    const response = await serverApiClient.post(
-      "/auth/logout",
-      undefined,
-      {
-        headers: {
-          "x-device-id": deviceId,
-        },
+    const response = await serverApiClient.post("/auth/logout", undefined, {
+      headers: {
+        "x-device-id": deviceId,
       },
-    );
+    });
 
     // Xoá access token trong Redis BFF
     await accessTokenStore.remove(deviceId);
@@ -141,7 +138,7 @@ class AuthService {
     deviceId: string,
     accessToken: string,
     userId: string,
-    role: any,
+    role: Role,
     expiresIn = "15m",
   ) {
     await accessTokenStore.save(

@@ -14,13 +14,11 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [message, setMessage] = useState<string>(t("verifying"));
+  const [status, setStatus] = useState<"loading" | "success" | "error">(token ? "loading" : "error");
+  const [message, setMessage] = useState<string>(token ? t("verifying") : t("noToken"));
 
   useEffect(() => {
     if (!token) {
-      setStatus("error");
-      setMessage(t("noToken"));
       return;
     }
 
@@ -32,11 +30,16 @@ function VerifyEmailContent() {
         );
         setStatus("success");
         setMessage(res.data.data?.message || t("verifySuccessDesc"));
-      } catch (err: any) {
+      } catch (err: unknown) {
         setStatus("error");
-        setMessage(
-          err.response?.data?.message || t("verifyFailedDesc"),
-        );
+        let msg = t("verifyFailedDesc");
+        if (typeof err === "object" && err !== null) {
+          const errObj = err as Record<string, unknown>;
+          const resp = errObj.response as Record<string, unknown> | undefined;
+          const respData = resp?.data as Record<string, unknown> | undefined;
+          if (typeof respData?.message === "string") msg = respData.message;
+        }
+        setMessage(msg);
       }
     };
 

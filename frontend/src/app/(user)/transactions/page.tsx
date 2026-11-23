@@ -211,31 +211,33 @@ function TransactionsContent() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [viewingTransaction, setViewingTransaction] = useState<Transaction | null>(null);
 
-  // Tự động cập nhật viewingTransaction khi danh sách transactions thay đổi (WebSocket)
-  useEffect(() => {
-    if (!viewingTransaction) return;
-    const updated = rawTransactions.find((tx) => tx.id === viewingTransaction.id);
-    if (updated && updated.updatedAt !== viewingTransaction.updatedAt) {
-      setViewingTransaction(updated);
-    }
-  }, [rawTransactions, viewingTransaction]);
+  // Derived state: tự động cập nhật viewingTransaction khi danh sách transactions thay đổi (WebSocket)
+  const activeViewingTransaction = viewingTransaction
+    ? (rawTransactions.find((tx) => tx.id === viewingTransaction.id) ?? viewingTransaction)
+    : null;
 
   // ── Auto open transaction from URL (e.g. from Notification) ─────────────
   useEffect(() => {
     if (!urlTxId) return;
+    let isCancelled = false;
     const match = transactions.find((t) => t.id === urlTxId);
     if (match) {
-      setViewingTransaction(match);
+      Promise.resolve().then(() => {
+        if (!isCancelled) setViewingTransaction(match);
+      });
     } else {
       browserApiClient
         .get<Transaction>(`/transactions/${urlTxId}`)
         .then((res) => {
-          if (res.data?.data) {
+          if (!isCancelled && res.data?.data) {
             setViewingTransaction(res.data.data);
           }
         })
         .catch(() => {});
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [urlTxId, transactions]);
 
   const handleOpenCreate = () => { setEditingTransaction(null); setDialogOpen(true); };
@@ -573,7 +575,7 @@ function TransactionsContent() {
 
       {/* Detail modal */}
       <TransactionDetailModal
-        transaction={viewingTransaction}
+        transaction={activeViewingTransaction}
         onClose={() => setViewingTransaction(null)}
         onEdit={handleOpenEdit}
         onDelete={(id) => setDeleteConfirmId(id)}

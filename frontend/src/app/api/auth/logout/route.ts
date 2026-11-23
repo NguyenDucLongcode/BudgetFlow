@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
       // Xóa access token trong Redis BFF
       await accessTokenStore.remove(deviceId).catch(() => {});
     }
-  } catch (error: any) {
-    console.warn("[BFF /api/auth/logout] Exception during logout (ignored):", error?.message || error);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn("[BFF /api/auth/logout] Exception during logout (ignored):", msg);
   }
 
   // 2. Trả về response có Set-Cookie xóa sạch cookie refresh_token (Max-Age=0)

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
 import { Skeleton } from "@/src/components/ui/skeleton";
+import type { ApiResponse } from "@/src/types";
 
 interface SessionItem {
   id: string;
@@ -63,11 +64,16 @@ export default function AdminSessionsPage() {
   const { data, isLoading, isFetching, refetch } = useQuery<SessionsApiResponse>({
     queryKey: ["admin", "sessions", { page }],
     queryFn: async () => {
-      const res = await browserApiClient.get<{ data: SessionsApiResponse }>(
+      const res = await browserApiClient.get<ApiResponse<SessionsApiResponse> | SessionsApiResponse>(
         "/admin/sessions",
         { page, limit: 15 },
       );
-      return (res.data as any).data || res.data;
+      const resData = res.data;
+      return (
+        typeof resData === "object" && resData !== null && "data" in resData
+          ? (resData as ApiResponse<SessionsApiResponse>).data
+          : resData
+      ) as SessionsApiResponse;
     },
     refetchInterval: 15000,
   });
@@ -82,8 +88,15 @@ export default function AdminSessionsPage() {
       showToast(t("revokeSuccess"));
       setConfirmRevokeSession(null);
     },
-    onError: (err: any) => {
-      showToast(err.response?.data?.message || t("revokeError"));
+    onError: (err: unknown) => {
+      let msg = t("revokeError");
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        if (typeof respData?.message === "string") msg = respData.message;
+      }
+      showToast(msg);
     },
   });
 
@@ -96,8 +109,8 @@ export default function AdminSessionsPage() {
     const isFirefox = /Firefox/i.test(ua);
     const isSafari = /Safari/i.test(ua) && !isChrome;
 
-    let osName = isWindows ? "Windows" : isMac ? "macOS" : isMobile ? "Mobile" : "Linux";
-    let browserName = isChrome ? "Chrome" : isFirefox ? "Firefox" : isSafari ? "Safari" : "Browser";
+    const osName = isWindows ? "Windows" : isMac ? "macOS" : isMobile ? "Mobile" : "Linux";
+    const browserName = isChrome ? "Chrome" : isFirefox ? "Firefox" : isSafari ? "Safari" : "Browser";
 
     return {
       icon: isMobile ? Smartphone : Laptop,

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
 import { Skeleton } from "@/src/components/ui/skeleton";
+import type { ApiResponse } from "@/src/types";
 
 interface SystemCategoryItem {
   id: string;
@@ -35,6 +36,19 @@ interface SystemCategoryItem {
   color: string;
   isSystem: boolean;
   createdAt: string;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "object" && error !== null) {
+    const errObj = error as Record<string, unknown>;
+    const response = errObj.response as Record<string, unknown> | undefined;
+    const responseData = (response?.data || error) as Record<string, unknown> | undefined;
+    const msg = responseData?.message || errObj.message;
+    if (typeof msg === "string") return msg;
+    if (Array.isArray(msg)) return msg.join(", ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 export default function AdminCategoriesPage() {
@@ -70,11 +84,16 @@ export default function AdminCategoriesPage() {
   const { data, isLoading, isFetching, refetch } = useQuery<SystemCategoryItem[]>({
     queryKey: ["admin", "categories", { search, typeFilter }],
     queryFn: async () => {
-      const res = await browserApiClient.get<{ data: SystemCategoryItem[] }>(
+      const res = await browserApiClient.get<ApiResponse<SystemCategoryItem[]> | SystemCategoryItem[]>(
         "/admin/categories",
         { search, type: typeFilter },
       );
-      return (res.data as any).data || res.data;
+      const resData = res.data;
+      return (
+        typeof resData === "object" && resData !== null && "data" in resData
+          ? (resData as ApiResponse<SystemCategoryItem[]>).data
+          : resData
+      ) as SystemCategoryItem[];
     },
   });
 
@@ -96,8 +115,8 @@ export default function AdminCategoriesPage() {
       setIsCreateOpen(false);
       setFormData({ name: "", type: "EXPENSE", icon: "Folder", color: "#10B981" });
     },
-    onError: (err: any) => {
-      showToast(err.response?.data?.message || t("createError"));
+    onError: (err: unknown) => {
+      showToast(getErrorMessage(err, t("createError")));
     },
   });
 
@@ -111,8 +130,8 @@ export default function AdminCategoriesPage() {
       showToast(t("updateSuccess"));
       setEditingCategory(null);
     },
-    onError: (err: any) => {
-      showToast(err.response?.data?.message || t("updateError"));
+    onError: (err: unknown) => {
+      showToast(getErrorMessage(err, t("updateError")));
     },
   });
 
@@ -126,8 +145,8 @@ export default function AdminCategoriesPage() {
       showToast(t("deleteSuccess"));
       setDeletingCategory(null);
     },
-    onError: (err: any) => {
-      showToast(err.response?.data?.message || t("deleteError"));
+    onError: (err: unknown) => {
+      showToast(getErrorMessage(err, t("deleteError")));
     },
   });
 
@@ -395,7 +414,7 @@ export default function AdminCategoriesPage() {
                 <label className="block text-slate-400 font-semibold mb-1.5">{t("typeLabel")}</label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as "INCOME" | "EXPENSE" })}
                   className="w-full h-10 rounded-xl border border-[#334155] bg-[#1E293B] px-3 text-xs text-white focus:border-emerald-500/50 focus:outline-hidden"
                 >
                   <option value="EXPENSE">{t("expenseType")}</option>

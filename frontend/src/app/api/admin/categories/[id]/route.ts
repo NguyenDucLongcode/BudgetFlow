@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverApiClient } from "@/src/lib/bff/server-api-client";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
+import type { Category } from "@/src/types";
 
 export async function PATCH(
   request: NextRequest,
@@ -9,7 +10,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const res = await serverApiClient.patch<any>(`/categories/${id}`, body);
+    const res = await serverApiClient.patch<Category>(`/categories/${id}`, body);
     return NextResponse.json(res.data);
   } catch (error) {
     return handleApiError(error);
@@ -22,7 +23,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const res = await serverApiClient.delete<any>(`/categories/${id}`);
+    const res = await serverApiClient.delete<null>(`/categories/${id}`);
     return NextResponse.json(res.data);
   } catch (error) {
     return handleApiError(error);

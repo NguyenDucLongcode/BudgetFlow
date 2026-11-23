@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
 import { Skeleton } from "@/src/components/ui/skeleton";
+import type { ApiResponse } from "@/src/types";
 
 interface AuditLogItem {
   id: string;
@@ -36,7 +37,7 @@ interface AuditLogItem {
   entityId: string;
   ipAddress: string;
   userAgent: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface AuditLogsApiResponse {
@@ -69,11 +70,16 @@ export default function AdminAuditLogsPage() {
       if (actionFilter !== "ALL") params.action = actionFilter;
       if (entityFilter !== "ALL") params.entity = entityFilter;
 
-      const res = await browserApiClient.get<{ data: AuditLogsApiResponse }>(
+      const res = await browserApiClient.get<ApiResponse<AuditLogsApiResponse> | AuditLogsApiResponse>(
         "/admin/audit-logs",
         params,
       );
-      return (res.data as any).data || res.data;
+      const resData = res.data;
+      return (
+        typeof resData === "object" && resData !== null && "data" in resData
+          ? (resData as ApiResponse<AuditLogsApiResponse>).data
+          : resData
+      ) as AuditLogsApiResponse;
     },
   });
 

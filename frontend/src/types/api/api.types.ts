@@ -1,12 +1,13 @@
 import type { AxiosResponse } from "axios";
 
-// this interface represents the structure of a successful response from the API.
+// This interface represents the structure of a successful response from the API.
 export interface ApiResponse<T> {
-  statusCode: number;
+  statusCode?: number;
   message: string;
   data: T;
-  timestamp: string;
-  path: string;
+  timestamp?: string;
+  path?: string;
+  pagination?: PaginationResponse;
 }
 
 /**
@@ -36,7 +37,7 @@ export class ApiError extends Error {
   path: string;
 
   constructor(error: ApiErrorResponse) {
-    super(error.message);
+    super(Array.isArray(error.message) ? error.message.join(", ") : error.message);
 
     this.name = "ApiError";
     this.statusCode = error.statusCode;
@@ -50,8 +51,8 @@ export interface PaginationResponse {
   limit: number;
   total: number;
   totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
 }
 
 export interface AppError extends Error {

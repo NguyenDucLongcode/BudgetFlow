@@ -53,22 +53,23 @@ export function TransactionDetailModal({
   };
 
   // Trích xuất tags từ transaction hoặc metadata
+  const meta = transaction.metadata as Record<string, unknown> | undefined;
+  const metaTags = Array.isArray(meta?.tags) ? meta.tags : [];
   const tags: Array<{ id?: string; name: string }> =
     (transaction.tags && transaction.tags.length > 0)
       ? transaction.tags
-      : Array.isArray((transaction.metadata as any)?.tags)
-      ? (transaction.metadata as any).tags.map((t: any) =>
-          typeof t === "string" ? { name: t } : t
-        )
-      : [];
+      : metaTags.map((t) =>
+          typeof t === "string" ? { name: t } : (t as { id?: string; name: string })
+        );
 
   // Trích xuất attachments từ transaction hoặc metadata
+  const metaAttachments = Array.isArray(meta?.attachments)
+    ? (meta.attachments as Array<{ id?: string; fileName?: string; fileUrl?: string; name?: string; url?: string }>)
+    : [];
   const attachments: Array<{ id?: string; fileName?: string; fileUrl?: string; name?: string; url?: string }> =
     (transaction.attachments && transaction.attachments.length > 0)
       ? transaction.attachments
-      : Array.isArray((transaction.metadata as any)?.attachments)
-      ? (transaction.metadata as any).attachments
-      : [];
+      : metaAttachments;
 
   const handleDelete = () => {
     if (onDelete && transaction) {

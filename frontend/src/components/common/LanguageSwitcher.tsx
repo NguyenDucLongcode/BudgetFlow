@@ -42,7 +42,11 @@ export function LanguageSwitcher() {
     if (lang.code.toLowerCase() === currentLocale.toLowerCase()) return;
 
     // 1. Cập nhật cookie NEXT_LOCALE trên client
-    document.cookie = `NEXT_LOCALE=${lang.code}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+    Reflect.set(
+      document,
+      "cookie",
+      `NEXT_LOCALE=${lang.code}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`,
+    );
 
     // 2. Gửi API lưu vào Database nếu user đã đăng nhập
     try {
@@ -107,7 +111,9 @@ export function LanguageSwitcher() {
                   <span>{lang.flag}</span>
                   <span>{lang.label}</span>
                 </span>
-                {isSelected && <Check className="h-3.5 w-3.5 text-emerald-400" />}
+                {isSelected && (
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                )}
               </button>
             );
           })}

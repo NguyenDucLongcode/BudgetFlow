@@ -1,13 +1,6 @@
 import { TransactionType, TransactionStatus } from "../enums";
 import { Wallet } from "./wallet.types";
-
-export interface TransactionCategory {
-  id: string;
-  name: string;
-  type?: string | undefined;
-  icon?: string | undefined;
-  color?: string | undefined;
-}
+import type { TransactionCategory } from "./category.types";
 
 export interface Transaction {
   id: string;

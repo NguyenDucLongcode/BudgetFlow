@@ -18,10 +18,12 @@ import {
   TextField,
 } from "@/src/components/ui";
 import { useLogin } from "@/src/client/auth";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
   const t = useTranslations("auth");
   const { mutateAsync: login, isPending } = useLogin();
+  const router = useRouter();
 
   const {
     register,
@@ -42,11 +44,9 @@ export default function LoginForm() {
       const response = await login(data);
 
       const targetPath =
-        response.data.user.role === "ADMIN"
-          ? "/admin/dashboard"
-          : "/dashboard";
+        response.data.user.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
 
-      window.location.href = targetPath;
+      router.replace(targetPath);
     } catch (error) {
       console.error("Login error:", error);
     }

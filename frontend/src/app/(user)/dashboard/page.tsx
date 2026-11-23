@@ -39,6 +39,34 @@ import { useBudgetSummary } from "@/src/client/budget/budget.hooks";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { TransactionType } from "@/src/types/enums";
 
+interface TooltipPayloadItem {
+  payload: {
+    name: string;
+    value: number;
+    percent: number;
+  };
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur-md">
+        <p className="text-xs font-semibold text-white">{data.name}</p>
+        <p className="text-xs text-indigo-400 font-mono mt-0.5">
+          {data.value.toLocaleString("en-US")} ₫ ({data.percent}%)
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function UserDashboardPage() {
   const t = useTranslations("userDashboard");
   const { user } = useAuth();
@@ -188,20 +216,7 @@ export default function UserDashboardPage() {
     { name: t("categoryEntertainment"), value: 2737500, percent: 15, color: "#8B5CF6", icon: Film },
   ];
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur-md">
-          <p className="text-xs font-semibold text-white">{data.name}</p>
-          <p className="text-xs text-indigo-400 font-mono mt-0.5">
-            {data.value.toLocaleString("en-US")} ₫ ({data.percent}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">

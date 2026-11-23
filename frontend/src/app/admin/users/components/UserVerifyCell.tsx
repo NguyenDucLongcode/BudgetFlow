@@ -40,11 +40,15 @@ export function UserVerifyCell({
     try {
       await browserApiClient.post("/auth/resend-verification-email", { email });
       onToast(tUsers("resendVerificationSuccess", { email }));
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to resend verification email";
+    } catch (err: unknown) {
+      let msg = "Failed to resend verification email";
+      if (typeof err === "object" && err !== null) {
+        const errObj = err as Record<string, unknown>;
+        const resp = errObj.response as Record<string, unknown> | undefined;
+        const respData = resp?.data as Record<string, unknown> | undefined;
+        const respMsg = respData?.message || errObj.message;
+        if (typeof respMsg === "string") msg = respMsg;
+      }
       onToast(msg, true);
     } finally {
       setSending(false);

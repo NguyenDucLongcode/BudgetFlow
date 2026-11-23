@@ -31,12 +31,8 @@ export default function WalletsPage() {
     ...(showArchived ? {} : { isArchived: false }),
   });
 
-  // Đảm bảo dữ liệu nhận được luôn là Array, tránh trường hợp bị lồng trong object
-  const wallets: Wallet[] = Array.isArray(rawWallets)
-    ? rawWallets
-    : Array.isArray((rawWallets as any)?.data)
-    ? (rawWallets as any).data
-    : [];
+  // Đảm bảo dữ liệu nhận được luôn là Array
+  const wallets: Wallet[] = Array.isArray(rawWallets) ? rawWallets : [];
 
   // 2. Các mutations thao tác ví (tự động thông báo qua react-toastify)
   const createMutation = useCreateWallet();

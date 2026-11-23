@@ -17,7 +17,7 @@ import {
 import { BrandLogo } from "@/src/components";
 import { LanguageSwitcher } from "@/src/components/common/LanguageSwitcher";
 
-function parseJwtPayload(token: string): Record<string, any> | null {
+function parseJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split(".");
     if (parts.length < 2) return null;
@@ -37,6 +37,11 @@ function parseJwtPayload(token: string): Record<string, any> | null {
   }
 }
 
+function isTokenExpired(exp?: number): boolean {
+  if (!exp) return false;
+  return exp * 1000 <= Date.now();
+}
+
 export default async function HomePage() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refresh_token")?.value;
@@ -44,7 +49,7 @@ export default async function HomePage() {
   // 1. Kiểm tra session đăng nhập: Nếu đã đăng nhập, tự động redirect
   if (refreshToken) {
     const payload = parseJwtPayload(refreshToken);
-    const isExpired = Boolean(payload?.exp) && payload!.exp * 1000 <= Date.now();
+    const isExpired = isTokenExpired(typeof payload?.exp === "number" ? payload.exp : undefined);
 
     if (payload && !isExpired) {
       if (payload.role === "ADMIN") {

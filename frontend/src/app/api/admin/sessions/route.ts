@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminService } from "@/src/server/modules/admin/admin.service";
 import { handleApiError } from "@/src/lib/bff/errors/handle-api-error";
+import type { User, UserSession } from "@/src/types";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,12 +29,12 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     await Promise.all(
-      users.slice(0, 15).map(async (u: any) => {
+      users.slice(0, 15).map(async (u: User) => {
         try {
           const detailRes = await adminService.getUser(u.id);
-          const detail = detailRes?.data;
+          const detail = detailRes?.data as unknown as ((User & { sessions?: UserSession[] }) | undefined);
           if (detail?.sessions && Array.isArray(detail.sessions)) {
-            detail.sessions.forEach((s: any) => {
+            detail.sessions.forEach((s: UserSession) => {
               const activeDiff = Date.now() - new Date(s.lastActiveAt).getTime();
               allSessions.push({
                 id: s.id,

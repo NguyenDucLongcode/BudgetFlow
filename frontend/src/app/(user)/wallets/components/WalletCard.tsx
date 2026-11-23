@@ -36,7 +36,7 @@ interface WalletCardProps {
   isArchiving?: boolean;
 }
 
-export const WALLET_ICONS: Record<string, any> = {
+export const WALLET_ICONS: Record<string, React.ElementType> = {
   wallet: WalletIcon,
   landmark: Landmark,
   smartphone: Smartphone,

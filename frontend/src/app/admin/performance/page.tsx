@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
 import { Skeleton } from "@/src/components/ui/skeleton";
+import type { ApiResponse } from "@/src/types";
 
 interface PerformanceMetricsResponse {
   metrics: {
@@ -44,10 +45,15 @@ export default function AdminPerformancePage() {
   const { data, isLoading, isFetching, refetch } = useQuery<PerformanceMetricsResponse>({
     queryKey: ["admin", "performance"],
     queryFn: async () => {
-      const res = await browserApiClient.get<{ data: PerformanceMetricsResponse }>(
+      const res = await browserApiClient.get<ApiResponse<PerformanceMetricsResponse> | PerformanceMetricsResponse>(
         "/admin/metrics",
       );
-      return (res.data as any).data || res.data;
+      const resData = res.data;
+      return (
+        typeof resData === "object" && resData !== null && "data" in resData
+          ? (resData as ApiResponse<PerformanceMetricsResponse>).data
+          : resData
+      ) as PerformanceMetricsResponse;
     },
     refetchInterval: 10000,
   });

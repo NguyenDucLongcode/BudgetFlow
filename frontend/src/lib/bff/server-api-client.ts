@@ -284,7 +284,7 @@ class ServerApiClient {
         "params" in paramsOrConfig;
 
       let finalParams = hasParamsKey
-        ? (paramsOrConfig as any).params
+        ? (paramsOrConfig as Record<string, unknown>).params
         : paramsOrConfig;
 
       // Đảm bảo không bị lồng params[params]
@@ -292,9 +292,9 @@ class ServerApiClient {
         finalParams &&
         typeof finalParams === "object" &&
         "params" in finalParams &&
-        typeof (finalParams as any).params === "object"
+        typeof (finalParams as Record<string, unknown>).params === "object"
       ) {
-        finalParams = (finalParams as any).params;
+        finalParams = (finalParams as Record<string, unknown>).params;
       }
 
       const baseConfig = hasParamsKey
