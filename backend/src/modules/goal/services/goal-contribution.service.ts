@@ -6,7 +6,14 @@ import {
 import { GoalRepository } from 'src/infrastructure/prisma/repositories';
 import { GoalContributionRepository } from 'src/infrastructure/prisma/repositories';
 import { WalletRepository } from 'src/infrastructure/prisma/repositories';
-import { Prisma } from 'generated/prisma/client';
+import {
+  GoalStatus,
+  NotificationType,
+  Prisma,
+  TransactionStatus,
+  TransactionType,
+} from 'generated/prisma/client';
+import { NotificationGateway } from 'src/modules/notification/notification.gateway';
 import { CreateContributionDto } from '../dto/CreateContributionDto';
 import { UpdateContributionDto } from '../dto/UpdateContributionDto';
 import { ContributionQueryDto } from '../dto/ContributionQueryDto';
@@ -17,6 +24,7 @@ export class GoalContributionService {
     private readonly goalRepository: GoalRepository,
     private readonly goalContributionRepository: GoalContributionRepository,
     private readonly walletRepository: WalletRepository,
+    private readonly notificationGateway: NotificationGateway,
   ) {}
 
   async addContribution(
@@ -24,7 +32,7 @@ export class GoalContributionService {
     userId: string,
     dto: CreateContributionDto,
   ) {
-    // Kiểm tra goal tồn tại và thuộc về user
+    // 1. Kiểm tra goal tồn tại và thuộc về user
     const goal = await this.goalRepository.findFirst({
       where: {
         id: goalId,
@@ -37,24 +45,25 @@ export class GoalContributionService {
       throw new NotFoundException('Không tìm thấy mục tiêu');
     }
 
-    if (goal.status === 'COMPLETED') {
+    if (goal.status === GoalStatus.COMPLETED) {
       throw new BadRequestException(
-        'Mục tiêu đã hoàn thành, không thể đóng góp thêm',
+        'Mục tiêu đã hoàn thành, không thể nạp thêm',
       );
     }
 
-    if (goal.status === 'CANCELLED') {
+    if (goal.status === GoalStatus.CANCELLED) {
       throw new BadRequestException('Mục tiêu đã bị hủy');
     }
 
-    // Kiểm tra số tiền đóng góp
+    // 2. Kiểm tra số tiền đóng góp
     if (dto.amount <= 0) {
-      throw new BadRequestException('Số tiền đóng góp phải lớn hơn 0');
+      throw new BadRequestException('Số tiền nạp phải lớn hơn 0');
     }
 
-    // Kiểm tra wallet nếu có
+    // 3. Kiểm tra wallet nếu có
+    let wallet: Awaited<ReturnType<typeof this.walletRepository.findFirst>> = null;
     if (dto.walletId) {
-      const wallet = await this.walletRepository.findFirst({
+      wallet = await this.walletRepository.findFirst({
         where: {
           id: dto.walletId,
           userId,
@@ -63,43 +72,39 @@ export class GoalContributionService {
       });
 
       if (!wallet) {
-        throw new NotFoundException('Không tìm thấy ví');
+        throw new NotFoundException('Không tìm thấy ví nguồn');
       }
 
       // Kiểm tra số dư ví
       if (wallet.balance.toNumber() < dto.amount) {
         throw new BadRequestException(
-          `Số dư ví không đủ (${wallet.balance.toNumber()} < ${dto.amount})`,
+          `Số dư ví không đủ (${wallet.balance.toNumber().toLocaleString('vi-VN')} < ${dto.amount.toLocaleString('vi-VN')})`,
         );
       }
     }
 
-    // Xử lý transaction (nếu dùng Prisma transaction)
+    // 4. Prisma Transaction
     const result = await this.goalRepository.prisma.$transaction(async (tx) => {
-      // 1. Tạo contribution
-      const contribution = await tx.goalContribution.create({
-        data: {
-          goalId,
-          walletId: dto.walletId,
-          amount: dto.amount,
-          contributionDate: dto.contributionDate || new Date(),
-          note: dto.note,
-          transactionId: dto.transactionId,
-        },
-      });
-
-      // 2. Cập nhật savedAmount của goal
-      await tx.goal.update({
-        where: { id: goalId },
-        data: {
-          savedAmount: {
-            increment: dto.amount,
-          },
-        },
-      });
-
-      // 3. Cập nhật số dư wallet (nếu có walletId)
+      // Bước 1: Tạo một bản ghi Transaction (type: EXPENSE, amount, walletId, description: "Nạp tiền vào mục tiêu: [Tên Goal]")
+      let createdTransaction: { id: string } | null = null;
       if (dto.walletId) {
+        createdTransaction = await tx.transaction.create({
+          data: {
+            userId,
+            walletId: dto.walletId,
+            type: TransactionType.EXPENSE,
+            amount: dto.amount,
+            currency: wallet?.currency || goal.currency,
+            description: `Nạp tiền vào mục tiêu: ${goal.name}`,
+            note: dto.note,
+            date: dto.contributionDate
+              ? new Date(dto.contributionDate)
+              : new Date(),
+            status: TransactionStatus.COMPLETED,
+          },
+        });
+
+        // Bước 2: Trừ số dư (balance) của Ví (Wallet) tương ứng
         await tx.wallet.update({
           where: { id: dto.walletId },
           data: {
@@ -110,12 +115,84 @@ export class GoalContributionService {
         });
       }
 
-      return contribution;
+      // Bước 3: Cộng số tiền vào savedAmount của Goal
+      const newSavedAmount = Number(goal.savedAmount) + Number(dto.amount);
+      const isCompleted = newSavedAmount >= Number(goal.targetAmount);
+
+      const updatedGoal = await tx.goal.update({
+        where: { id: goalId },
+        data: {
+          savedAmount: {
+            increment: dto.amount,
+          },
+          ...(isCompleted ? { status: GoalStatus.COMPLETED } : {}),
+        },
+      });
+
+      // Bước 4: Tạo bản ghi GoalContribution (lưu goalId, walletId, amount, note, transactionId)
+      const contribution = await tx.goalContribution.create({
+        data: {
+          goalId,
+          walletId: dto.walletId,
+          amount: dto.amount,
+          contributionDate: dto.contributionDate
+            ? new Date(dto.contributionDate)
+            : new Date(),
+          note: dto.note,
+          transactionId: createdTransaction?.id || dto.transactionId,
+        },
+      });
+
+      // Bước 5: Nếu savedAmount >= targetAmount, tự động chuyển status thành COMPLETED. Bắn thông báo (Notification + WebSocket)
+      let notification: {
+        id: string;
+        userId: string;
+        type: NotificationType;
+        title: string;
+        message: string;
+        metadata: Prisma.JsonValue;
+        isRead: boolean;
+        readAt: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+      } | null = null;
+      if (isCompleted) {
+        notification = await tx.notification.create({
+          data: {
+            userId,
+            type: NotificationType.GOAL,
+            title: 'Chúc mừng! Bạn đã hoàn thành mục tiêu tiết kiệm',
+            message: `Bạn đã đạt được mục tiêu "${goal.name}" với số tiền tiết kiệm ${newSavedAmount.toLocaleString('vi-VN')} VND.`,
+            metadata: {
+              goalId: goal.id,
+              goalName: goal.name,
+              targetAmount: Number(goal.targetAmount),
+              savedAmount: newSavedAmount,
+            },
+          },
+        });
+      }
+
+      return {
+        contribution,
+        goal: updatedGoal,
+        transaction: createdTransaction,
+        notification,
+      };
     });
 
+    // Bắn WebSocket thông báo nếu có
+    if (result.notification) {
+      try {
+        this.notificationGateway.sendNotification(userId, result.notification);
+      } catch {
+        // WebSocket dispatch error should not rollback or crash the response
+      }
+    }
+
     return {
-      message: 'Đóng góp vào mục tiêu thành công',
-      data: result,
+      message: 'Nạp tiền vào mục tiêu thành công',
+      data: result.contribution,
     };
   }
 

@@ -36,8 +36,9 @@ import {
   useTransactionStatistics,
 } from "@/src/client/transaction/transaction.hooks";
 import { useBudgetSummary } from "@/src/client/budget/budget.hooks";
+import { useGoals } from "@/src/client/goal";
 import { Skeleton } from "@/src/components/ui/skeleton";
-import { TransactionType } from "@/src/types/enums";
+import { TransactionType, GoalPriority, GoalStatus } from "@/src/types/enums";
 
 interface TooltipPayloadItem {
   payload: {
@@ -146,6 +147,31 @@ export default function UserDashboardPage() {
     budgetTotalAllocated > 0
       ? Math.round((budgetTotalSpent / budgetTotalAllocated) * 100)
       : 0;
+
+  // 5. Lấy Mục tiêu nổi bật (ưu tiên cao nhất hoặc sắp đến hạn nhất)
+  const { data: goalsData, isLoading: isLoadingGoals } = useGoals({
+    isArchived: false,
+    status: GoalStatus.IN_PROGRESS,
+    sortBy: "targetDate",
+    order: "asc",
+  });
+
+  const featuredGoal = useMemo(() => {
+    const goals = goalsData?.goals || [];
+    if (goals.length === 0) return null;
+    const priorityWeight: Record<GoalPriority, number> = {
+      [GoalPriority.URGENT]: 4,
+      [GoalPriority.HIGH]: 3,
+      [GoalPriority.MEDIUM]: 2,
+      [GoalPriority.LOW]: 1,
+    };
+    return [...goals].sort((a, b) => {
+      const weightA = priorityWeight[a.priority] || 0;
+      const weightB = priorityWeight[b.priority] || 0;
+      if (weightA !== weightB) return weightB - weightA;
+      return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+    })[0];
+  }, [goalsData]);
 
   // 4 Stat Cards với dữ liệu thực tế
   const statCards = [
@@ -256,7 +282,7 @@ export default function UserDashboardPage() {
       </div>
 
       {/* 2. Top Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
 
@@ -358,6 +384,80 @@ export default function UserDashboardPage() {
                     {budgetPercent}%
                   </span>
                 </div>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {/* 6th Card: Mục tiêu nổi bật */}
+        <Link
+          href="/goals"
+          className="p-5 rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-yellow-500/5 bg-[#111827]/70 backdrop-blur-md shadow-lg flex flex-col justify-between space-y-3 hover:border-amber-500/60 transition-all hover:-translate-y-0.5 group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-300">
+              Mục tiêu nổi bật
+            </span>
+            <div className="p-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/20 text-amber-300 group-hover:scale-105 transition-transform">
+              <Target className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div>
+            {isLoadingGoals ? (
+              <Skeleton className="h-7 w-32 bg-slate-800 my-1" />
+            ) : featuredGoal ? (
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-[130px]">
+                    {featuredGoal.name}
+                  </h3>
+                  <span className="text-xs font-bold text-amber-400 font-mono">
+                    {featuredGoal.progress ||
+                      Math.round(
+                        (Number(featuredGoal.savedAmount) /
+                          Number(featuredGoal.targetAmount)) *
+                          100,
+                      )}
+                    %
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden mt-2 mb-1.5">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        featuredGoal.progress ||
+                          Math.round(
+                            (Number(featuredGoal.savedAmount) /
+                              Number(featuredGoal.targetAmount)) *
+                              100,
+                          ),
+                        100,
+                      )}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">
+                    {Number(featuredGoal.savedAmount).toLocaleString("vi-VN")} ₫
+                  </span>
+                  <span className="text-slate-400 font-semibold">
+                    / {Number(featuredGoal.targetAmount).toLocaleString("vi-VN")} ₫
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="py-1">
+                <p className="text-xs text-slate-300 font-semibold">
+                  Chưa có mục tiêu
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Nhấn để tạo mục tiêu đầu tiên →
+                </p>
               </div>
             )}
           </div>

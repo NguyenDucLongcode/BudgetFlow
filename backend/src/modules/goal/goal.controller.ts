@@ -123,6 +123,16 @@ export class GoalController {
   // CONTRIBUTION MANAGEMENT
   // =========================
 
+  @Post(':id/contribute')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'Goal'))
+  contribute(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreateContributionDto,
+  ) {
+    return this.contributionService.addContribution(id, userId, dto);
+  }
+
   @Post(':id/contributions')
   @CheckPolicies((ability) => ability.can(Action.Update, 'Goal'))
   addContribution(

@@ -5,3 +5,4 @@ export * from "./wallet.types";
 export * from "./transaction.types";
 export * from "./budget.types";
 export * from "./category.types";
+export * from "./goal.types";

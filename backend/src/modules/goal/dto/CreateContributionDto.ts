@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
-  IsDecimal,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -14,7 +15,8 @@ export class CreateContributionDto {
     example: 1000000,
     description: 'Số tiền đóng góp',
   })
-  @IsDecimal({ decimal_digits: '0,2' })
+  @Type(() => Number)
+  @IsNumber()
   @Min(0.01)
   amount!: number;
 

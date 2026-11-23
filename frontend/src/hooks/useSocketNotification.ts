@@ -90,9 +90,16 @@ export function useSocketNotification(userId?: string | null) {
       queryClient.invalidateQueries({ queryKey: ["notifications"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["goals"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["transactions"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["statistics"], exact: false });
 
       queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
+      queryClient.refetchQueries({ queryKey: ["goals"], exact: false });
+      queryClient.refetchQueries({ queryKey: ["wallets"], exact: false });
+      queryClient.refetchQueries({ queryKey: ["transactions"], exact: false });
     });
 
     socket.on("disconnect", () => {

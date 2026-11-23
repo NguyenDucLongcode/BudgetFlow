@@ -200,9 +200,21 @@ export class GoalService {
       this.goalRepository.count({ where }),
     ]);
 
+    const goalsWithProgress = goals.map((goal) => {
+      const target = Number(goal.targetAmount);
+      const saved = Number(goal.savedAmount);
+      const progress =
+        target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 0;
+      return {
+        ...goal,
+        progress,
+        percentage: progress,
+      };
+    });
+
     return {
       message: 'Lấy danh sách mục tiêu thành công',
-      data: goals,
+      data: goalsWithProgress,
       pagination: {
         page,
         limit,
@@ -228,9 +240,18 @@ export class GoalService {
       throw new NotFoundException('Không tìm thấy mục tiêu');
     }
 
+    const target = Number(goal.targetAmount);
+    const saved = Number(goal.savedAmount);
+    const progress =
+      target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 0;
+
     return {
       message: 'Lấy thông tin mục tiêu thành công',
-      data: goal,
+      data: {
+        ...goal,
+        progress,
+        percentage: progress,
+      },
     };
   }
 
