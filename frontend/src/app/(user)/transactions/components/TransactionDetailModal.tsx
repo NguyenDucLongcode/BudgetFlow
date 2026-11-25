@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { CategoryIconBadge } from "@/src/utils/category-icons";
+import { getLocalizedName } from "@/src/utils";
 import { TransactionType, TransactionStatus } from "@/src/types/enums";
 import type { Transaction } from "@/src/types/api";
 
@@ -112,7 +113,7 @@ export function TransactionDetailModal({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <CategoryIconBadge
-                name={cat?.name}
+                name={getLocalizedName(cat, locale)}
                 icon={cat?.icon}
                 color={cat?.color}
                 isIncome={isIncome}
@@ -129,7 +130,7 @@ export function TransactionDetailModal({
                   {isIncome ? "Khoản thu nhập" : "Khoản chi tiêu"}
                 </span>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-white">
-                  {cat?.name || (isIncome ? "Thu nhập" : "Chi tiêu")}
+                  {getLocalizedName(cat, locale) || (isIncome ? "Thu nhập" : "Chi tiêu")}
                 </h2>
               </div>
             </div>
@@ -188,7 +189,7 @@ export function TransactionDetailModal({
                   <span className="text-xs text-slate-500 block">Ví thực hiện</span>
                   <span className="text-base font-semibold text-slate-100 flex items-center gap-2 mt-0.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                    {transaction.wallet?.name || "—"}
+                    {getLocalizedName(transaction.wallet, locale) || "—"}
                   </span>
                 </div>
 
@@ -201,7 +202,7 @@ export function TransactionDetailModal({
                         style={{ backgroundColor: cat.color }}
                       />
                     )}
-                    {cat?.name || "Chưa phân loại"}
+                    {getLocalizedName(cat, locale) || "Chưa phân loại"}
                   </span>
                 </div>
 

@@ -3,7 +3,15 @@ import { CategoryService } from './category.service';
 
 describe('CategoryService.findAll', () => {
   it('queries categories without joins that can duplicate rows', async () => {
-    const categories = [{ id: 'category-1', name: 'Ăn uống', type: 'EXPENSE' }];
+    const categories = [
+      {
+        id: 'category-1',
+        nameVi: 'Ăn uống',
+        nameEn: 'Food & Dining',
+        name: 'Ăn uống',
+        type: 'EXPENSE',
+      },
+    ];
 
     const findManyMock = jest.fn().mockResolvedValue(categories);
     const countMock = jest.fn().mockResolvedValue(1);

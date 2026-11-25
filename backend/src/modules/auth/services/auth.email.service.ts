@@ -81,7 +81,8 @@ export class AuthEmailService {
     await this.walletRepository.create({
       data: {
         userId: user.id,
-        name: 'Ví tiền mặt',
+        nameVi: 'Ví tiền mặt',
+        nameEn: 'Cash Wallet',
         type: WalletType.CASH,
         currency: 'VND',
         balance: new Prisma.Decimal(0),

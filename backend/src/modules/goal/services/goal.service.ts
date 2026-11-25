@@ -190,7 +190,8 @@ export class GoalService {
           wallet: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               type: true,
               currency: true,
             },

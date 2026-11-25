@@ -100,7 +100,10 @@ export class TransactionCronService {
                   type: NotificationType.SYSTEM,
                   title: 'Giao dịch dự kiến đã được thực hiện',
                   message: `Khoản ${typeLabel} "${
-                    txItem.description || txItem.category?.name || 'Giao dịch'
+                    txItem.description ||
+                    txItem.category?.nameVi ||
+                    txItem.category?.nameEn ||
+                    'Giao dịch'
                   }" trị giá ${amountFormatted} ${
                     txItem.currency
                   } đã đến hạn và được thực hiện tự động. Số dư ví đã được cập nhật.`,
@@ -267,7 +270,10 @@ export class TransactionCronService {
       if (newSpent >= thresholdAmount || newSpent >= budgetAmount) {
         const isExceeded = newSpent >= budgetAmount;
         const percent = Math.round((newSpent / budgetAmount) * 100);
-        const categoryName = updatedBudget.category?.name || 'Chi tiêu';
+        const categoryName =
+          updatedBudget.category?.nameVi ||
+          updatedBudget.category?.nameEn ||
+          'Chi tiêu';
         const title = isExceeded
           ? 'Cảnh báo vượt quá ngân sách!'
           : `Cảnh báo chi tiêu đạt ${percent}% ngân sách`;

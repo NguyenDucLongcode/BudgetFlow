@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
     // Nếu backend chưa có sẵn hoặc user categories lẫn, tạo danh sách mẫu mặc định phong phú nếu cần
     if (systemCategories.length === 0) {
       systemCategories = [
-        { id: "cat_sys_1", name: "Lương & Thưởng", type: "INCOME" as const, icon: "Banknote", color: "#10B981", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_2", name: "Đầu tư & Cổ tức", type: "INCOME" as const, icon: "TrendingUp", color: "#3B82F6", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_3", name: "Tiền lãi tiết kiệm", type: "INCOME" as const, icon: "PiggyBank", color: "#06B6D4", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_4", name: "Ăn uống & Nhà hàng", type: "EXPENSE" as const, icon: "Utensils", color: "#EF4444", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_5", name: "Nhà ở & Tiền điện nước", type: "EXPENSE" as const, icon: "Home", color: "#F59E0B", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_6", name: "Giao thông & Xăng xe", type: "EXPENSE" as const, icon: "Car", color: "#8B5CF6", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_7", name: "Y tế & Sức khỏe", type: "EXPENSE" as const, icon: "HeartPulse", color: "#EC4899", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: "cat_sys_8", name: "Giáo dục & Khóa học", type: "EXPENSE" as const, icon: "GraduationCap", color: "#6366F1", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_1", name: "Lương & Thưởng", nameVi: "Lương & Thưởng", nameEn: "Salary & Bonus", type: "INCOME" as const, icon: "Banknote", color: "#10B981", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_2", name: "Đầu tư & Cổ tức", nameVi: "Đầu tư & Cổ tức", nameEn: "Investments & Dividends", type: "INCOME" as const, icon: "TrendingUp", color: "#3B82F6", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_3", name: "Tiền lãi tiết kiệm", nameVi: "Tiền lãi tiết kiệm", nameEn: "Savings Interest", type: "INCOME" as const, icon: "PiggyBank", color: "#06B6D4", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_4", name: "Ăn uống & Nhà hàng", nameVi: "Ăn uống & Nhà hàng", nameEn: "Food & Dining", type: "EXPENSE" as const, icon: "Utensils", color: "#EF4444", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_5", name: "Nhà ở & Tiền điện nước", nameVi: "Nhà ở & Tiền điện nước", nameEn: "Housing & Utilities", type: "EXPENSE" as const, icon: "Home", color: "#F59E0B", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_6", name: "Giao thông & Xăng xe", nameVi: "Giao thông & Xăng xe", nameEn: "Transportation & Fuel", type: "EXPENSE" as const, icon: "Car", color: "#8B5CF6", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_7", name: "Y tế & Sức khỏe", nameVi: "Y tế & Sức khỏe", nameEn: "Healthcare", type: "EXPENSE" as const, icon: "HeartPulse", color: "#EC4899", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: "cat_sys_8", name: "Giáo dục & Khóa học", nameVi: "Giáo dục & Khóa học", nameEn: "Education & Courses", type: "EXPENSE" as const, icon: "GraduationCap", color: "#6366F1", isSystem: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
       ];
     }
 

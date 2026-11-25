@@ -17,6 +17,7 @@ import { CheckPolicies } from 'src/core/security/casl/policies/check-policies.de
 import { CreateDebtDto } from './dto/CreateDebtDto';
 import { UpdateDebtDto } from './dto/UpdateDebtDto';
 import { PaginationDebtDto } from './dto/PaginationDebtDto';
+import { CreatePaymentForDebtDto } from './dto/CreatePaymentForDebtDto';
 import { DebtService } from './debt.service';
 
 @ApiTags('Debt')
@@ -71,5 +72,24 @@ export class DebtController {
     @CurrentUser('sub') userId: string,
   ) {
     return this.debtService.remove(debtId, userId);
+  }
+
+  @Post(':id/payments')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'Debt'))
+  addPayment(
+    @Param('id', ParseUUIDPipe) debtId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreatePaymentForDebtDto,
+  ) {
+    return this.debtService.addPayment(debtId, userId, dto);
+  }
+
+  @Get(':id/payments')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Debt'))
+  getPayments(
+    @Param('id', ParseUUIDPipe) debtId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.debtService.getPayments(debtId, userId);
   }
 }

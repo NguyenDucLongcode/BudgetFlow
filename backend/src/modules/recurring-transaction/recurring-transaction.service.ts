@@ -264,7 +264,8 @@ export class RecurringTransactionService {
           wallet: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               type: true,
               currency: true,
             },
@@ -272,7 +273,8 @@ export class RecurringTransactionService {
           category: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               type: true,
               icon: true,
               color: true,

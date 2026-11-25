@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import { Bell, Info, Target, WalletCards, CheckCheck } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
+import { translateNotification } from "@/src/utils/notification-i18n";
 import {
   NotificationDetailModal,
   formatNotificationDateTime,
@@ -25,6 +27,8 @@ const iconByType = {
 };
 
 export function NotificationBell() {
+  const t = useTranslations("notifications");
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] =
@@ -119,7 +123,7 @@ export function NotificationBell() {
         type="button"
         onClick={() => setDropdownOpen((v) => !v)}
         className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white transition-all shadow-sm"
-        aria-label="Thông báo"
+        aria-label={t("title")}
       >
         <Bell className="h-4 w-4" />
         {unread > 0 && (
@@ -135,10 +139,10 @@ export function NotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-4 py-3.5">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-white">Thông báo</span>
+              <span className="font-bold text-sm text-white">{t("title")}</span>
               {unread > 0 && (
                 <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-bold text-indigo-400 border border-indigo-500/30">
-                  {unread} mới
+                  {t("newCount", { count: unread })}
                 </span>
               )}
             </div>
@@ -148,10 +152,10 @@ export function NotificationBell() {
                   type="button"
                   onClick={markAllAsRead}
                   className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
-                  title="Đánh dấu tất cả đã đọc"
+                  title={t("markAllAsRead")}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Đọc tất cả</span>
+                  <span>{t("markAllAsRead")}</span>
                 </button>
               )}
               <Link
@@ -159,7 +163,7 @@ export function NotificationBell() {
                 onClick={() => setDropdownOpen(false)}
                 className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors ml-2"
               >
-                Xem tất cả
+                {t("viewAll")}
               </Link>
             </div>
           </div>
@@ -169,12 +173,14 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="py-12 text-center text-slate-500">
                 <Bell className="mx-auto h-8 w-8 opacity-40 mb-2" />
-                <p className="text-xs font-medium">Bạn chưa có thông báo nào</p>
+                <p className="text-xs font-medium">{t("emptyTitle")}</p>
               </div>
             ) : (
               notifications.map((notification) => {
                 const Icon = iconByType[notification.type] || Info;
                 const isUnread = !notification.isRead;
+                const { title: displayTitle, message: displayMessage } =
+                  translateNotification(notification.title, notification.message, locale);
 
                 return (
                   <button
@@ -212,14 +218,14 @@ export function NotificationBell() {
                             : "font-medium text-slate-300"
                         }`}
                       >
-                        {notification.title}
+                        {displayTitle}
                       </p>
                       <p
                         className={`text-[11px] line-clamp-2 mt-0.5 ${
                           isUnread ? "text-slate-300" : "text-slate-500"
                         }`}
                       >
-                        {notification.message}
+                        {displayMessage}
                       </p>
                       <span className="block text-[10px] text-slate-500 mt-1 font-medium">
                         {formatNotificationDateTime(notification.createdAt)}

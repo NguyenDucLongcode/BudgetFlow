@@ -120,7 +120,16 @@ axiosClient.interceptors.response.use(
     }
 
     // 4. Khi gặp lỗi 401 trên request thông thường (như /users/me, API dữ liệu...)
-    if (status === 401 && !originalRequest._retry) {
+    if (status === 401) {
+      if (originalRequest._retry) {
+        // Đã retry 1 lần mà vẫn 401 -> Session hết hạn / không hợp lệ -> Force redirect về login ngay, ngắt vòng lặp
+        console.warn(
+          `[AxiosClient] Request ${requestUrl} failed with 401 after retry. Forcing redirect to /login.`,
+        );
+        forceHardRedirectToLogin();
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       try {

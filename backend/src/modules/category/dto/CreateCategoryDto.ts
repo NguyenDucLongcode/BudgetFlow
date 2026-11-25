@@ -13,12 +13,32 @@ import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 export class CreateCategoryDto {
   @ApiProperty({
     example: 'Ăn uống',
-    description: 'Tên danh mục',
+    description: 'Tên danh mục (Tiếng Việt)',
   })
   @IsString()
   @Length(1, 100)
   @Sanitize()
-  name!: string;
+  nameVi!: string;
+
+  @ApiPropertyOptional({
+    example: 'Food & Dining',
+    description: 'Tên danh mục (Tiếng Anh - Tùy chọn)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  @Sanitize()
+  nameEn?: string;
+
+  @ApiPropertyOptional({
+    example: 'Ăn uống',
+    description: 'Tên danh mục (Tương thích ngược)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  @Sanitize()
+  name?: string;
 
   @ApiProperty({
     enum: CategoryType,

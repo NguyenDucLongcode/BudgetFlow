@@ -25,10 +25,10 @@ export async function seedWallets(context: SeedContext): Promise<void> {
       },
     });
 
-    const existedNames = new Set(existedWallets.map((wallet) => wallet.name));
+    const existedNames = new Set(existedWallets.map((wallet) => wallet.nameVi));
 
     const walletsToCreate = DEFAULT_WALLETS.filter(
-      (wallet) => !existedNames.has(wallet.name),
+      (wallet) => !existedNames.has(wallet.nameVi),
     ).map((wallet) => ({
       ...wallet,
       userId: current.user.id,

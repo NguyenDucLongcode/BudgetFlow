@@ -303,7 +303,8 @@ export class BudgetService {
           category: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               icon: true,
               color: true,
               type: true,

@@ -271,7 +271,8 @@ model UserSession {
 
 model Category {
   id          String       @id @default(uuid())
-  name        String
+  nameVi      String
+  nameEn      String
   icon        String?
   color       String?
   type        CategoryType
@@ -296,7 +297,7 @@ model Category {
   @@index([userId])
   @@index([type])
   @@index([userId, type])
-  @@unique([userId, name, type])
+  @@unique([userId, nameVi, type])
   @@index([parentId])
 }
 
@@ -306,7 +307,8 @@ model Category {
 
 model Wallet {
   id          String      @id @default(uuid())
-  name        String
+  nameVi      String
+  nameEn      String?
   type        WalletType
   balance     Decimal     @db.Decimal(18,2) @default(0)
   currency    Currency    @default(VND)  // SỬA: bỏ Currency.
@@ -345,7 +347,7 @@ model Wallet {
   @@index([userId])
   @@index([userId, isDefault])
   @@index([type])
-  @@unique([userId, name])
+  @@unique([userId, nameVi])
 }
 
 // ============================================

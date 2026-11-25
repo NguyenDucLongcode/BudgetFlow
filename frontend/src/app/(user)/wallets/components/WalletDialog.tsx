@@ -60,7 +60,8 @@ const DEFAULT_ICON_BY_TYPE: Record<WalletType, string> = {
 };
 
 const walletFormSchema = z.object({
-  name: z.string().trim().min(1, "Vui lòng nhập tên ví"),
+  nameVi: z.string().trim().min(1, "Vui lòng nhập tên ví (tiếng Việt)"),
+  nameEn: z.string().trim().optional(),
   type: z.nativeEnum(WalletType),
   initialBalance: z.number().min(0, "Số dư không được nhỏ hơn 0"),
   currency: z.string().min(1, "Vui lòng chọn đơn vị tiền tệ"),
@@ -103,7 +104,8 @@ export function WalletDialog({
   } = useForm<WalletFormValues>({
     resolver: zodResolver(walletFormSchema),
     defaultValues: {
-      name: "",
+      nameVi: "",
+      nameEn: "",
       type: WalletType.CASH,
       initialBalance: 0,
       currency: "VND",
@@ -126,7 +128,8 @@ export function WalletDialog({
       if (walletToEdit) {
         prevTypeRef.current = walletToEdit.type;
         reset({
-          name: walletToEdit.name,
+          nameVi: walletToEdit.nameVi || walletToEdit.name || "",
+          nameEn: walletToEdit.nameEn || "",
           type: walletToEdit.type,
           initialBalance: Number(walletToEdit.initialBalance) || 0,
           currency: walletToEdit.currency || "VND",
@@ -139,7 +142,8 @@ export function WalletDialog({
       } else {
         prevTypeRef.current = WalletType.CASH;
         reset({
-          name: "",
+          nameVi: "",
+          nameEn: "",
           type: WalletType.CASH,
           initialBalance: 0,
           currency: "VND",
@@ -168,7 +172,9 @@ export function WalletDialog({
   const onFormSubmit = async (values: WalletFormValues) => {
     if (isEditing) {
       const updatePayload: UpdateWalletInput = {
-        name: values.name,
+        name: values.nameVi,
+        nameVi: values.nameVi,
+        nameEn: values.nameEn?.trim() || undefined,
         currency: values.currency,
         color: values.color,
         icon: values.icon,
@@ -179,7 +185,9 @@ export function WalletDialog({
       await onSubmit(updatePayload);
     } else {
       const createPayload: CreateWalletInput = {
-        name: values.name,
+        name: values.nameVi,
+        nameVi: values.nameVi,
+        nameEn: values.nameEn?.trim() || undefined,
         type: values.type,
         initialBalance: values.initialBalance,
         currency: values.currency,
@@ -213,19 +221,35 @@ export function WalletDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-5 py-2">
-          {/* Tên ví */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300">
-              {t("nameLabel")} <span className="text-rose-400">*</span>
-            </label>
-            <Input
-              {...register("name")}
-              placeholder={t("namePlaceholder")}
-              className="mt-1.5 border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:border-indigo-500"
-            />
-            {errors.name && (
-              <p className="mt-1 text-xs text-rose-400">{errors.name.message}</p>
-            )}
+          {/* Tên ví (Song ngữ) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-300">
+                {t("nameViLabel")} <span className="text-rose-400">*</span>
+              </label>
+              <Input
+                {...register("nameVi")}
+                placeholder={t("nameViPlaceholder")}
+                className="mt-1.5 border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:border-indigo-500"
+              />
+              {errors.nameVi && (
+                <p className="mt-1 text-xs text-rose-400">{errors.nameVi.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300">
+                {t("nameEnLabel")}
+              </label>
+              <Input
+                {...register("nameEn")}
+                placeholder={t("nameEnPlaceholder")}
+                className="mt-1.5 border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:border-indigo-500"
+              />
+              {errors.nameEn && (
+                <p className="mt-1 text-xs text-rose-400">{errors.nameEn.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Loại ví & Đơn vị tiền tệ (Grid 2 cột) */}
@@ -324,8 +348,8 @@ export function WalletDialog({
           {/* Chọn Icon */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-300">Biểu tượng ví</label>
-              <span className="text-[11px] text-slate-500">Tự động chọn theo loại ví, có thể tùy chỉnh</span>
+              <label className="text-xs font-semibold text-slate-300">{t("symbolLabel")}</label>
+              <span className="text-[11px] text-slate-500">{t("symbolAuto")}</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {AVAILABLE_ICONS.map((item) => {

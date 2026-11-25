@@ -115,7 +115,7 @@ export default function WalletsPage() {
                 : "bg-slate-800/60 text-slate-300 border-slate-700"
             }`}
           >
-            {wallets.length}/5 ví
+            {t("walletCount", { current: wallets.length, max: 5 })}
           </span>
 
           <Button

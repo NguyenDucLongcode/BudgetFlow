@@ -3,7 +3,9 @@ import { WalletType } from "../enums";
 export interface Wallet {
   id: string;
   userId: string;
-  name: string;
+  nameVi: string;
+  nameEn?: string | null;
+  name?: string;
   type: WalletType;
   balance: number | string;
   initialBalance: number | string;
@@ -22,7 +24,9 @@ export interface Wallet {
 }
 
 export interface CreateWalletInput {
-  name: string;
+  nameVi: string;
+  nameEn?: string | undefined;
+  name?: string | undefined;
   type: WalletType;
   initialBalance?: number | undefined;
   currency?: string | undefined;
@@ -36,6 +40,8 @@ export interface CreateWalletInput {
 }
 
 export interface UpdateWalletInput {
+  nameVi?: string | undefined;
+  nameEn?: string | undefined;
   name?: string | undefined;
   currency?: string | undefined;
   initialBalance?: number | undefined;

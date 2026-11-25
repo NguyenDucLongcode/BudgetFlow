@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { vi } from "date-fns/locale";
+import { vi, enUS } from "date-fns/locale";
 import {
   MoreVertical,
   PlusCircle,
@@ -15,6 +15,8 @@ import {
   Clock,
 } from "lucide-react";
 import { GoalPriority, GoalStatus } from "@/src/types/enums";
+import { useLocale, useTranslations } from "next-intl";
+import { getLocalizedName } from "@/src/utils";
 import type { Goal } from "@/src/types/api";
 
 interface GoalCardProps {
@@ -24,26 +26,16 @@ interface GoalCardProps {
   onDelete: (goal: Goal) => void;
 }
 
-const PRIORITY_BADGES: Record<GoalPriority, { label: string; className: string }> = {
-  [GoalPriority.LOW]: {
-    label: "Thấp",
-    className: "text-slate-400 bg-slate-800/80 border-slate-700/80",
-  },
-  [GoalPriority.MEDIUM]: {
-    label: "Trung bình",
-    className: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  },
-  [GoalPriority.HIGH]: {
-    label: "Cao",
-    className: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  },
-  [GoalPriority.URGENT]: {
-    label: "Khẩn cấp",
-    className: "text-rose-400 bg-rose-500/10 border-rose-500/20",
-  },
+const PRIORITY_STYLES: Record<GoalPriority, string> = {
+  [GoalPriority.LOW]: "text-slate-400 bg-slate-800/80 border-slate-700/80",
+  [GoalPriority.MEDIUM]: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  [GoalPriority.HIGH]: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  [GoalPriority.URGENT]: "text-rose-400 bg-rose-500/10 border-rose-500/20",
 };
 
 export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps) {
+  const t = useTranslations("goals");
+  const locale = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -76,9 +68,21 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
+  const dateLocale = locale === "vi" ? vi : enUS;
   const formattedTargetDate = goal.targetDate
-    ? format(new Date(goal.targetDate), "dd 'thg' MM, yyyy", { locale: vi })
+    ? format(
+        new Date(goal.targetDate),
+        locale === "vi" ? "dd 'thg' MM, yyyy" : "MMM dd, yyyy",
+        { locale: dateLocale },
+      )
     : "";
+
+  const priorityLabels: Record<GoalPriority, string> = {
+    [GoalPriority.LOW]: t("priorityLow"),
+    [GoalPriority.MEDIUM]: t("priorityMedium"),
+    [GoalPriority.HIGH]: t("priorityHigh"),
+    [GoalPriority.URGENT]: t("priorityUrgent"),
+  };
 
   return (
     <div className="group relative rounded-3xl border border-slate-800/80 bg-slate-900/60 hover:bg-slate-900/90 hover:border-slate-700/80 p-5 sm:p-6 transition-all duration-200 shadow-lg flex flex-col justify-between">
@@ -101,7 +105,7 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
               </h3>
               <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
                 <Calendar className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                <span>Hạn: {formattedTargetDate}</span>
+                <span>{t("dueDateShort")} {formattedTargetDate}</span>
               </div>
             </div>
           </div>
@@ -112,7 +116,7 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
               className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              aria-label="Thao tác"
+              aria-label={t("actionsLabel")}
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -129,7 +133,7 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-300 text-emerald-400 font-semibold transition-colors"
                   >
                     <PlusCircle className="w-4 h-4 text-emerald-400" />
-                    <span>Nạp tiền</span>
+                    <span>{t("contribute")}</span>
                   </button>
                 )}
                 <button
@@ -141,7 +145,7 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-800 hover:text-white transition-colors"
                 >
                   <Pencil className="w-4 h-4 text-slate-400" />
-                  <span>Chỉnh sửa</span>
+                  <span>{t("edit")}</span>
                 </button>
                 <button
                   type="button"
@@ -152,7 +156,7 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-500/10 hover:text-rose-400 text-rose-400 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>Xóa mục tiêu</span>
+                  <span>{t("confirmDelete")}</span>
                 </button>
               </div>
             )}
@@ -163,32 +167,32 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <span
             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-              PRIORITY_BADGES[goal.priority]?.className || PRIORITY_BADGES[GoalPriority.MEDIUM].className
+              PRIORITY_STYLES[goal.priority] || PRIORITY_STYLES[GoalPriority.MEDIUM]
             }`}
           >
             <Flame className="w-3 h-3" />
-            {PRIORITY_BADGES[goal.priority]?.label || "Trung bình"}
+            {priorityLabels[goal.priority] || t("priorityMedium")}
           </span>
 
           {isCompleted ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
               <CheckCircle2 className="w-3 h-3" />
-              Đã hoàn thành
+              {t("statusCompleted")}
             </span>
           ) : goal.status === GoalStatus.PAUSED ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20">
               <Clock className="w-3 h-3" />
-              Tạm dừng
+              {t("statusPaused")}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20">
-              Đang thực hiện
+              {t("statusInProgress")}
             </span>
           )}
 
-          {goal.wallet?.name && (
+          {(goal.wallet?.nameVi || goal.wallet?.name) && (
             <span className="text-[11px] text-slate-400 ml-auto truncate max-w-[140px]">
-              Ví: {goal.wallet.name}
+              {t("walletPrefix")} {getLocalizedName(goal.wallet, locale)}
             </span>
           )}
         </div>
@@ -199,13 +203,13 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
         {/* Amounts */}
         <div className="flex items-baseline justify-between text-xs">
           <div>
-            <span className="text-slate-400">Đã tích lũy: </span>
+            <span className="text-slate-400">{t("savedLabel")}: </span>
             <span className="font-bold text-white text-sm">
               {saved.toLocaleString("vi-VN")} ₫
             </span>
           </div>
           <div>
-            <span className="text-slate-400">Mục tiêu: </span>
+            <span className="text-slate-400">{t("targetLabel")} </span>
             <span className="font-semibold text-slate-300">
               {target.toLocaleString("vi-VN")} ₫
             </span>
@@ -222,10 +226,10 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
           </div>
           <div className="flex items-center justify-between text-[11px] mt-1.5">
             <span className={`font-bold ${getProgressTextColor()}`}>
-              {percent}% hoàn thành
+              {t("percentCompleted", { percent })}
             </span>
             <span className="text-slate-400">
-              Còn thiếu: {Math.max(0, target - saved).toLocaleString("vi-VN")} ₫
+              {t("remainingLabel")}: {Math.max(0, target - saved).toLocaleString("vi-VN")} ₫
             </span>
           </div>
         </div>
@@ -238,7 +242,7 @@ export function GoalCard({ goal, onContribute, onEdit, onDelete }: GoalCardProps
             className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-emerald-600/20 hover:text-emerald-300 hover:border-emerald-500/30 border border-slate-700/60 text-xs font-semibold text-slate-200 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
           >
             <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Nạp thêm tiền</span>
+            <span>{t("contributeMore")}</span>
           </button>
         )}
       </div>

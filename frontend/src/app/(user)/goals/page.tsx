@@ -33,7 +33,7 @@ import { toast } from "react-toastify";
 type FilterTab = "ALL" | "IN_PROGRESS" | "COMPLETED";
 
 export default function GoalsPage() {
-  const t = useTranslations("userLayout");
+  const t = useTranslations("goals");
 
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -115,7 +115,7 @@ export default function GoalsPage() {
     if (!deleteConfirmGoal) return;
     try {
       await deleteGoalMutation.mutateAsync(deleteConfirmGoal.id);
-      toast.success(`Đã xóa mục tiêu "${deleteConfirmGoal.name}"!`);
+      toast.success(t("toastDeleted"));
       setDeleteConfirmGoal(null);
     } catch (err: unknown) {
       let msg = "Không thể xóa mục tiêu, vui lòng thử lại!";
@@ -137,12 +137,15 @@ export default function GoalsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <span className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">
+            {t("eyebrow")}
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5 mt-0.5">
             <Target className="w-7 h-7 text-indigo-400" />
-            <span>{t("goals")}</span>
+            <span>{t("title")}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Đặt mục tiêu tài chính, tích lũy từng ngày và theo dõi tiến độ hoàn thành
+            {t("subtitle")}
           </p>
         </div>
 
@@ -151,7 +154,7 @@ export default function GoalsPage() {
           className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Tạo mục tiêu mới</span>
+          <span>{t("create")}</span>
         </Button>
       </div>
 
@@ -174,7 +177,7 @@ export default function GoalsPage() {
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            Tất cả ({allGoals.length})
+            {t("tabAll", { count: allGoals.length })}
           </button>
           <button
             type="button"
@@ -187,9 +190,9 @@ export default function GoalsPage() {
           >
             <Clock className="w-3.5 h-3.5" />
             <span>
-              Đang thực hiện (
-              {allGoals.filter((g) => g.status !== GoalStatus.COMPLETED).length}
-              )
+              {t("tabInProgress", {
+                count: allGoals.filter((g) => g.status !== GoalStatus.COMPLETED).length,
+              })}
             </span>
           </button>
           <button
@@ -203,9 +206,9 @@ export default function GoalsPage() {
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>
-              Đã hoàn thành (
-              {allGoals.filter((g) => g.status === GoalStatus.COMPLETED).length}
-              )
+              {t("tabCompleted", {
+                count: allGoals.filter((g) => g.status === GoalStatus.COMPLETED).length,
+              })}
             </span>
           </button>
         </div>
@@ -214,7 +217,7 @@ export default function GoalsPage() {
         <div className="relative w-full sm:w-64">
           <input
             type="text"
-            placeholder="Tìm theo tên mục tiêu..."
+            placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3.5 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -249,8 +252,8 @@ export default function GoalsPage() {
       ) : isError ? (
         <div className="p-8 rounded-3xl border border-rose-500/20 bg-rose-500/5 text-center text-rose-300">
           <AlertCircle className="w-8 h-8 mx-auto mb-2 text-rose-400" />
-          <p className="font-semibold text-sm">Không thể tải danh sách mục tiêu</p>
-          <p className="text-xs text-slate-400 mt-1">Vui lòng kiểm tra lại kết nối mạng hoặc thử lại.</p>
+          <p className="font-semibold text-sm">{t("errorLoading")}</p>
+          <p className="text-xs text-slate-400 mt-1">{t("errorLoadingDesc")}</p>
         </div>
       ) : filteredGoals.length === 0 ? (
         <div className="p-12 sm:p-16 rounded-3xl border border-slate-800 bg-[#111827]/80 backdrop-blur-sm text-center">
@@ -259,15 +262,15 @@ export default function GoalsPage() {
           </div>
           <h2 className="text-base sm:text-lg font-bold text-white">
             {searchQuery
-              ? "Không tìm thấy mục tiêu nào phù hợp"
+              ? t("noSearchResults")
               : activeTab === "COMPLETED"
-                ? "Chưa có mục tiêu nào hoàn thành"
-                : "Chưa có mục tiêu tiết kiệm nào"}
+                ? t("noCompletedGoals")
+                : t("emptyTitle")}
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mt-2">
             {searchQuery
-              ? "Hãy thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc tìm kiếm."
-              : "Bắt đầu đặt một mục tiêu tài chính cụ thể (mua nhà, mua xe, du lịch...) để theo dõi số tiền tiết kiệm hàng tháng."}
+              ? t("noSearchResultsDesc")
+              : t("emptyDesc")}
           </p>
           {!searchQuery && activeTab !== "COMPLETED" && (
             <Button
@@ -275,7 +278,7 @@ export default function GoalsPage() {
               className="mt-6 bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 px-5 py-2.5 rounded-xl text-xs font-semibold"
             >
               <Plus className="w-4 h-4 mr-1.5" />
-              Tạo mục tiêu đầu tiên
+              {t("createFirst")}
             </Button>
           )}
         </div>
@@ -319,13 +322,9 @@ export default function GoalsPage() {
             <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-white">Xác nhận xóa mục tiêu</h3>
+            <h3 className="text-base font-bold text-white">{t("deleteConfirmTitle")}</h3>
             <p className="text-xs text-slate-400 mt-2">
-              Bạn có chắc chắn muốn xóa mục tiêu{" "}
-              <span className="font-semibold text-slate-200">
-                &ldquo;{deleteConfirmGoal.name}&rdquo;
-              </span>
-              ? Thao tác này không thể hoàn tác.
+              {t("deleteConfirmDesc", { name: deleteConfirmGoal.name })}
             </p>
             <div className="flex items-center justify-center gap-3 mt-6">
               <button
@@ -334,7 +333,7 @@ export default function GoalsPage() {
                 onClick={() => setDeleteConfirmGoal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
               >
-                Hủy
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -345,7 +344,7 @@ export default function GoalsPage() {
                 {deleteGoalMutation.isPending && (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 )}
-                Xóa mục tiêu
+                {t("confirmDelete")}
               </button>
             </div>
           </div>

@@ -32,6 +32,7 @@ import {
   useTransactionStatistics,
 } from "@/src/client/transaction/transaction.hooks";
 import { useWallets } from "@/src/client/wallet/wallet.hooks";
+import { getLocalizedName } from "@/src/utils";
 import { TransactionDialog } from "./components/TransactionDialog";
 import { MonthYearPicker } from "./components/MonthYearPicker";
 import {
@@ -290,7 +291,7 @@ function TransactionsContent() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-100 bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:border-slate-600 hover:text-white transition-all shadow-sm cursor-pointer"
           >
             <BarChart2 className="w-4 h-4 text-indigo-400" />
-            <span>Xem báo cáo tháng</span>
+            <span>{t("viewReport")}</span>
           </button>
           <Button
             onClick={handleOpenCreate}
@@ -462,7 +463,7 @@ function TransactionsContent() {
           >
             <option value="ALL">{t("allWallets")}</option>
             {wallets.map((w) => (
-              <option key={w.id} value={w.id}>{w.name}</option>
+              <option key={w.id} value={w.id}>{getLocalizedName(w, locale)}</option>
             ))}
           </select>
 
@@ -500,12 +501,12 @@ function TransactionsContent() {
 
       {/* ── Table Header (Khớp các cột với TransactionGroup) ── */}
       <div className="hidden sm:grid grid-cols-12 gap-3 sm:gap-4 px-5 py-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-400 shadow-sm">
-        <div className="col-span-3">Danh mục</div>
-        <div className="col-span-2">Mô tả</div>
-        <div className="col-span-2">Ví</div>
-        <div className="col-span-2 text-right">Số tiền</div>
-        <div className="col-span-2 text-center whitespace-nowrap">Trạng thái</div>
-        <div className="col-span-1 text-right">Thao tác</div>
+        <div className="col-span-3">{t("category")}</div>
+        <div className="col-span-2">{t("description")}</div>
+        <div className="col-span-2">{t("wallet")}</div>
+        <div className="col-span-2 text-right">{t("amount")}</div>
+        <div className="col-span-2 text-center whitespace-nowrap">{t("status")}</div>
+        <div className="col-span-1 text-right">{t("actions")}</div>
       </div>
 
       {/* ── Transaction list (grouped by date) ── */}

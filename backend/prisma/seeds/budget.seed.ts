@@ -39,7 +39,10 @@ export async function seedBudgets(context: SeedContext): Promise<void> {
     const budgets = BUDGET_SEED.budgets
       .map((budget) => {
         const category = current.categories.find(
-          (c) => c.name === budget.categoryName && c.type === 'EXPENSE',
+          (c) =>
+            (c.nameVi === budget.categoryName ||
+              c.nameEn === budget.categoryName) &&
+            c.type === 'EXPENSE',
         );
 
         if (!category) {

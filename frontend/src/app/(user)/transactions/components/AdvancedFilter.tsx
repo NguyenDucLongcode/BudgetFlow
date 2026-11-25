@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { SlidersHorizontal, X, Calendar } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export interface DateRangeFilter {
   fromDate?: string | undefined;
@@ -31,6 +32,7 @@ export function AdvancedFilter({
   minDate,
   maxDate,
 }: AdvancedFilterProps) {
+  const t = useTranslations("transactions");
   const [open, setOpen] = useState(false);
   const [localFrom, setLocalFrom] = useState(value.fromDate ?? "");
   const [localTo, setLocalTo] = useState(value.toDate ?? "");
@@ -95,7 +97,7 @@ export function AdvancedFilter({
         }`}
       >
         <SlidersHorizontal className="w-3.5 h-3.5" />
-        <span>Bộ lọc ngày</span>
+        <span>{t("dateFilter")}</span>
         {hasFilter && (
           <span
             onClick={(e) => {

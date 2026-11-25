@@ -37,7 +37,9 @@ export async function seedTransactions(context: SeedContext): Promise<void> {
      * Income
      */
     for (const item of TRANSACTION_SEED.incomes) {
-      const category = current.categories.find((c) => c.name === item.category);
+      const category = current.categories.find(
+        (c) => c.nameVi === item.category || c.nameEn === item.category,
+      );
 
       await prisma.transaction.create({
         data: {
@@ -74,7 +76,9 @@ export async function seedTransactions(context: SeedContext): Promise<void> {
       const wallet =
         current.wallets[Math.floor(Math.random() * current.wallets.length)];
 
-      const category = current.categories.find((c) => c.name === item.category);
+      const category = current.categories.find(
+        (c) => c.nameVi === item.category || c.nameEn === item.category,
+      );
 
       const status =
         TRANSACTION_SEED.status[

@@ -14,7 +14,25 @@ import { Currency } from 'generated/prisma/enums';
 export class UpdateWalletDto {
   @ApiPropertyOptional({
     example: 'Ví tiền mặt',
-    description: 'Tên ví',
+    description: 'Tên ví (Tiếng Việt)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  nameVi?: string;
+
+  @ApiPropertyOptional({
+    example: 'Cash Wallet',
+    description: 'Tên ví (Tiếng Anh)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  nameEn?: string;
+
+  @ApiPropertyOptional({
+    example: 'Ví tiền mặt',
+    description: 'Tên ví (Tương thích ngược)',
   })
   @IsOptional()
   @IsString()

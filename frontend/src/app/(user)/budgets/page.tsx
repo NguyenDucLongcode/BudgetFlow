@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import {
   PieChart,
@@ -36,6 +36,7 @@ import type {
 } from "@/src/types/api";
 
 export default function BudgetsPage() {
+  const t = useTranslations("budgets");
   const locale = useLocale();
   const dateLocale = locale === "vi" ? vi : enUS;
 
@@ -180,13 +181,13 @@ export default function BudgetsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <span className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">
-            Quản lý tài chính cá nhân
+            {t("eyebrow")}
           </span>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-0.5">
-            Ngân sách chi tiêu
+            {t("title")}
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Thiết lập hạn mức chi tiêu theo tháng và nhận cảnh báo tự động khi chạm ngưỡng
+            {t("subtitle")}
           </p>
         </div>
 
@@ -195,7 +196,7 @@ export default function BudgetsPage() {
           className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 px-5 py-2.5 rounded-2xl font-semibold transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" />
-          Tạo ngân sách mới
+          {t("create")}
         </Button>
       </div>
 
@@ -206,7 +207,7 @@ export default function BudgetsPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Tháng trước</span>
+          <span className="hidden sm:inline">{t("prevMonth")}</span>
         </button>
 
         {/* Center: label + picker + reset */}
@@ -224,7 +225,7 @@ export default function BudgetsPage() {
           <button
             onClick={handleResetCurrentMonth}
             disabled={isCurrentMonth}
-            title="Về tháng hiện tại"
+            title={t("backToCurrentMonth")}
             className={`p-1.5 rounded-xl transition-all cursor-pointer ${
               isCurrentMonth
                 ? "opacity-30 cursor-not-allowed text-slate-500"
@@ -239,7 +240,7 @@ export default function BudgetsPage() {
           onClick={handleNextMonth}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
         >
-          <span className="hidden sm:inline">Tháng sau</span>
+          <span className="hidden sm:inline">{t("nextMonth")}</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
@@ -250,7 +251,7 @@ export default function BudgetsPage() {
         <div className="p-5 rounded-3xl border border-slate-800 bg-[#111827]/80 backdrop-blur-xl">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400">
-              Tổng hạn mức
+              {t("totalAllocated")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
               <Wallet className="w-4 h-4" />
@@ -258,13 +259,13 @@ export default function BudgetsPage() {
           </div>
           <div className="text-xl sm:text-2xl font-black text-white font-mono">
             {isLoadingSummary ? (
-              <span className="text-sm font-normal text-slate-500">Đang tính...</span>
+              <span className="text-sm font-normal text-slate-500">{t("calculating")}</span>
             ) : (
               `${totalAllocated.toLocaleString("vi-VN")} ₫`
             )}
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
-            {summaryData?.totalBudgets || budgets.length} danh mục đã đặt hạn mức
+            {t("budgetCount", { count: summaryData?.totalBudgets || budgets.length })}
           </p>
         </div>
 
@@ -272,7 +273,7 @@ export default function BudgetsPage() {
         <div className="p-5 rounded-3xl border border-slate-800 bg-[#111827]/80 backdrop-blur-xl">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400">
-              Tổng đã chi
+              {t("totalSpent")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
               <TrendingDown className="w-4 h-4" />
@@ -280,13 +281,13 @@ export default function BudgetsPage() {
           </div>
           <div className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
             {isLoadingSummary ? (
-              <span className="text-sm font-normal text-slate-500">Đang tính...</span>
+              <span className="text-sm font-normal text-slate-500">{t("calculating")}</span>
             ) : (
               `${totalSpent.toLocaleString("vi-VN")} ₫`
             )}
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
-            Chiếm {overallPercent}% tổng ngân sách
+            {t("spentPercentOfBudget", { percent: overallPercent })}
           </p>
         </div>
 
@@ -294,7 +295,7 @@ export default function BudgetsPage() {
         <div className="p-5 rounded-3xl border border-slate-800 bg-[#111827]/80 backdrop-blur-xl">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-400">
-              Số tiền còn lại
+              {t("totalRemaining")}
             </span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
@@ -302,13 +303,13 @@ export default function BudgetsPage() {
           </div>
           <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
             {isLoadingSummary ? (
-              <span className="text-sm font-normal text-slate-500">Đang tính...</span>
+              <span className="text-sm font-normal text-slate-500">{t("calculating")}</span>
             ) : (
               `${totalRemaining.toLocaleString("vi-VN")} ₫`
             )}
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
-            Hạn mức khả dụng còn lại
+            {t("availableRemainingLimit")}
           </p>
         </div>
 
@@ -316,7 +317,7 @@ export default function BudgetsPage() {
         <div className="p-5 rounded-3xl border border-slate-800 bg-[#111827]/80 backdrop-blur-xl flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-slate-400">
-              Tiến độ tháng
+              {t("monthProgress")}
             </span>
             <span
               className={`text-xs font-bold font-mono ${
@@ -346,10 +347,10 @@ export default function BudgetsPage() {
 
           <p className="text-[11px] text-slate-400 truncate">
             {overallPercent > 100
-              ? "Cảnh báo: Đã vượt tổng ngân sách!"
+              ? t("exceeded")
               : overallPercent >= 80
-              ? "Lưu ý: Sắp chạm tổng hạn mức"
-              : "Chi tiêu đang trong mức an toàn"}
+              ? t("warning")
+              : t("safe")}
           </p>
         </div>
       </div>
@@ -358,7 +359,7 @@ export default function BudgetsPage() {
       {isLoadingBudgets ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-          <span className="text-sm font-medium">Đang tải danh sách ngân sách...</span>
+          <span className="text-sm font-medium">{t("loadingBudgets")}</span>
         </div>
       ) : budgets.length === 0 ? (
         /* Empty State */
@@ -368,10 +369,10 @@ export default function BudgetsPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">
-              Chưa có ngân sách nào trong tháng {selectedMonth}/{selectedYear}
+              {t("emptyTitle")}
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-sm mx-auto">
-              Thiết lập ngân sách giúp bạn kiểm soát chi tiêu và tự động nhận cảnh báo khi sắp vượt ngưỡng.
+              {t("emptyDescription")}
             </p>
           </div>
           <Button
@@ -379,7 +380,7 @@ export default function BudgetsPage() {
             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 px-5 py-2.5 rounded-2xl text-xs font-semibold"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Tạo ngân sách đầu tiên
+            {t("createFirst")}
           </Button>
         </div>
       ) : (
@@ -418,9 +419,9 @@ export default function BudgetsPage() {
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div className="text-center">
-              <h3 className="text-base font-bold text-white">Xác nhận xóa ngân sách</h3>
+              <h3 className="text-base font-bold text-white">{t("deleteConfirmTitle")}</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Bạn có chắc chắn muốn xóa ngân sách này? Hành động này không thể hoàn tác.
+                {t("deleteConfirmDesc", { name: "" })}
               </p>
             </div>
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
@@ -429,7 +430,7 @@ export default function BudgetsPage() {
                 onClick={() => setDeleteConfirmId(null)}
                 className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
-                Hủy
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -442,7 +443,7 @@ export default function BudgetsPage() {
                 ) : (
                   <Trash2 className="w-3.5 h-3.5" />
                 )}
-                <span>Xóa ngân sách</span>
+                <span>{t("deleteBudget")}</span>
               </button>
             </div>
           </div>

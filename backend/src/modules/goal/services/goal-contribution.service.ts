@@ -247,7 +247,8 @@ export class GoalContributionService {
           wallet: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               currency: true,
             },
           },
@@ -304,7 +305,8 @@ export class GoalContributionService {
         wallet: {
           select: {
             id: true,
-            name: true,
+            nameVi: true,
+            nameEn: true,
             currency: true,
           },
         },

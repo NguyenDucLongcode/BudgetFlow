@@ -331,7 +331,10 @@ export class TransactionService {
       if (newSpent >= thresholdAmount || newSpent >= budgetAmount) {
         const isExceeded = newSpent >= budgetAmount;
         const percent = Math.round((newSpent / budgetAmount) * 100);
-        const categoryName = updatedBudget.category?.name || 'Chi tiêu';
+        const categoryName =
+          updatedBudget.category?.nameVi ||
+          updatedBudget.category?.nameEn ||
+          'Chi tiêu';
         const title = isExceeded
           ? 'Cảnh báo vượt quá ngân sách!'
           : `Cảnh báo chi tiêu đạt ${percent}% ngân sách`;
@@ -789,7 +792,8 @@ export class TransactionService {
           wallet: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               icon: true,
               color: true,
             },
@@ -797,7 +801,8 @@ export class TransactionService {
           fromWallet: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               icon: true,
               color: true,
             },
@@ -805,7 +810,8 @@ export class TransactionService {
           toWallet: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               icon: true,
               color: true,
             },
@@ -813,7 +819,8 @@ export class TransactionService {
           category: {
             select: {
               id: true,
-              name: true,
+              nameVi: true,
+              nameEn: true,
               icon: true,
               color: true,
             },
@@ -1021,7 +1028,8 @@ export class TransactionService {
       },
       select: {
         id: true,
-        name: true,
+        nameVi: true,
+        nameEn: true,
         icon: true,
         color: true,
       },
@@ -1073,7 +1081,8 @@ export class TransactionService {
       },
       select: {
         id: true,
-        name: true,
+        nameVi: true,
+        nameEn: true,
         icon: true,
         color: true,
       },

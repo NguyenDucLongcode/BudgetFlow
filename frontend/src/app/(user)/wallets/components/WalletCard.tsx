@@ -16,8 +16,9 @@ import {
   PiggyBank,
   CheckCircle2,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import type { Wallet } from "@/src/types/api";
+import { getLocalizedName } from "@/src/utils";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -56,6 +57,7 @@ export function WalletCard({
   isArchiving,
 }: WalletCardProps) {
   const t = useTranslations("wallets");
+  const locale = useLocale();
 
   const IconComponent = WALLET_ICONS[wallet.icon || "wallet"] || WalletIcon;
   const balanceNumber = Number(wallet.balance) || 0;
@@ -98,7 +100,7 @@ export function WalletCard({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white truncate leading-tight">
-                  {wallet.name}
+                  {getLocalizedName(wallet, locale)}
                 </h3>
               </div>
 

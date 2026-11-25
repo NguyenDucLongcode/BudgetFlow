@@ -2,7 +2,9 @@ import { CategoryType } from "../enums";
 
 export interface TransactionCategory {
   id: string;
-  name: string;
+  nameVi?: string;
+  nameEn?: string | null;
+  name?: string;
   type?: string | undefined;
   icon?: string | undefined;
   color?: string | undefined;
@@ -10,7 +12,9 @@ export interface TransactionCategory {
 
 export interface Category {
   id: string;
-  name: string;
+  nameVi: string;
+  nameEn: string;
+  name?: string;
   type: CategoryType | "INCOME" | "EXPENSE";
   icon?: string | null;
   color?: string | null;
@@ -26,7 +30,9 @@ export interface Category {
 
 export interface SystemCategoryItem {
   id: string;
-  name: string;
+  nameVi: string;
+  nameEn: string;
+  name?: string;
   type: "INCOME" | "EXPENSE";
   icon: string;
   color: string;
@@ -35,7 +41,9 @@ export interface SystemCategoryItem {
 }
 
 export interface CreateCategoryInput {
-  name: string;
+  nameVi: string;
+  nameEn?: string;
+  name?: string;
   type: CategoryType | "INCOME" | "EXPENSE";
   icon?: string;
   color?: string;
@@ -44,6 +52,8 @@ export interface CreateCategoryInput {
 }
 
 export interface UpdateCategoryInput {
+  nameVi?: string;
+  nameEn?: string;
   name?: string;
   type?: CategoryType | "INCOME" | "EXPENSE";
   icon?: string;

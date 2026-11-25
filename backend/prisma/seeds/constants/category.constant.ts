@@ -6,63 +6,72 @@ export const SYSTEM_CATEGORIES = [
   // ===========================
 
   {
-    name: 'Ăn uống',
+    nameVi: 'Ăn uống',
+    nameEn: 'Food & Dining',
     type: CategoryType.EXPENSE,
     icon: '🍔',
     color: '#FF6B6B',
   },
 
   {
-    name: 'Mua sắm',
+    nameVi: 'Mua sắm',
+    nameEn: 'Shopping',
     type: CategoryType.EXPENSE,
     icon: '🛍️',
     color: '#4ECDC4',
   },
 
   {
-    name: 'Nhà cửa',
+    nameVi: 'Nhà cửa',
+    nameEn: 'Housing',
     type: CategoryType.EXPENSE,
     icon: '🏠',
     color: '#45B7D1',
   },
 
   {
-    name: 'Di chuyển',
+    nameVi: 'Di chuyển',
+    nameEn: 'Transportation',
     type: CategoryType.EXPENSE,
     icon: '🚗',
     color: '#96CEB4',
   },
 
   {
-    name: 'Giải trí',
+    nameVi: 'Giải trí',
+    nameEn: 'Entertainment',
     type: CategoryType.EXPENSE,
     icon: '🎬',
     color: '#FFEAA7',
   },
 
   {
-    name: 'Sức khỏe',
+    nameVi: 'Sức khỏe',
+    nameEn: 'Healthcare',
     type: CategoryType.EXPENSE,
     icon: '💪',
     color: '#DDA0DD',
   },
 
   {
-    name: 'Giáo dục',
+    nameVi: 'Giáo dục',
+    nameEn: 'Education',
     type: CategoryType.EXPENSE,
     icon: '📚',
     color: '#98D8C8',
   },
 
   {
-    name: 'Hóa đơn',
+    nameVi: 'Hóa đơn',
+    nameEn: 'Bills & Utilities',
     type: CategoryType.EXPENSE,
     icon: '📄',
     color: '#F7DC6F',
   },
 
   {
-    name: 'Khác',
+    nameVi: 'Khác',
+    nameEn: 'Other',
     type: CategoryType.EXPENSE,
     icon: '📌',
     color: '#95A5A6',
@@ -73,35 +82,40 @@ export const SYSTEM_CATEGORIES = [
   // ===========================
 
   {
-    name: 'Lương',
+    nameVi: 'Lương',
+    nameEn: 'Salary',
     type: CategoryType.INCOME,
     icon: '💰',
     color: '#2ECC71',
   },
 
   {
-    name: 'Thưởng',
+    nameVi: 'Thưởng',
+    nameEn: 'Bonus',
     type: CategoryType.INCOME,
     icon: '🎁',
     color: '#F1C40F',
   },
 
   {
-    name: 'Đầu tư',
+    nameVi: 'Đầu tư',
+    nameEn: 'Investment',
     type: CategoryType.INCOME,
     icon: '📈',
     color: '#3498DB',
   },
 
   {
-    name: 'Kinh doanh',
+    nameVi: 'Kinh doanh',
+    nameEn: 'Business',
     type: CategoryType.INCOME,
     icon: '💼',
     color: '#9B59B6',
   },
 
   {
-    name: 'Khác',
+    nameVi: 'Khác',
+    nameEn: 'Other',
     type: CategoryType.INCOME,
     icon: '📌',
     color: '#95A5A6',

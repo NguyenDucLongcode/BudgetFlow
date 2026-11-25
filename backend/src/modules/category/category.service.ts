@@ -30,11 +30,17 @@ export class CategoryService {
       );
     }
 
+    const nameVi = dto.nameVi || dto.name;
+    if (!nameVi) {
+      throw new BadRequestException('Tên danh mục tiếng Việt không được để trống');
+    }
+    const nameEn = dto.nameEn || nameVi;
+
     // Kiểm tra tên category đã tồn tại chưa
     const existed = await this.categoryRepository.findFirst({
       where: {
         userId,
-        name: dto.name,
+        nameVi,
         type: dto.type,
         deletedAt: null,
       },
@@ -72,17 +78,23 @@ export class CategoryService {
       }
     }
 
+    const { name: _legacyName, ...cleanDto } = dto;
     const category = await this.categoryRepository.create({
       data: {
         userId,
-        ...dto,
+        ...cleanDto,
+        nameVi,
+        nameEn,
         isSystem: false,
       },
     });
 
     return {
       message: 'Tạo danh mục thành công',
-      data: category,
+      data: {
+        ...category,
+        name: category.nameVi,
+      },
     };
   }
 
@@ -101,12 +113,15 @@ export class CategoryService {
       throw new NotFoundException('Không tìm thấy danh mục');
     }
 
+    const nameVi = dto.nameVi || dto.name;
+    const nameEn = dto.nameEn;
+
     // Kiểm tra tên mới không trùng với category khác
-    if (dto.name && dto.name !== category.name) {
+    if (nameVi && nameVi !== category.nameVi) {
       const existed = await this.categoryRepository.findFirst({
         where: {
           userId,
-          name: dto.name,
+          nameVi,
           type: category.type,
           deletedAt: null,
           NOT: {
@@ -171,16 +186,26 @@ export class CategoryService {
       }
     }
 
+    const { name: _legacyName, ...cleanDto } = dto;
     const updatedCategory = await this.categoryRepository.update({
       where: {
         id: categoryId,
       },
-      data: dto,
+      data: {
+        ...cleanDto,
+        ...(nameVi ? { nameVi } : {}),
+        ...(nameEn !== undefined
+          ? { nameEn: nameEn || nameVi || category.nameVi }
+          : {}),
+      },
     });
 
     return {
       message: 'Cập nhật danh mục thành công',
-      data: updatedCategory,
+      data: {
+        ...updatedCategory,
+        name: updatedCategory.nameVi,
+      },
     };
   }
 
@@ -193,10 +218,20 @@ export class CategoryService {
       OR: [{ userId }, { userId: null, isSystem: true }],
       deletedAt: null,
       ...(search && {
-        name: {
-          contains: search,
-          mode: 'insensitive',
-        },
+        OR: [
+          {
+            nameVi: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            nameEn: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
       }),
       ...(type && {
         type,
@@ -205,7 +240,11 @@ export class CategoryService {
         parentId: parentId || null,
       }),
     };
-    const orderBy = sortBy ? { [sortBy]: order } : { name: 'asc' as const };
+    const orderBy = sortBy
+      ? sortBy === 'name'
+        ? { nameVi: order }
+        : { [sortBy]: order }
+      : { nameVi: 'asc' as const };
 
     const [categories, total] = await Promise.all([
       this.categoryRepository.findMany({
@@ -219,9 +258,14 @@ export class CategoryService {
       }),
     ]);
 
+    const mappedCategories = categories.map((cat) => ({
+      ...cat,
+      name: cat.nameVi,
+    }));
+
     return {
       message: 'Lấy danh sách danh mục thành công',
-      data: categories,
+      data: mappedCategories,
       pagination: {
         page,
         limit,
@@ -242,7 +286,8 @@ export class CategoryService {
         parent: {
           select: {
             id: true,
-            name: true,
+            nameVi: true,
+            nameEn: true,
             icon: true,
             color: true,
           },
@@ -253,7 +298,8 @@ export class CategoryService {
           },
           select: {
             id: true,
-            name: true,
+            nameVi: true,
+            nameEn: true,
             icon: true,
             color: true,
           },
@@ -267,7 +313,10 @@ export class CategoryService {
 
     return {
       message: 'Lấy thông tin danh mục thành công',
-      data: category,
+      data: {
+        ...category,
+        name: category.nameVi,
+      },
     };
   }
 

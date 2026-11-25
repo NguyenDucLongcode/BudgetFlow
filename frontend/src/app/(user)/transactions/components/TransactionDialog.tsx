@@ -15,11 +15,12 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { CurrencyInput } from "@/src/components/ui/currency-input";
 import { useWallets } from "@/src/client/wallet/wallet.hooks";
 import { useCategories } from "@/src/client/category/category.hooks";
 import { TransactionType } from "@/src/types/enums";
+import { getLocalizedName } from "@/src/utils";
 import type {
   Transaction,
   CreateTransactionInput,
@@ -54,6 +55,7 @@ export function TransactionDialog({
   isSubmitting,
 }: TransactionDialogProps) {
   const t = useTranslations("transactions");
+  const locale = useLocale();
   const isEditing = Boolean(transactionToEdit);
 
   // Lấy danh sách ví (chỉ lấy ví chưa lưu trữ)
@@ -282,12 +284,12 @@ export function TransactionDialog({
               >
                 <option value="" disabled>
                   {isLoadingWallets
-                    ? "Đang tải ví..."
+                    ? t("loadingWallets")
                     : t("selectWalletPlaceholder")}
                 </option>
                 {wallets.map((wallet) => (
                   <option key={wallet.id} value={wallet.id} className="bg-slate-900 text-slate-100">
-                    {wallet.name} ({Number(wallet.balance).toLocaleString("en-US")}{" "}
+                    {getLocalizedName(wallet, locale)} ({Number(wallet.balance).toLocaleString("en-US")}{" "}
                     {wallet.currency})
                   </option>
                 ))}
@@ -320,12 +322,12 @@ export function TransactionDialog({
                   >
                     <option value="" disabled>
                       {isLoadingCategories
-                        ? "Đang tải danh mục..."
+                        ? t("loadingCategories")
                         : t("selectCategoryPlaceholder")}
                     </option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id} className="bg-slate-900 text-slate-100">
-                        {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+                        {cat.icon ? `${cat.icon} ` : ""}{getLocalizedName(cat, locale)}
                       </option>
                     ))}
                   </select>
@@ -344,7 +346,7 @@ export function TransactionDialog({
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                {t("dateLabel")} & Giờ
+                {t("dateTimeLabel")}
                 <span className="text-rose-400">*</span>
               </span>
             </label>

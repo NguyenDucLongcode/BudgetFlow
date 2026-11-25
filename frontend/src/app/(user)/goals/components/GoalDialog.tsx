@@ -16,6 +16,8 @@ import {
 import { CurrencyInput } from "@/src/components/ui/currency-input";
 import { useWallets } from "@/src/client/wallet/wallet.hooks";
 import { GoalPriority, GoalStatus } from "@/src/types/enums";
+import { useLocale, useTranslations } from "next-intl";
+import { getLocalizedName } from "@/src/utils";
 import type {
   Goal,
   Wallet,
@@ -57,6 +59,8 @@ export function GoalDialog({
   onSubmit,
   isSubmitting = false,
 }: GoalDialogProps) {
+  const t = useTranslations("goals");
+  const locale = useLocale();
   const isEditing = Boolean(goalToEdit);
   const { data: wallets = [] } = useWallets();
 
@@ -179,12 +183,10 @@ export function GoalDialog({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">
-                {isEditing ? "Chỉnh sửa mục tiêu" : "Tạo mục tiêu mới"}
+                {isEditing ? t("dialogEditTitle") : t("dialogCreateTitle")}
               </h2>
               <p className="text-xs text-slate-400">
-                {isEditing
-                  ? "Cập nhật thông tin tiến độ tích lũy"
-                  : "Đặt cột mốc tài chính bạn muốn hoàn thành"}
+                {isEditing ? t("dialogEditSubtitle") : t("dialogCreateSubtitle")}
               </p>
             </div>
           </div>
@@ -202,12 +204,12 @@ export function GoalDialog({
           {/* Tên mục tiêu */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Tên mục tiêu <span className="text-rose-400">*</span>
+              {t("goalName")} <span className="text-rose-400">*</span>
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="VD: Quỹ khẩn cấp, Mua MacBook, Mua xe..."
+                placeholder={t("goalNamePlaceholder")}
                 {...register("name")}
                 className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
@@ -220,7 +222,7 @@ export function GoalDialog({
           {/* Số tiền mục tiêu */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Số tiền mục tiêu (₫) <span className="text-rose-400">*</span>
+              {t("targetAmount")} <span className="text-rose-400">*</span>
             </label>
             <Controller
               name="targetAmount"
@@ -243,7 +245,7 @@ export function GoalDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Ngày bắt đầu <span className="text-rose-400">*</span>
+                {t("startDate")} <span className="text-rose-400">*</span>
               </label>
               <div className="relative">
                 <input
@@ -260,7 +262,7 @@ export function GoalDialog({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Ngày kết thúc <span className="text-rose-400">*</span>
+                {t("targetDate")} <span className="text-rose-400">*</span>
               </label>
               <div className="relative">
                 <input
@@ -280,17 +282,17 @@ export function GoalDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Độ ưu tiên
+                {t("priority")}
               </label>
               <div className="relative">
                 <select
                   {...register("priority")}
                   className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value={GoalPriority.LOW}>Thấp (Low)</option>
-                  <option value={GoalPriority.MEDIUM}>Trung bình (Medium)</option>
-                  <option value={GoalPriority.HIGH}>Cao (High)</option>
-                  <option value={GoalPriority.URGENT}>Khẩn cấp (Urgent)</option>
+                  <option value={GoalPriority.LOW}>{t("priorityLow")}</option>
+                  <option value={GoalPriority.MEDIUM}>{t("priorityMedium")}</option>
+                  <option value={GoalPriority.HIGH}>{t("priorityHigh")}</option>
+                  <option value={GoalPriority.URGENT}>{t("priorityUrgent")}</option>
                 </select>
                 <Flame className="w-4 h-4 text-amber-400 absolute right-3 top-3 pointer-events-none" />
               </div>
@@ -298,17 +300,17 @@ export function GoalDialog({
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Ví tích lũy mặc định
+                {t("wallet")}
               </label>
               <div className="relative">
                 <select
                   {...register("walletId")}
                   className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value="">-- Không liên kết ví cụ thể --</option>
+                  <option value="">{t("noLinkedWallet")}</option>
                   {(wallets as Wallet[]).map((w: Wallet) => (
                     <option key={w.id} value={w.id}>
-                      {w.name} ({Number(w.balance).toLocaleString("vi-VN")} ₫)
+                      {getLocalizedName(w, locale)} ({Number(w.balance).toLocaleString("vi-VN")} ₫)
                     </option>
                   ))}
                 </select>
@@ -320,11 +322,11 @@ export function GoalDialog({
           {/* Mô tả */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Mô tả ngắn
+              {t("descriptionLabel")}
             </label>
             <input
               type="text"
-              placeholder="VD: Dành cho chuyến đi Hàn Quốc cuối năm"
+              placeholder={t("descriptionPlaceholder")}
               {...register("description")}
               className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
@@ -333,11 +335,11 @@ export function GoalDialog({
           {/* Ghi chú */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Ghi chú thêm
+              {t("description")}
             </label>
             <textarea
               rows={2}
-              placeholder="Ghi chú kế hoạch tiết kiệm..."
+              placeholder={t("notesPlaceholder")}
               {...register("notes")}
               className="w-full px-3.5 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
             />
@@ -351,7 +353,7 @@ export function GoalDialog({
               onClick={() => onOpenChange(false)}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
             >
-              Hủy
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -359,7 +361,7 @@ export function GoalDialog({
               className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition-all disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {isEditing ? "Lưu thay đổi" : "Tạo mục tiêu"}
+              {isEditing ? t("saveChanges") : t("createGoalBtn")}
             </button>
           </div>
         </form>

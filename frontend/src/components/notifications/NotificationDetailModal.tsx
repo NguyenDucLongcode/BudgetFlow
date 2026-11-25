@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { useLocale, useTranslations } from "next-intl";
+import { translateNotification } from "@/src/utils/notification-i18n";
 import {
   AlertCircle,
   Calendar,
@@ -61,8 +63,14 @@ export function NotificationDetailModal({
   onClose,
 }: NotificationDetailModalProps) {
   const router = useRouter();
+  const t = useTranslations("notifications");
+  const locale = useLocale();
   const Icon = notification ? iconsByType[notification.type] || Info : Info;
   const transactionId = notification?.metadata?.transactionId;
+
+  const { title: displayTitle, message: displayMessage } = notification
+    ? translateNotification(notification.title, notification.message, locale)
+    : { title: "", message: "" };
 
   const handleNavigateToTransaction = () => {
     if (!transactionId) return;
@@ -88,10 +96,10 @@ export function NotificationDetailModal({
                 </div>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                    Chi tiết thông báo
+                    {t("detailTitle")}
                   </span>
                   <DialogTitle className="mt-0.5 text-base font-bold leading-snug text-white sm:text-lg">
-                    {notification.title}
+                    {displayTitle}
                   </DialogTitle>
                 </div>
               </div>
@@ -99,7 +107,7 @@ export function NotificationDetailModal({
                 type="button"
                 onClick={onClose}
                 className="cursor-pointer rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
-                aria-label="Đóng modal"
+                aria-label={t("close")}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -107,7 +115,7 @@ export function NotificationDetailModal({
 
             <div className="space-y-4">
               <p className="whitespace-pre-wrap text-base font-normal leading-relaxed text-slate-200 sm:text-lg">
-                {notification.message}
+                {displayMessage}
               </p>
               <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-sm font-medium text-slate-400">
                 <Calendar className="h-4 w-4 shrink-0 text-indigo-400" />
@@ -162,7 +170,7 @@ export function NotificationDetailModal({
                 onClick={onClose}
                 className="cursor-pointer rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                Đóng
+                {t("close")}
               </button>
               {transactionId && (
                 <button
@@ -170,7 +178,7 @@ export function NotificationDetailModal({
                   onClick={handleNavigateToTransaction}
                   className="flex cursor-pointer items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] hover:bg-indigo-500 active:scale-[0.98]"
                 >
-                  <span>Xem giao dịch</span>
+                  <span>{t("viewRelatedTransaction")}</span>
                   <ExternalLink className="h-4 w-4" />
                 </button>
               )}

@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { CategoryIconBadge } from "@/src/utils/category-icons";
 import type { Budget } from "@/src/types/api";
+import { useLocale } from "next-intl";
+import { getLocalizedName } from "@/src/utils";
 
 interface BudgetCardProps {
   budget: Budget;
@@ -20,6 +22,7 @@ interface BudgetCardProps {
 }
 
 export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
+  const locale = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +91,7 @@ export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3.5">
             <CategoryIconBadge
-              name={budget.category?.name}
+              name={getLocalizedName(budget.category, locale)}
               icon={budget.category?.icon}
               color={budget.category?.color}
               isIncome={false}
@@ -96,7 +99,7 @@ export function BudgetCard({ budget, onEdit, onDelete }: BudgetCardProps) {
             />
             <div>
               <h3 className="font-bold text-white text-base truncate max-w-[160px] sm:max-w-[200px]">
-                {budget.category?.name || "Chi tiêu"}
+                {getLocalizedName(budget.category, locale) || "Chi tiêu"}
               </h3>
               <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
                 <Calendar className="w-3 h-3 text-slate-500" />

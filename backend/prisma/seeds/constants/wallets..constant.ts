@@ -2,7 +2,8 @@ import { Currency, WalletType } from 'generated/prisma/enums';
 
 export const DEFAULT_WALLETS = [
   {
-    name: 'Ví tiền mặt',
+    nameVi: 'Ví tiền mặt',
+    nameEn: 'Cash Wallet',
     type: WalletType.CASH,
     currency: Currency.VND,
     initialBalance: 2_000_000,
@@ -15,7 +16,8 @@ export const DEFAULT_WALLETS = [
   },
 
   {
-    name: 'Vietcombank',
+    nameVi: 'Vietcombank',
+    nameEn: 'Vietcombank Main Account',
     type: WalletType.BANK,
     currency: Currency.VND,
     initialBalance: 15_000_000,
@@ -30,7 +32,8 @@ export const DEFAULT_WALLETS = [
   },
 
   {
-    name: 'MoMo',
+    nameVi: 'MoMo',
+    nameEn: 'MoMo E-Wallet',
     type: WalletType.E_WALLET,
     currency: Currency.VND,
     initialBalance: 800_000,

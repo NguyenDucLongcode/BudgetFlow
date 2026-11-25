@@ -5,7 +5,27 @@ import { Sanitize } from 'src/common/decorators/sanitize.decorator';
 export class UpdateCategoryDto {
   @ApiPropertyOptional({
     example: 'Ăn uống',
-    description: 'Tên danh mục',
+    description: 'Tên danh mục (Tiếng Việt)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  @Sanitize()
+  nameVi?: string;
+
+  @ApiPropertyOptional({
+    example: 'Food & Dining',
+    description: 'Tên danh mục (Tiếng Anh)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  @Sanitize()
+  nameEn?: string;
+
+  @ApiPropertyOptional({
+    example: 'Ăn uống',
+    description: 'Tên danh mục (Tương thích ngược)',
   })
   @IsOptional()
   @IsString()

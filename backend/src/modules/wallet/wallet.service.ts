@@ -36,11 +36,17 @@ export class WalletService {
         maxWallets,
       });
     }
+    const nameVi = dto.nameVi || dto.name;
+    if (!nameVi) {
+      throw new BadRequestException('Tên ví tiếng Việt không được để trống');
+    }
+    const nameEn = dto.nameEn || null;
+
     // kiểm tra tên ví đã tồn tại chưa
     const existed = await this.walletRepository.findFirst({
       where: {
         userId,
-        name: dto.name,
+        nameVi,
         deletedAt: null,
       },
     });
@@ -71,7 +77,8 @@ export class WalletService {
         return tx.wallet.create({
           data: {
             userId,
-            name: dto.name,
+            nameVi,
+            nameEn,
             type: dto.type,
             currency: dto.currency,
             balance: dto.initialBalance ?? 0,
@@ -91,7 +98,10 @@ export class WalletService {
 
     return {
       message: 'Tạo ví thành công',
-      data: wallet,
+      data: {
+        ...wallet,
+        name: wallet.nameVi,
+      },
     };
   }
 
@@ -109,12 +119,15 @@ export class WalletService {
       throw new NotFoundException('Không tìm thấy ví');
     }
 
+    const nameVi = dto.nameVi || dto.name;
+    const nameEn = dto.nameEn;
+
     // Kiểm tra nếu tên ví được cập nhật và khác với tên hiện tại thì kiểm tra xem tên ví đã tồn tại chưa
-    if (dto.name && dto.name !== wallet.name) {
+    if (nameVi && nameVi !== wallet.nameVi) {
       const existed = await this.walletRepository.findFirst({
         where: {
           userId,
-          name: dto.name,
+          nameVi,
           deletedAt: null,
           NOT: {
             id: walletId,
@@ -138,13 +151,15 @@ export class WalletService {
     }
 
     // Kiểm tra nếu ví là ví ngân hàng mà không có thông tin tài khoản ngân hàng thì báo lỗi
-    const { isArchived, ...walletData } = dto;
+    const { isArchived, name: _legacyName, ...walletData } = dto;
     const updatedWallet = await this.walletRepository.update({
       where: {
         id: walletId,
       },
       data: {
         ...walletData,
+        ...(nameVi ? { nameVi } : {}),
+        ...(nameEn !== undefined ? { nameEn } : {}),
         ...(isArchived !== undefined && {
           isArchived,
           archivedAt: isArchived ? new Date() : null,
@@ -154,7 +169,10 @@ export class WalletService {
 
     return {
       message: 'Cập nhật ví thành công',
-      data: updatedWallet,
+      data: {
+        ...updatedWallet,
+        name: updatedWallet.nameVi,
+      },
     };
   }
 
@@ -171,10 +189,20 @@ export class WalletService {
       deletedAt: null,
 
       ...(search && {
-        name: {
-          contains: search,
-          mode: 'insensitive',
-        },
+        OR: [
+          {
+            nameVi: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            nameEn: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
       }),
 
       ...(type && {
@@ -191,7 +219,11 @@ export class WalletService {
     };
 
     // Tạo điều kiện sắp xếp dựa trên tham số sortBy và order
-    const orderBy = sortBy ? { [sortBy]: order } : { id: 'asc' as const };
+    const orderBy = sortBy
+      ? sortBy === 'name'
+        ? { nameVi: order }
+        : { [sortBy]: order }
+      : { id: 'asc' as const };
 
     // Sử dụng Promise.all để thực hiện hai truy vấn song song: tìm kiếm danh sách ví và đếm tổng số ví
     const [wallets, total] = await Promise.all([
@@ -203,7 +235,8 @@ export class WalletService {
 
         select: {
           id: true,
-          name: true,
+          nameVi: true,
+          nameEn: true,
           type: true,
           balance: true,
           initialBalance: true,
@@ -223,10 +256,15 @@ export class WalletService {
       }),
     ]);
 
+    const mappedWallets = wallets.map((w) => ({
+      ...w,
+      name: w.nameVi,
+    }));
+
     return {
       message: 'Lấy danh sách ví thành công',
 
-      data: wallets,
+      data: mappedWallets,
 
       pagination: {
         page,
@@ -252,7 +290,10 @@ export class WalletService {
 
     return {
       message: 'Lấy thông tin ví thành công',
-      data: wallet,
+      data: {
+        ...wallet,
+        name: wallet.nameVi,
+      },
     };
   }
 

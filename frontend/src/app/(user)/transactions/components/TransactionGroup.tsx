@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { vi, enUS } from "date-fns/locale";
+import { useTranslations } from "next-intl";
 import {
   ChevronDown,
   TrendingUp,
@@ -24,6 +25,7 @@ import {
 } from "@/src/components/ui/dropdown-menu";
 import { CategoryIconBadge } from "@/src/utils/category-icons";
 import { convertFromVnd, type DisplayCurrency } from "@/src/utils/currency-converter";
+import { getLocalizedName } from "@/src/utils";
 import { TransactionType, TransactionStatus } from "@/src/types/enums";
 import type { Transaction } from "@/src/types/api";
 
@@ -68,6 +70,7 @@ export function TransactionGroup({
   onDelete,
   onView,
 }: TransactionGroupProps) {
+  const t = useTranslations("transactions");
   const [expanded, setExpanded] = useState(defaultExpanded);
   const dateLocale = locale === "vi" ? vi : enUS;
 
@@ -107,7 +110,7 @@ export function TransactionGroup({
             {formattedDate}
           </span>
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">
-            {transactions.length} giao dịch
+            {t("txCount", { count: transactions.length })}
           </span>
         </div>
 
@@ -150,7 +153,7 @@ export function TransactionGroup({
                 {/* 1. Danh mục (Icon + Tên + Giờ) - 3 cột */}
                 <div className="sm:col-span-3 flex items-center gap-3 min-w-0">
                   <CategoryIconBadge
-                    name={cat?.name}
+                    name={getLocalizedName(cat, locale)}
                     icon={cat?.icon}
                     color={cat?.color}
                     isIncome={isIncome}
@@ -158,7 +161,7 @@ export function TransactionGroup({
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm sm:text-base font-semibold text-slate-100 truncate">
-                      {cat?.name || (isIncome ? "Thu nhập" : "Chi tiêu")}
+                      {getLocalizedName(cat, locale) || (isIncome ? t("income") : t("expense"))}
                     </p>
                     <p className="text-xs text-slate-500 font-medium mt-0.5">
                       {format(new Date(tx.date), "HH:mm")}
@@ -182,7 +185,7 @@ export function TransactionGroup({
                 <div className="sm:col-span-2 min-w-0 flex items-center gap-1.5 text-slate-300">
                   <WalletIcon className="w-4 h-4 text-slate-400 shrink-0" />
                   <span className="text-sm sm:text-base font-medium truncate">
-                    {tx.wallet?.name || "—"}
+                    {getLocalizedName(tx.wallet, locale) || "—"}
                   </span>
                 </div>
 
@@ -203,12 +206,12 @@ export function TransactionGroup({
                   {isPending ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
                       <Clock className="w-3.5 h-3.5" />
-                      <span>Dự kiến</span>
+                      <span>{t("statusPending")}</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Hoàn thành</span>
+                      <span>{t("statusCompleted")}</span>
                     </span>
                   )}
                 </div>
@@ -218,7 +221,7 @@ export function TransactionGroup({
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                      aria-label="Actions"
+                      aria-label={t("actions")}
                     >
                       <MoreVertical className="w-4 h-4" />
                     </DropdownMenuTrigger>
@@ -233,14 +236,14 @@ export function TransactionGroup({
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 cursor-pointer transition-colors"
                       >
                         <Eye className="w-4 h-4 text-indigo-400" />
-                        <span>Xem chi tiết</span>
+                        <span>{t("viewDetail")}</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onEdit(tx)}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 cursor-pointer transition-colors"
                       >
                         <Pencil className="w-4 h-4 text-slate-400" />
-                        <span>Chỉnh sửa</span>
+                        <span>{t("edit")}</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="my-1 bg-slate-800" />
                       <DropdownMenuItem
@@ -248,7 +251,7 @@ export function TransactionGroup({
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 cursor-pointer transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span>Xóa</span>
+                        <span>{t("delete")}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

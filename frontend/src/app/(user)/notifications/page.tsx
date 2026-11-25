@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Info, Target, WalletCards, RefreshCw, AlertCircle, CheckCheck } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { browserApiClient } from "@/src/lib/bff";
 import { Button } from "@/src/components/ui/button";
+import { translateNotification } from "@/src/utils/notification-i18n";
 import {
   NotificationDetailModal,
   formatNotificationDateTime,
@@ -34,7 +35,8 @@ const iconColors = {
 };
 
 export default function NotificationsPage() {
-  const t = useTranslations("userLayout");
+  const t = useTranslations("notifications");
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationItem | null>(null);
@@ -75,10 +77,10 @@ export default function NotificationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            {t("notifications")}
+            {t("title")}
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Cập nhật và thông báo hoạt động từ hệ thống BudgetFlow
+            {t("emptyDesc")}
           </p>
         </div>
 
@@ -90,7 +92,7 @@ export default function NotificationsPage() {
             className="border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 text-xs cursor-pointer"
           >
             <CheckCheck className="w-4 h-4 mr-1.5 text-indigo-400" />
-            Đánh dấu tất cả đã đọc
+            {t("markAllAsRead")}
           </Button>
         )}
       </div>
@@ -98,20 +100,22 @@ export default function NotificationsPage() {
       <div className="overflow-hidden rounded-3xl border border-slate-800 bg-[#111827]/80 backdrop-blur-sm shadow-xl divide-y divide-slate-800/80">
         {isLoading ? (
           <div className="p-12 text-center text-sm text-slate-400 animate-pulse">
-            Đang tải thông báo...
+            ...
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-16 text-center">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto mb-3">
               <Info className="w-6 h-6" />
             </div>
-            <p className="text-base font-semibold text-white">Không có thông báo mới</p>
-            <p className="text-xs text-slate-500 mt-1">Bạn đã cập nhật mọi thông tin gần đây.</p>
+            <p className="text-base font-semibold text-white">{t("emptyTitle")}</p>
+            <p className="text-xs text-slate-500 mt-1">{t("emptyDesc")}</p>
           </div>
         ) : (
           notifications.map((item) => {
             const Icon = icons[item.type] || Info;
             const colorClass = iconColors[item.type] || iconColors.SYSTEM;
+            const { title: displayTitle, message: displayMessage } =
+              translateNotification(item.title, item.message, locale);
 
             return (
               <div
@@ -130,7 +134,7 @@ export default function NotificationsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className={`text-sm font-semibold truncate ${item.isRead ? "text-slate-300" : "text-white"}`}>
-                      {item.title}
+                      {displayTitle}
                     </p>
                     <span className="text-[11px] text-slate-500 shrink-0 font-medium">
                       {formatNotificationDateTime(item.createdAt)}
@@ -138,7 +142,7 @@ export default function NotificationsPage() {
                   </div>
 
                   <p className="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">
-                    {item.message}
+                    {displayMessage}
                   </p>
                 </div>
               </div>

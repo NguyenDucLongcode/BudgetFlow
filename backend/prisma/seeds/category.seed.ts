@@ -26,17 +26,18 @@ export async function seedCategories(context: SeedContext): Promise<void> {
         userId: current.user.id,
       },
       select: {
-        name: true,
+        nameVi: true,
+        nameEn: true,
         type: true,
       },
     });
 
     const existedSet = new Set(
-      existedCategories.map((category) => `${category.type}-${category.name}`),
+      existedCategories.map((category) => `${category.type}-${category.nameVi}`),
     );
 
     const categoriesToCreate = SYSTEM_CATEGORIES.filter(
-      (category) => !existedSet.has(`${category.type}-${category.name}`),
+      (category) => !existedSet.has(`${category.type}-${category.nameVi}`),
     ).map((category) => ({
       ...category,
       userId: current.user.id,

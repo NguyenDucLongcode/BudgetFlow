@@ -17,6 +17,8 @@ import {
 import { CurrencyInput } from "@/src/components/ui/currency-input";
 import { useCategories } from "@/src/client/category/category.hooks";
 import { BudgetPeriod, BudgetType } from "@/src/types/enums";
+import { useLocale, useTranslations } from "next-intl";
+import { getLocalizedName } from "@/src/utils";
 import type {
   Budget,
   CreateBudgetInput,
@@ -61,6 +63,8 @@ export function BudgetDialog({
   onSubmit,
   isSubmitting = false,
 }: BudgetDialogProps) {
+  const t = useTranslations("budgets");
+  const locale = useLocale();
   const isEditing = Boolean(budgetToEdit);
 
   // Chỉ lấy danh mục EXPENSE
@@ -192,12 +196,10 @@ export function BudgetDialog({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
-                {isEditing ? "Chỉnh sửa ngân sách" : "Tạo ngân sách mới"}
+                {isEditing ? t("dialogEditTitle") : t("dialogCreateTitle")}
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                {isEditing
-                  ? "Cập nhật thông tin và hạn mức ngân sách"
-                  : "Thiết lập hạn mức chi tiêu để kiểm soát tài chính"}
+                {isEditing ? t("dialogEditSubtitle") : t("dialogSubtitle")}
               </p>
             </div>
           </div>
@@ -217,7 +219,7 @@ export function BudgetDialog({
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
               <span className="flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-slate-400" />
-                Danh mục chi tiêu
+                {t("category")}
                 <span className="text-rose-400">*</span>
               </span>
             </label>
@@ -233,8 +235,8 @@ export function BudgetDialog({
                 >
                   <option value="" disabled>
                     {isLoadingCategories
-                      ? "Đang tải danh mục..."
-                      : "Chọn danh mục chi tiêu..."}
+                      ? t("loadingCategories")
+                      : t("selectCategory")}
                   </option>
                   {categories.map((cat) => (
                     <option
@@ -242,7 +244,7 @@ export function BudgetDialog({
                       value={cat.id}
                       className="bg-slate-900 text-slate-100"
                     >
-                      {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+                      {cat.icon ? `${cat.icon} ` : ""}{getLocalizedName(cat, locale)}
                     </option>
                   ))}
                 </select>
@@ -258,7 +260,7 @@ export function BudgetDialog({
           {/* 2. Hạn mức ngân sách (CurrencyInput) */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Số tiền hạn mức (₫)
+              {t("amount")}
               <span className="text-rose-400">*</span>
             </label>
             <Controller
@@ -269,7 +271,7 @@ export function BudgetDialog({
                   value={field.value}
                   onChange={field.onChange}
                   currency="VND"
-                  placeholder="Nhập số tiền hạn mức..."
+                  placeholder={t("amountPlaceholder")}
                   className="text-lg font-bold text-white bg-slate-900/90 border-slate-700 focus:border-indigo-500"
                 />
               )}
@@ -287,7 +289,7 @@ export function BudgetDialog({
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  Từ ngày
+                  {t("startDate")}
                   <span className="text-rose-400">*</span>
                 </span>
               </label>
@@ -307,7 +309,7 @@ export function BudgetDialog({
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  Đến ngày
+                  {t("endDate")}
                   <span className="text-rose-400">*</span>
                 </span>
               </label>
@@ -335,10 +337,10 @@ export function BudgetDialog({
                 )}
                 <div>
                   <span className="text-xs font-semibold text-slate-200 block">
-                    Cảnh báo chi tiêu tự động
+                    {t("alertToggle")}
                   </span>
                   <span className="text-[11px] text-slate-400">
-                    Gửi thông báo & WebSocket khi đạt ngưỡng
+                    {t("alertToggleDesc")}
                   </span>
                 </div>
               </div>
@@ -372,7 +374,7 @@ export function BudgetDialog({
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Ngưỡng cảnh báo (%)
+                    {t("alertThreshold")}
                   </label>
                   <div className="relative">
                     <input
@@ -394,7 +396,7 @@ export function BudgetDialog({
                 </div>
 
                 <div className="text-right text-xs text-slate-400 pt-3">
-                  <span>Cảnh báo khi chi:</span>
+                  <span>{t("alertAtAmount")}</span>
                   <div className="font-semibold text-amber-400 text-sm font-mono mt-0.5">
                     {calculatedThresholdAmount.toLocaleString("vi-VN")} ₫
                   </div>
@@ -408,13 +410,13 @@ export function BudgetDialog({
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
               <span className="flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-slate-400" />
-                Mô tả (tuỳ chọn)
+                {t("descriptionOptional")}
               </span>
             </label>
             <input
               type="text"
               {...register("description")}
-              placeholder="VD: Ngân sách ăn uống tháng này..."
+              placeholder={t("descriptionPlaceholder")}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-900/90 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
             />
           </div>
@@ -427,7 +429,7 @@ export function BudgetDialog({
               disabled={isSubmitting}
               className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
-              Hủy
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -437,10 +439,10 @@ export function BudgetDialog({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang lưu...</span>
+                  <span>{t("saving")}</span>
                 </>
               ) : (
-                <span>{isEditing ? "Cập nhật" : "Tạo ngân sách"}</span>
+                <span>{isEditing ? t("updateButton") : t("save")}</span>
               )}
             </button>
           </div>

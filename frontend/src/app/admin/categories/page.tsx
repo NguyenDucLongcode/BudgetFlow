@@ -9,7 +9,7 @@ import {
   type LegacyColumnDef as ColumnDef,
 } from "@tanstack/react-table/legacy";
 import { format } from "date-fns";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   FolderTree,
   Plus,
@@ -27,10 +27,13 @@ import {
 import { browserApiClient } from "@/src/lib/bff";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import type { ApiResponse } from "@/src/types";
+import { getLocalizedName } from "@/src/utils";
 
 interface SystemCategoryItem {
   id: string;
   name: string;
+  nameVi?: string;
+  nameEn?: string | null;
   type: "INCOME" | "EXPENSE";
   icon: string;
   color: string;
@@ -53,6 +56,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function AdminCategoriesPage() {
   const t = useTranslations("categories");
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
@@ -65,12 +69,14 @@ export default function AdminCategoriesPage() {
 
   // Form State
   const [formData, setFormData] = useState<{
-    name: string;
+    nameVi: string;
+    nameEn: string;
     type: "INCOME" | "EXPENSE";
     icon: string;
     color: string;
   }>({
-    name: "",
+    nameVi: "",
+    nameEn: "",
     type: "EXPENSE",
     icon: "Folder",
     color: "#10B981",
@@ -99,7 +105,11 @@ export default function AdminCategoriesPage() {
 
   const categories = data || [];
   const filteredCategories = categories.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const matchSearch =
+      (c.nameVi && c.nameVi.toLowerCase().includes(q)) ||
+      (c.nameEn && c.nameEn.toLowerCase().includes(q)) ||
+      (c.name && c.name.toLowerCase().includes(q));
     const matchType = typeFilter === "ALL" || c.type === typeFilter;
     return matchSearch && matchType;
   });
@@ -107,13 +117,17 @@ export default function AdminCategoriesPage() {
   // Mutation: Tạo Category
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      await browserApiClient.post("/admin/categories", data);
+      await browserApiClient.post("/admin/categories", {
+        ...data,
+        name: data.nameVi,
+        nameEn: data.nameEn.trim() || undefined,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
       showToast(t("createSuccess"));
       setIsCreateOpen(false);
-      setFormData({ name: "", type: "EXPENSE", icon: "Folder", color: "#10B981" });
+      setFormData({ nameVi: "", nameEn: "", type: "EXPENSE", icon: "Folder", color: "#10B981" });
     },
     onError: (err: unknown) => {
       showToast(getErrorMessage(err, t("createError")));
@@ -123,7 +137,11 @@ export default function AdminCategoriesPage() {
   // Mutation: Sửa Category
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      await browserApiClient.patch(`/admin/categories/${id}`, data);
+      await browserApiClient.patch(`/admin/categories/${id}`, {
+        ...data,
+        ...(data.nameVi && { name: data.nameVi }),
+        nameEn: data.nameEn !== undefined ? (data.nameEn.trim() || undefined) : undefined,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
@@ -156,17 +174,24 @@ export default function AdminCategoriesPage() {
       header: t("colName"),
       cell: ({ row }) => {
         const c = row.original;
+        const displayName = getLocalizedName(c, locale);
         return (
           <div className="flex items-center gap-3">
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white font-bold text-xs shadow-md"
               style={{ backgroundColor: c.color }}
             >
-              {c.name.charAt(0).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="text-xs font-bold text-white">{c.name}</p>
-              <p className="text-[10px] text-slate-400 font-mono">ID: {c.id}</p>
+              <p className="text-xs font-bold text-white">{displayName}</p>
+              {c.nameEn && locale !== "en" && (
+                <p className="text-[11px] text-slate-400">{c.nameEn}</p>
+              )}
+              {c.nameVi && locale === "en" && (
+                <p className="text-[11px] text-slate-400">{c.nameVi}</p>
+              )}
+              <p className="text-[10px] text-slate-500 font-mono">ID: {c.id}</p>
             </div>
           </div>
         );
@@ -225,7 +250,8 @@ export default function AdminCategoriesPage() {
               onClick={() => {
                 setEditingCategory(c);
                 setFormData({
-                  name: c.name,
+                  nameVi: c.nameVi || c.name,
+                  nameEn: c.nameEn || "",
                   type: c.type,
                   icon: c.icon || "Folder",
                   color: c.color || "#10B981",
@@ -289,7 +315,7 @@ export default function AdminCategoriesPage() {
 
           <button
             onClick={() => {
-              setFormData({ name: "", type: "EXPENSE", icon: "Folder", color: "#10B981" });
+              setFormData({ nameVi: "", nameEn: "", type: "EXPENSE", icon: "Folder", color: "#10B981" });
               setIsCreateOpen(true);
             }}
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition-all"
@@ -400,12 +426,25 @@ export default function AdminCategoriesPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1.5">{t("nameLabel")}</label>
+                <label className="block text-slate-400 font-semibold mb-1.5">
+                  {t("nameViLabel")} <span className="text-rose-400">*</span>
+                </label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={t("namePlaceholder")}
+                  value={formData.nameVi}
+                  onChange={(e) => setFormData({ ...formData, nameVi: e.target.value })}
+                  placeholder={t("nameViPlaceholder")}
+                  className="w-full h-10 rounded-xl border border-[#334155] bg-[#1E293B] px-3 text-xs text-white focus:border-emerald-500/50 focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1.5">{t("nameEnLabel")}</label>
+                <input
+                  type="text"
+                  value={formData.nameEn}
+                  onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
+                  placeholder={t("nameEnPlaceholder")}
                   className="w-full h-10 rounded-xl border border-[#334155] bg-[#1E293B] px-3 text-xs text-white focus:border-emerald-500/50 focus:outline-hidden"
                 />
               </div>
@@ -453,8 +492,8 @@ export default function AdminCategoriesPage() {
               </button>
               <button
                 onClick={() => {
-                  if (!formData.name.trim()) {
-                    showToast(t("nameRequired"));
+                  if (!formData.nameVi.trim()) {
+                    showToast(t("nameViRequired") || t("nameRequired"));
                     return;
                   }
                   if (editingCategory) {
