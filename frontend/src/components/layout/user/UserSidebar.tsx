@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Wallet,
   ArrowRightLeft,
+  CalendarClock,
   PieChart,
   Target,
   Receipt,
@@ -49,6 +50,11 @@ export function UserSidebar({
       title: t("transactions"),
       href: "/transactions",
       icon: ArrowRightLeft,
+    },
+    {
+      title: t("recurring"),
+      href: "/recurring",
+      icon: CalendarClock,
     },
     {
       title: t("budgets"),

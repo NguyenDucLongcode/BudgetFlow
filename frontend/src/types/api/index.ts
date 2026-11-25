@@ -7,3 +7,4 @@ export * from "./budget.types";
 export * from "./category.types";
 export * from "./goal.types";
 export * from "./debt.types";
+export * from "./recurring.types";

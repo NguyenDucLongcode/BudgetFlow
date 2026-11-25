@@ -347,11 +347,11 @@ export class RecurringTransactionService {
     };
   }
 
-  private addInterval(
+  addInterval(
     date: Date,
     frequency: RecurringFrequency,
     interval: number,
-  ) {
+  ): Date {
     const nextDate = new Date(date);
 
     switch (frequency) {
