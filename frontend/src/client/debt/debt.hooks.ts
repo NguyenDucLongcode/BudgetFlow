@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { debtService } from "./debt.service";
 import { debtKeys } from "./debt.keys";
+import { invalidateDashboardQueries } from "@/src/lib/react-query/invalidate-dashboard";
 import type {
   CreateDebtInput,
   UpdateDebtInput,
@@ -51,7 +52,7 @@ export function useCreateDebt() {
   return useMutation({
     mutationFn: (data: CreateDebtInput) => debtService.createDebt(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["debts"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["debts"], exact: false });
     },
   });
@@ -63,7 +64,7 @@ export function useUpdateDebt() {
     mutationFn: ({ id, data }: { id: string; data: UpdateDebtInput }) =>
       debtService.updateDebt(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["debts"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["debts"], exact: false });
     },
   });
@@ -74,7 +75,7 @@ export function useDeleteDebt() {
   return useMutation({
     mutationFn: (id: string) => debtService.deleteDebt(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["debts"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["debts"], exact: false });
     },
   });
@@ -87,10 +88,7 @@ export function usePayDebt() {
       debtService.addPayment(id, data),
     onSuccess: async () => {
       // Invalidate các queries liên quan
-      await queryClient.invalidateQueries({ queryKey: ["debts"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["transactions"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["statistics"], exact: false });
+      await invalidateDashboardQueries(queryClient);
 
       // Ép tải lại ngay lập tức
       await Promise.all([

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { budgetService } from "./budget.service";
 import { budgetKeys } from "./budgetKeys";
+import { invalidateDashboardQueries } from "@/src/lib/react-query/invalidate-dashboard";
 import type {
   CreateBudgetInput,
   UpdateBudgetInput,
@@ -45,8 +46,7 @@ export function useCreateBudget() {
   return useMutation({
     mutationFn: (data: CreateBudgetInput) => budgetService.createBudget(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
@@ -59,8 +59,7 @@ export function useUpdateBudget() {
     mutationFn: ({ id, data }: { id: string; data: UpdateBudgetInput }) =>
       budgetService.updateBudget(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },
@@ -72,8 +71,7 @@ export function useDeleteBudget() {
   return useMutation({
     mutationFn: (id: string) => budgetService.deleteBudget(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
     },

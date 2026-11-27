@@ -82,6 +82,7 @@ function TransactionsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlTxId = searchParams.get("transactionId");
+  const urlSearch = searchParams.get("search") ?? "";
 
   // ── Currency display state ──────────────────────────────────────────────
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>("VND");
@@ -134,10 +135,16 @@ function TransactionsContent() {
 
   // ── 3. Other filters & Search Debounce ──────────────────────────────────
   const [page, setPage] = useState<number>(1);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(urlSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState<string>(urlSearch);
   const [typeFilter, setTypeFilter] = useState<TransactionType | "ALL">("ALL");
   const [walletFilter, setWalletFilter] = useState<string>("ALL");
+
+  useEffect(() => {
+    setSearchQuery(urlSearch);
+    setDebouncedSearch(urlSearch);
+    setPage(1);
+  }, [urlSearch]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

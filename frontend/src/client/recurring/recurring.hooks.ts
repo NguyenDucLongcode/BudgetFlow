@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recurringService } from "./recurring.service";
 import { recurringKeys } from "./recurring.keys";
+import { invalidateDashboardQueries } from "@/src/lib/react-query/invalidate-dashboard";
 import type {
   CreateRecurringTransactionInput,
   UpdateRecurringTransactionInput,
@@ -26,6 +27,7 @@ export function useCreateRecurringTransaction() {
         queryKey: recurringKeys.all,
         exact: false,
       });
+      await invalidateDashboardQueries(queryClient);
     },
   });
 }
@@ -45,6 +47,7 @@ export function useUpdateRecurringTransaction() {
         queryKey: recurringKeys.all,
         exact: false,
       });
+      await invalidateDashboardQueries(queryClient);
     },
   });
 }
@@ -58,6 +61,7 @@ export function useDeleteRecurringTransaction() {
         queryKey: recurringKeys.all,
         exact: false,
       });
+      await invalidateDashboardQueries(queryClient);
     },
   });
 }
@@ -72,6 +76,7 @@ export function useToggleRecurringStatus() {
         queryKey: recurringKeys.all,
         exact: false,
       });
+      await invalidateDashboardQueries(queryClient);
     },
   });
 }

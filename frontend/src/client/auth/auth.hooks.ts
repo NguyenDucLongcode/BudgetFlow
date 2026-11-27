@@ -41,6 +41,13 @@ export function useLogin() {
 export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({
+    onMutate: async () => {
+      // Dừng toàn bộ polling / in-flight queries (đặc biệt là notifications) trước khi xóa token
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      await queryClient.cancelQueries();
+      queryClient.removeQueries({ queryKey: ["notifications"] });
+      queryClient.removeQueries({ queryKey: authKeys.profile() });
+    },
     mutationFn: (options?: LogoutOptions) =>
       options?.all ? authService.logoutAll() : authService.logout(),
 

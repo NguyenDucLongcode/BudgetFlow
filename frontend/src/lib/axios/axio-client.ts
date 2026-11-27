@@ -45,6 +45,26 @@ axiosClient.interceptors.request.use((config) => {
 let refreshPromise: Promise<void> | null = null;
 let isRecovering = false;
 
+const PUBLIC_PAGE_PATHS = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/verify-email",
+  "/auth/social-success",
+];
+
+function isPublicPageLocation(): boolean {
+  if (typeof window === "undefined") return false;
+  return PUBLIC_PAGE_PATHS.includes(window.location.pathname);
+}
+
+function hasClientSessionHint(): boolean {
+  if (typeof document === "undefined") return false;
+  return Boolean(getCookie("XSRF-TOKEN"));
+}
+
 /**
  * Xử lý bằng vũ lực khi phiên đăng nhập hỏng / refresh thất bại / logout lỗi.
  * Ép tải lại trang hoàn toàn (hard reload) về /login, xóa sạch React Query & localStorage state.
@@ -65,7 +85,11 @@ function forceHardRedirectToLogin() {
   }
 
   // Chuyển hướng kèm cờ error để Proxy Guard cho phép render trang login và không redirect ngược vào /admin
-  window.location.href = "/login?error=session_expired";
+  if (!isPublicPageLocation()) {
+    window.location.href = "/login?error=session_expired";
+  } else {
+    isRecovering = false;
+  }
 }
 
 async function recoverFromAuthenticationFailure() {
@@ -121,6 +145,22 @@ axiosClient.interceptors.response.use(
 
     // 4. Khi gặp lỗi 401 trên request thông thường (như /users/me, API dữ liệu...)
     if (status === 401) {
+      // Nếu đang trong quá trình recover/redirect -> ngắt ngay, không gọi lại refresh
+      if (isRecovering) {
+        return Promise.reject(error);
+      }
+
+      // Không gọi refresh token nếu là /users/me hoặc /users/preferences khi chưa có token/session hoặc đang ở trang public
+      const isOptionalSessionEndpoint =
+        requestUrl.includes("/users/me") ||
+        requestUrl.includes("/users/preferences");
+      if (
+        isOptionalSessionEndpoint &&
+        (!hasClientSessionHint() || isPublicPageLocation())
+      ) {
+        return Promise.reject(error);
+      }
+
       if (originalRequest._retry) {
         // Đã retry 1 lần mà vẫn 401 -> Session hết hạn / không hợp lệ -> Force redirect về login ngay, ngắt vòng lặp
         console.warn(

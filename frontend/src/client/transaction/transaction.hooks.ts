@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { useTranslations } from "next-intl";
 import { transactionService } from "./transaction.service";
 import { transactionKeys } from "./transactionKeys";
+import { invalidateDashboardQueries } from "@/src/lib/react-query/invalidate-dashboard";
 import type {
   CreateTransactionInput,
   UpdateTransactionInput,
@@ -59,9 +60,7 @@ export function useCreateTransaction() {
     onSuccess: async () => {
       toast.success(t("toastCreated"));
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: transactionKeys.all });
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
@@ -85,9 +84,7 @@ export function useUpdateTransaction() {
       await queryClient.invalidateQueries({
         queryKey: transactionKeys.detail(variables.id),
       });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: transactionKeys.all });
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });
@@ -107,9 +104,7 @@ export function useDeleteTransaction() {
     onSuccess: async () => {
       toast.success(t("toastDeleted"));
       await queryClient.invalidateQueries({ queryKey: transactionKeys.all });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budgets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["budget-summary"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: transactionKeys.all });
       await queryClient.refetchQueries({ queryKey: ["budgets"], exact: false });
       await queryClient.refetchQueries({ queryKey: ["budget-summary"], exact: false });

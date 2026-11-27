@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { Bell, Info, Target, WalletCards, CheckCheck } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
+import { useAuth } from "@/src/hooks/useAuth";
 import { translateNotification } from "@/src/utils/notification-i18n";
 import {
   NotificationDetailModal,
@@ -30,6 +31,7 @@ export function NotificationBell() {
   const t = useTranslations("notifications");
   const locale = useLocale();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationItem | null>(null);
@@ -37,6 +39,7 @@ export function NotificationBell() {
 
   const { data } = useQuery({
     queryKey: ["notifications", "latest"],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const response = await browserApiClient.get<NotificationResponse>(
         "/notifications",
@@ -50,7 +53,7 @@ export function NotificationBell() {
         summary: raw?.summary ?? { unread: 0 },
       };
     },
-    refetchInterval: 30_000,
+    refetchInterval: isAuthenticated ? 30_000 : false,
   });
 
   const notifications = data?.notifications ?? [];

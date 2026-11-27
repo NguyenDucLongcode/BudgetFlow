@@ -12,6 +12,7 @@ import { DebtPaymentModule } from './debt-payment/debt-payment.module';
 import { UserPreferenceModule } from './user-preference/user-preference.module';
 import { NotificationModule } from './notification/notification.module';
 import { TagModule } from './tag/tag.module';
+import { ReportModule } from './report/report.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TagModule } from './tag/tag.module';
     UserPreferenceModule,
     NotificationModule,
     TagModule,
+    ReportModule,
   ],
 })
 export class BaseModule {}

@@ -11,6 +11,7 @@ import {
   PieChart,
   Target,
   Receipt,
+  BarChart3,
   Settings,
   LogOut,
   ShieldCheck,
@@ -70,6 +71,11 @@ export function UserSidebar({
       title: t("debts"),
       href: "/debts",
       icon: Receipt,
+    },
+    {
+      title: t("reports"),
+      href: "/reports",
+      icon: BarChart3,
     },
   ];
 

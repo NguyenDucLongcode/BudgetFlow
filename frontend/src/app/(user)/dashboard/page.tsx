@@ -71,6 +71,25 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return null;
 }
 
+function formatCompactCurrency(
+  amount: number,
+  locale: string,
+  showPlusSign = false
+): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? "-" : showPlusSign && amount > 0 ? "+" : "";
+
+  if (abs >= 1_000_000_000) {
+    const val = (abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${sign}${val}${locale === "vi" ? " Tỷ" : "B"}`;
+  }
+  if (abs >= 1_000_000) {
+    const val = (abs / 1_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${sign}${val}${locale === "vi" ? " Tr" : "M"}`;
+  }
+  return `${sign}${abs.toLocaleString(locale === "vi" ? "vi-VN" : "en-US")} ₫`;
+}
+
 export default function UserDashboardPage() {
   const t = useTranslations("userDashboard");
   const locale = useLocale();
@@ -186,7 +205,8 @@ export default function UserDashboardPage() {
       title: t("totalBalance"),
       value: isLoadingWallets
         ? null
-        : `${totalBalance.toLocaleString("en-US")} ₫`,
+        : formatCompactCurrency(totalBalance, locale),
+      fullValue: `${totalBalance.toLocaleString("en-US")} ₫`,
       change: t("activeWalletsCount", { count: wallets.length }),
       isPositive: true,
       changeText: t("availableAssets"),
@@ -199,7 +219,8 @@ export default function UserDashboardPage() {
       title: t("monthlyIncome"),
       value: isLoadingStats
         ? null
-        : `+${(statsData?.income?.total || 0).toLocaleString("en-US")} ₫`,
+        : formatCompactCurrency(statsData?.income?.total || 0, locale, true),
+      fullValue: `+${(statsData?.income?.total || 0).toLocaleString("en-US")} ₫`,
       change: t("incomeCount", { count: statsData?.income?.count || 0 }),
       isPositive: true,
       changeText: t("thisMonth"),
@@ -212,7 +233,8 @@ export default function UserDashboardPage() {
       title: t("monthlyExpense"),
       value: isLoadingStats
         ? null
-        : `-${(statsData?.expense?.total || 0).toLocaleString("en-US")} ₫`,
+        : formatCompactCurrency(-(statsData?.expense?.total || 0), locale),
+      fullValue: `-${(statsData?.expense?.total || 0).toLocaleString("en-US")} ₫`,
       change: t("expenseCount", { count: statsData?.expense?.count || 0 }),
       isPositive: false,
       changeText: t("thisMonth"),
@@ -228,8 +250,13 @@ export default function UserDashboardPage() {
         : (() => {
             const net =
               (statsData?.income?.total || 0) - (statsData?.expense?.total || 0);
-            return `${net >= 0 ? "+" : ""}${net.toLocaleString("en-US")} ₫`;
+            return formatCompactCurrency(net, locale, true);
           })(),
+      fullValue: (() => {
+        const net =
+          (statsData?.income?.total || 0) - (statsData?.expense?.total || 0);
+        return `${net >= 0 ? "+" : ""}${net.toLocaleString("en-US")} ₫`;
+      })(),
       change: t("netCashflow"),
       isPositive: (statsData?.income?.total || 0) >= (statsData?.expense?.total || 0),
       changeText: t("netCashflowDesc"),
@@ -289,41 +316,44 @@ export default function UserDashboardPage() {
       </div>
 
       {/* 2. Top Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
 
           return (
             <div
               key={idx}
-              className={`p-5 rounded-3xl border border-slate-800 bg-gradient-to-br ${card.bgGradient} bg-[#111827]/70 backdrop-blur-md shadow-lg flex flex-col justify-between space-y-4 hover:border-slate-700/80 transition-all hover:-translate-y-0.5`}
+              className={`min-w-0 p-5 rounded-3xl border border-slate-800 bg-gradient-to-br ${card.bgGradient} bg-[#111827]/70 backdrop-blur-md shadow-lg flex flex-col justify-between space-y-4 hover:border-slate-700/80 transition-all hover:-translate-y-0.5`}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-400 truncate">
                   {card.title}
                 </span>
-                <div className={`p-2.5 rounded-2xl border ${card.iconBg}`}>
+                <div className={`p-2.5 rounded-2xl border shrink-0 ${card.iconBg}`}>
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 {card.value === null ? (
                   <Skeleton className="h-7 w-32 bg-slate-800 my-1" />
                 ) : (
-                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  <h3
+                    title={card.fullValue}
+                    className="text-xl sm:text-2xl font-black text-white tracking-tight truncate"
+                  >
                     {card.value}
                   </h3>
                 )}
-                <div className="flex items-center gap-1.5 mt-1 text-xs">
+                <div className="flex items-center gap-1.5 mt-1 text-xs min-w-0">
                   <span
-                    className={`font-semibold ${
+                    className={`font-semibold shrink-0 ${
                       card.isPositive ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
                     {card.change}
                   </span>
-                  <span className="text-slate-500">•</span>
+                  <span className="text-slate-500 shrink-0">•</span>
                   <span className="text-slate-400 text-[11px] truncate">
                     {card.changeText}
                   </span>
@@ -352,12 +382,18 @@ export default function UserDashboardPage() {
               <Skeleton className="h-7 w-32 bg-slate-800 my-1" />
             ) : (
               <div>
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-lg sm:text-xl font-black text-white tracking-tight font-mono">
-                    {budgetTotalSpent.toLocaleString("vi-VN")} ₫
+                <div className="flex items-baseline justify-between gap-2 min-w-0">
+                  <h3
+                    title={`${budgetTotalSpent.toLocaleString("vi-VN")} ₫`}
+                    className="text-lg sm:text-xl font-black text-white tracking-tight font-mono truncate"
+                  >
+                    {formatCompactCurrency(budgetTotalSpent, locale)}
                   </h3>
-                  <span className="text-xs text-slate-400 font-semibold font-mono">
-                    / {budgetTotalAllocated.toLocaleString("vi-VN")} ₫
+                  <span
+                    title={`${budgetTotalAllocated.toLocaleString("vi-VN")} ₫`}
+                    className="text-xs text-slate-400 font-semibold font-mono truncate shrink-0"
+                  >
+                    / {formatCompactCurrency(budgetTotalAllocated, locale)}
                   </span>
                 </div>
 
@@ -489,17 +525,23 @@ export default function UserDashboardPage() {
               <Skeleton className="h-7 w-32 bg-slate-800 my-1" />
             ) : (
               <div>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">{t("debtToPay")}</span>
-                    <span className="font-bold text-rose-400 font-mono">
-                      {Number(debtSummary?.loanRemaining || 0).toLocaleString("vi-VN")} ₫
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-400 truncate">{t("debtToPay")}</span>
+                    <span
+                      title={`${Number(debtSummary?.loanRemaining || 0).toLocaleString("vi-VN")} ₫`}
+                      className="font-bold text-rose-400 font-mono truncate"
+                    >
+                      {formatCompactCurrency(Number(debtSummary?.loanRemaining || 0), locale)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">{t("debtToCollect")}</span>
-                    <span className="font-bold text-emerald-400 font-mono">
-                      {Number(debtSummary?.debtRemaining || 0).toLocaleString("vi-VN")} ₫
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-400 truncate">{t("debtToCollect")}</span>
+                    <span
+                      title={`${Number(debtSummary?.debtRemaining || 0).toLocaleString("vi-VN")} ₫`}
+                      className="font-bold text-emerald-400 font-mono truncate"
+                    >
+                      {formatCompactCurrency(Number(debtSummary?.debtRemaining || 0), locale)}
                     </span>
                   </div>
                 </div>

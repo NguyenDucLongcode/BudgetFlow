@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { useTranslations } from "next-intl";
 import { walletKeys } from "./wallet.keys";
 import { walletService } from "./wallet.service";
+import { invalidateDashboardQueries } from "@/src/lib/react-query/invalidate-dashboard";
 import type {
   CreateWalletInput,
   UpdateWalletInput,
@@ -47,7 +48,7 @@ export function useCreateWallet() {
     mutationFn: (data: CreateWalletInput) => walletService.createWallet(data),
     onSuccess: async () => {
       toast.success(t("toastCreated"));
-      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
     onError: (error: unknown) => {
@@ -82,7 +83,7 @@ export function useUpdateWallet() {
       walletService.updateWallet(id, data),
     onSuccess: async (_, variables) => {
       toast.success(t("toastUpdated"));
-      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.invalidateQueries({ queryKey: walletKeys.detail(variables.id) });
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
@@ -100,7 +101,7 @@ export function useDeleteWallet() {
     mutationFn: (id: string) => walletService.deleteWallet(id),
     onSuccess: async () => {
       toast.success(t("toastDeleted"));
-      await queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["wallets"] });
     },
     onError: (error: unknown) => {

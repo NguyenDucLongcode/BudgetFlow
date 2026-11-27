@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Menu,
@@ -25,9 +25,11 @@ interface UserTopbarProps {
 
 export function UserTopbar({ user, onMenuToggle }: UserTopbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("userLayout");
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -48,12 +50,24 @@ export function UserTopbar({ user, onMenuToggle }: UserTopbarProps) {
     if (path === "/dashboard") return t("dashboard");
     if (path.startsWith("/wallets")) return t("wallets");
     if (path.startsWith("/transactions")) return t("transactions");
+    if (path.startsWith("/recurring")) return t("recurring");
     if (path.startsWith("/budgets")) return t("budgets");
     if (path.startsWith("/goals")) return t("goals");
     if (path.startsWith("/debts")) return t("debts");
+    if (path.startsWith("/reports")) return t("reports");
     if (path.startsWith("/notifications")) return t("notifications");
     if (path.startsWith("/settings")) return t("settings");
     return "BudgetFlow";
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = searchValue.trim();
+    if (trimmed) {
+      router.push(`/transactions?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push("/transactions");
+    }
   };
 
   const isAdmin = user?.role === "ADMIN";
@@ -76,16 +90,21 @@ export function UserTopbar({ user, onMenuToggle }: UserTopbarProps) {
       </div>
 
       {/* Middle: Quick Search Input */}
-      <div className="hidden md:flex items-center flex-1 max-w-md mx-4">
+      <form
+        onSubmit={handleSearchSubmit}
+        className="hidden md:flex items-center flex-1 max-w-md mx-4"
+      >
         <div className="relative w-full">
           <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             placeholder={t("searchPlaceholder")}
             className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm bg-slate-900/80 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
           />
         </div>
-      </div>
+      </form>
 
       {/* Right: Language, Notification, User Dropdown */}
       <div className="flex items-center gap-2 sm:gap-3">

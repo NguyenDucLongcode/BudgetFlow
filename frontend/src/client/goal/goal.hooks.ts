@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { goalService } from "./goal.service";
 import { goalKeys } from "./goal.keys";
+import { invalidateDashboardQueries } from "@/src/lib/react-query/invalidate-dashboard";
 import type {
   CreateGoalInput,
   UpdateGoalInput,
@@ -41,7 +42,7 @@ export function useCreateGoal() {
   return useMutation({
     mutationFn: (data: CreateGoalInput) => goalService.createGoal(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["goals"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["goals"], exact: false });
     },
   });
@@ -53,7 +54,7 @@ export function useUpdateGoal() {
     mutationFn: ({ id, data }: { id: string; data: UpdateGoalInput }) =>
       goalService.updateGoal(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["goals"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["goals"], exact: false });
     },
   });
@@ -64,7 +65,7 @@ export function useDeleteGoal() {
   return useMutation({
     mutationFn: (id: string) => goalService.deleteGoal(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["goals"], exact: false });
+      await invalidateDashboardQueries(queryClient);
       await queryClient.refetchQueries({ queryKey: ["goals"], exact: false });
     },
   });
@@ -76,10 +77,7 @@ export function useContributeGoal() {
     mutationFn: ({ id, data }: { id: string; data: ContributeGoalInput }) =>
       goalService.contribute(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["goals"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["wallets"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["transactions"], exact: false });
-      await queryClient.invalidateQueries({ queryKey: ["statistics"], exact: false });
+      await invalidateDashboardQueries(queryClient);
 
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ["goals"], exact: false }),

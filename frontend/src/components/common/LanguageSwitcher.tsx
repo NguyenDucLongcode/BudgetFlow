@@ -1,10 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Globe, Check, ChevronDown } from "lucide-react";
 import { browserApiClient } from "@/src/lib/bff";
+import { getCookie } from "@/src/lib/utils/cookie";
+
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/verify-email",
+  "/auth/social-success",
+];
 
 const LANGUAGES = [
   { code: "en", dbCode: "EN", label: "English", flag: "🇬🇧" },
@@ -15,6 +26,7 @@ export function LanguageSwitcher() {
   const currentLocale = useLocale();
   const t = useTranslations("language");
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -48,13 +60,19 @@ export function LanguageSwitcher() {
       `NEXT_LOCALE=${lang.code}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`,
     );
 
-    // 2. Gửi API lưu vào Database nếu user đã đăng nhập
-    try {
-      await browserApiClient.patch("/users/preferences", {
-        language: lang.dbCode,
-      });
-    } catch {
-      // Ignored nếu user chưa đăng nhập hoặc offline
+    // 2. Chỉ gửi API lưu vào Database nếu user đã đăng nhập (có XSRF-TOKEN và không ở trang public)
+    const hasSession =
+      typeof document !== "undefined" && Boolean(getCookie("XSRF-TOKEN"));
+    const isPublicPage = PUBLIC_PATHS.includes(pathname);
+
+    if (hasSession && !isPublicPage) {
+      try {
+        await browserApiClient.patch("/users/preferences", {
+          language: lang.dbCode,
+        });
+      } catch {
+        // Ignored nếu user chưa đăng nhập hoặc offline
+      }
     }
 
     // 3. Refresh Next.js UI và reload trang để kích hoạt toàn bộ components (cả server và client) cập nhật ngôn ngữ ngay lập tức
