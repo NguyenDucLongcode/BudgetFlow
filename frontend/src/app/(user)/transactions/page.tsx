@@ -141,12 +141,6 @@ function TransactionsContent() {
   const [walletFilter, setWalletFilter] = useState<string>("ALL");
 
   useEffect(() => {
-    setSearchQuery(urlSearch);
-    setDebouncedSearch(urlSearch);
-    setPage(1);
-  }, [urlSearch]);
-
-  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
       setPage(1);
@@ -627,6 +621,12 @@ function TransactionsContent() {
   );
 }
 
+function TransactionsWithSearchKey() {
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("search") ?? "";
+  return <TransactionsContent key={urlSearch} />;
+}
+
 export default function TransactionsPage() {
   return (
     <Suspense
@@ -641,7 +641,7 @@ export default function TransactionsPage() {
         </div>
       }
     >
-      <TransactionsContent />
+      <TransactionsWithSearchKey />
     </Suspense>
   );
 }

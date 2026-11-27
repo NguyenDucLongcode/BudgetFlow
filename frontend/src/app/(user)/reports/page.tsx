@@ -171,9 +171,10 @@ export default function ReportsPage() {
     return String(val);
   };
 
+  const topCategories = data?.topCategories;
   const pieData = useMemo(() => {
-    if (!data?.topCategories) return [];
-    return data.topCategories.map((cat, idx) => ({
+    if (!topCategories) return [];
+    return topCategories.map((cat, idx) => ({
       ...cat,
       displayName: getLocalizedName(
         { nameVi: cat.nameVi, nameEn: cat.nameEn },
@@ -181,10 +182,11 @@ export default function ReportsPage() {
       ),
       fillColor: cat.color || PIE_COLORS[idx % PIE_COLORS.length],
     }));
-  }, [data?.topCategories, locale]);
+  }, [topCategories, locale]);
 
+  const cashFlowBreakdown = data?.cashFlowBreakdown;
   const allocationData = useMemo(() => {
-    const breakdown = data?.cashFlowBreakdown ?? [];
+    const breakdown = cashFlowBreakdown ?? [];
     const total = breakdown.reduce((sum, item) => sum + (item.value || 0), 0);
     return breakdown.map((item) => {
       const label =
@@ -201,21 +203,21 @@ export default function ReportsPage() {
         percentage,
       };
     });
-  }, [data?.cashFlowBreakdown, t]);
+  }, [cashFlowBreakdown, t]);
 
   const allocationTotal = useMemo(
     () => allocationData.reduce((sum, item) => sum + item.value, 0),
     [allocationData]
   );
 
+  const summaryTotalIncome = data?.summary?.totalIncome ?? 0;
   const debtPlusSavingsPercent = useMemo(() => {
-    const totalIncome = data?.summary?.totalIncome ?? 0;
-    if (totalIncome <= 0) return 0;
+    if (summaryTotalIncome <= 0) return 0;
     const debtAndSavings = allocationData
       .filter((item) => item.key === "debt" || item.key === "savings")
       .reduce((sum, item) => sum + item.value, 0);
-    return Number(((debtAndSavings / totalIncome) * 100).toFixed(1));
-  }, [allocationData, data?.summary?.totalIncome]);
+    return Number(((debtAndSavings / summaryTotalIncome) * 100).toFixed(1));
+  }, [allocationData, summaryTotalIncome]);
 
   const renderComparisonBadge = (
     percent: number | null | undefined,
