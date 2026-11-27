@@ -1,5 +1,8 @@
 # BudgetFlow
 
+[![Backend CI](https://github.com/NguyenDucLongcode/BudgetFlow/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/NguyenDucLongcode/BudgetFlow/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/NguyenDucLongcode/BudgetFlow/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/NguyenDucLongcode/BudgetFlow/actions/workflows/frontend-ci.yml)
+
 ![Next.js](https://img.shields.io/badge/Next.js-16.2-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![NestJS](https://img.shields.io/badge/NestJS-11.1-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
@@ -37,7 +40,23 @@ Built with a decoupled **Next.js App Router (BFF)** frontend and a modular **Nes
 | **Database & Cache** | PostgreSQL 15, Redis (session/token store, caching, queues) |
 | **Realtime & Notifications** | Socket.IO (`@nestjs/platform-socket.io` & `socket.io-client`), Nodemailer (SMTP) |
 | **Observability & Infra** | Docker Compose, Prometheus, Grafana, Swagger / OpenAPI |
+| **CI/CD & Docker** | Dockerized environment for seamless deployment. Automated CI pipelines via GitHub Actions (Linting & Build checks). |
 | **i18n** | `next-intl` (`en` / `vi`) + bilingual Prisma schema (`nameVi`, `nameEn`) |
+
+---
+
+## Quick Start with Docker Compose
+
+Run the entire stack (PostgreSQL, Redis, NestJS Backend, Next.js Frontend, Prometheus, and Grafana) with a single command:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+- **Frontend:** [`http://localhost:3000`](http://localhost:3000)
+- **Backend API & Swagger:** [`http://localhost:8080/api/docs`](http://localhost:8080/api/docs)
+
+For manual local development without Dockerized app containers, see [`Setup Guide`](./docs/SETUP_GUIDE.md).
 
 ---
 
